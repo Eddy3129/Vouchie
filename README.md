@@ -1,148 +1,79 @@
-# 🏗 Scaffold-ETH 2
+# 🎯 Vouchie: Turn your Group Chat into a Growth Loop
 
-<h4 align="center">
-  <a href="https://docs.scaffoldeth.io">Documentation</a> |
-  <a href="https://scaffoldeth.io">Website</a>
-</h4>
+> **"Transform social streaks into an endless stream of willpower"**
 
-🧪 An open-source, up-to-date toolkit for building decentralized applications (dapps) on the Ethereum blockchain. It's designed to make it easier for developers to create and deploy smart contracts and build user interfaces that interact with those contracts.
+Vouchie is the first **Social Staking Protocol** built on **Base** and **Farcaster**. We turn your personal goals into high-stakes social games. 
 
-⚙️ Built using NextJS, RainbowKit, Foundry, Wagmi, Viem, and Typescript.
+Don't just *say* you're going to the gym. Lock $50 on it, tag your best friends as vouchies, and tell them: **"If I didn't make it, lunch on me."**
 
-- ✅ **Contract Hot Reload**: Your frontend auto-adapts to your smart contract as you edit it.
-- 🪝 **[Custom hooks](https://docs.scaffoldeth.io/hooks/)**: Collection of React hooks wrapper around [wagmi](https://wagmi.sh/) to simplify interactions with smart contracts with typescript autocompletion.
-- 🧱 [**Components**](https://docs.scaffoldeth.io/components/): Collection of common web3 components to quickly build your frontend.
-- 🔥 **Burner Wallet & Local Faucet**: Quickly test your application with a burner wallet and local faucet.
-- 🔐 **Integration with Wallet Providers**: Connect to different wallet providers and interact with the Ethereum network.
+---
 
-![Debug Contracts tab](https://github.com/scaffold-eth/scaffold-eth-2/assets/55535804/b237af0c-5027-4849-a5c1-2e31495cccb1)
+## ⚡ The Vibe
 
-## Requirements
+Most habit apps are boring spreadsheets. Vouchie is productivity with skin in the game. Bet on yourself: achieve your goals to keep your stake, or slack off and let your friends take it all.
 
-Before you begin, you need to install the following tools:
+*   **Win the Day:** Get your money back + earn a **"Verified Vouchie" NFT Badge**.
+*   **Flake Out:** Your locked funds get liquidated and **sent directly to your friends' wallets**.
 
-- [Node (>= v20.18.3)](https://nodejs.org/en/download/)
-- Yarn ([v1](https://classic.yarnpkg.com/en/docs/install/) or [v2+](https://yarnpkg.com/getting-started/install))
-- [Git](https://git-scm.com/downloads)
+It transforms failure from a shameful secret into "Pizza night is on Alice."
 
-## Quickstart
+---
 
-To get started with Scaffold-ETH 2, follow the steps below:
+## 🎮 How It Plays
 
-1. Install dependencies if it was skipped in CLI:
+### 1. The Call Out (Stake)
+Alice wants to ship a side project in 7 days.
+*   She locks **$100 USDC** in the Vouchie Vault.
+*   She invites Bob and Charlie to be her **Vouchies** (Verifiers).
 
-```
-cd my-dapp-example
-yarn install
-```
+### 2. The Grind (Prove)
+Alice posts updates via a Farcaster Frame.
+*   Bob and Charlie vote: **"Legit"** or **"Cap"**.
+*   Real-time notifications keep the pressure on.
 
-2. Run a local network in the first terminal:
+### 3. The Verdict (Settle)
+*   **Success:** Alice gets her $100 back. She mints a **Vouchie Badge** (Proof of Consistency). Bob and Charlie gain on-chain reputation.
+*   **Failure:** The protocol takes a small **Lazy Tax (10%)**. The remaining **$90 is split instantly between Bob and Charlie**.
 
-```
-yarn chain
-```
+---
 
-This command starts a local Ethereum network using Foundry. The network runs on your local machine and can be used for testing and development. You can customize the network configuration in `packages/foundry/foundry.toml`.
+## 💸 Monetization & Mechanics
 
-3. On a second terminal, deploy the test contract:
+We've gamified accountability with three core levers:
 
-```
-yarn deploy
-```
+### 🩸 The Lazy Tax
+If you fail, the protocol takes a **10% cut** before paying out your friends.
+*   *Why?* Because failure shouldn't be free.
 
-This command deploys a test smart contract to the local network. The contract is located in `packages/foundry/contracts` and can be modified to suit your needs. The `yarn deploy` command uses the deploy script located in `packages/foundry/script` to deploy the contract to the network. You can also customize the deploy script.
+### 🧊 Streak Freeze
+Life happens. Missed a deadline?
+*   Pay a **Protocol Fee** to extend your deadline by 12 hours.
+*   *Why?* Cheaper than losing the whole pot. Keeps you in the game.
 
-4. On a third terminal, start your NextJS app:
+### 🏆 Status Badges
+Winning feels good. Showing off feels better.
+*   Mint a **Vouchie Badge** upon success.
+*   These are **Soulbound Proof-of-Work** artifacts. "I ran 5km for 30 days, verified by 3 humans."
 
-```
-yarn start
-```
+---
 
-Visit your app on: `http://localhost:3000`. You can interact with your smart contract using the `Debug Contracts` page. You can tweak the app config in `packages/nextjs/scaffold.config.ts`.
+## 🏗️ Under the Hood
 
-Run smart contract test with `yarn foundry:test`
+Vouchie is a "Headless Marketplace" living entirely in your social feed.
 
-- Edit your smart contracts in `packages/foundry/contracts`
-- Edit your frontend homepage at `packages/nextjs/app/page.tsx`. For guidance on [routing](https://nextjs.org/docs/app/building-your-application/routing/defining-routes) and configuring [pages/layouts](https://nextjs.org/docs/app/building-your-application/routing/pages-and-layouts) checkout the Next.js documentation.
-- Edit your deployment scripts in `packages/foundry/script`
+*   **Smart Contracts:** `VouchieVault.sol` (Escrow & Voting), `VouchieBadge.sol` (NFTs).
+*   **Network:** **Base** (Fast, cheap, perfectly suited for micro-stakes).
+*   **Interface:** **Farcaster Frames** (No new apps to install. Just cast and commit).
 
-## 🚀 Miniapp Functionality
+---
 
-Miniapp extension adds functionality to easily create a Farcaster/Base MiniApp. It will take care of manifest file generation at .well-known/farcatser.json as well as generation of the metatags required for miniapp rendering in Farcaster/Base feed.
+## 🔮 Roadmap
 
-### Requirements
+*   **v1 (Current):** Single goals, USDC staking, Friend-verifiers.
+*   **v2 (Vouchie Wars):** Team vs Team. 5 people running vs 5 people running. Winner takes the combined pot.
+*   **v3 (Public Markets):** Let strangers bet on your success (Prediction Markets for Habits).
 
-According to [MiniApp SDK documentation](https://miniapps.farcaster.xyz/docs/getting-started):
+---
 
-- Node.js 22.11.0 or higher (LTS version recommended)
-- Check your version: ```node --version```
-- Download from [nodejs.org](https://nodejs.org)
-
-### Installation
-- Copy packages/nextjs/.env.example to packages/nextjs/.env
-- Run ngrok (or other) externally available tunnel
-```typescript
-ngrok http http://localhost:3000 --url https://yoursubdomian.ngrok.dev
-```
-- Update ```NEXT_PUBLIC_URL``` in packages/nextjs/.env for your domain
-- Go to https://farcaster.xyz/~/developers/mini-apps/preview , enter your app domain and click "Open URL as Mini App"
-
-Your miniapp should render as a MiniApp in Farcaster Preview
-
-![MiniApp Preview](https://raw.githubusercontent.com/NikolaiL/miniapp/master/images/MiniAppScreenshot.png)
-
-For production you will need to generate the manifest accountAssociation values for your production domain and add them to the .env file (```FARCASTER_HEADER, FARCASTER_PAYLOAD, FARCASTER_SIGNATURE```). You can generate them using [Farcaster Manifest Tools](https://farcaster.xyz/~/developers/mini-apps/manifest).
-
-### 🔗 Links
-
-- [Farcaster MiniApp Documentation](https://miniapps.farcaster.xyz)
-- [Farcaster MiniApp DevTools](https://farcaster.xyz/~/developers/)
-- [Base Miniapp Preview](https://www.base.dev/preview)
-
-## 🚀Ponder Setup
-
-This extension also allows to use Ponder (https://ponder.sh/) for event indexing on an SE-2 dapp.
-
-Ponder is an open-source framework for blockchain application backends. With Ponder, you can rapidly build & deploy an API that serves custom data from smart contracts on any EVM blockchain.
-
-### Config
-
-Ponder config (```packages/ponder/ponder.config.ts```) is set automatically from the deployed contracts and using the first blockchain network setup at ```packages/nextjs/scaffold.config.ts```.
-
-### Design your schema
-
-You can define your Ponder data schema on the file at ```packages/ponder/ponder.schema.ts``` following the Ponder documentation (https://ponder.sh/docs/schema).
-
-### Indexing data
-
-You can index events by adding files to ```packages/ponder/src/``` (https://ponder.sh/docs/indexing/write-to-the-database)
-
-### Start the development server
-
-Run ```yarn ponder:dev``` to start the Ponder development server, for indexing and serving the GraphQL API endpoint at http://localhost:42069
-
-### Query the GraphQL API
-
-With the dev server running, open http://localhost:42069 in your browser to use the GraphiQL interface. GraphiQL is a useful tool for exploring your schema and testing queries during development. (https://ponder.sh/docs/query/graphql)
-
-You can query data on a page using ```@tanstack/react-query```. Check the code at ```packages/nextjs/app/greetings/page.ts``` to get the greetings updates data and show it.
-
-### Deploy
-
-To deploy the Ponder indexer please refer to the Ponder Deploy documentation https://ponder.sh/docs/production/deploy
-
-At **Settings** -> **Deploy** -> you must set **Custom Start Command** to ```yarn ponder:start```.
-
-And then you have to set up the ```NEXT_PUBLIC_PONDER_URL``` env variable on your SE-2 dapp to use the deployed ponder indexer.
-
-## Documentation
-
-Visit our [docs](https://docs.scaffoldeth.io) to learn how to start building with Scaffold-ETH 2.
-
-To know more about its features, check out our [website](https://scaffoldeth.io).
-
-## Contributing to Scaffold-ETH 2
-
-We welcome contributions to Scaffold-ETH 2!
-
-Please see [CONTRIBUTING.MD](https://github.com/scaffold-eth/scaffold-eth-2/blob/main/CONTRIBUTING.md) for more information and guidelines for contributing to Scaffold-ETH 2.
+**Ready to lock in?**
+[Launch App] | [Read Docs] | [Follow on Farcaster]
