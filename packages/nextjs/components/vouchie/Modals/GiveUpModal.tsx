@@ -35,8 +35,13 @@ const GiveUpModal = ({ isOpen, onClose, goal, onConfirmGiveUp, onExtend }: GiveU
         <h4 className="text-center text-lg font-bold text-stone-800 dark:text-stone-100 mb-1">Ready to Quit?</h4>
 
         {/* Goal Title */}
-        <p className="text-center text-sm font-semibold text-stone-500 dark:text-stone-400 mb-4 line-clamp-2">
+        <p className="text-center text-sm font-semibold text-stone-500 dark:text-stone-400 mb-2 line-clamp-2">
           &quot;{goal.title}&quot;
+        </p>
+
+        {/* Warning about losing stake */}
+        <p className="text-center text-xs font-bold text-red-500 dark:text-red-400 mb-4">
+          ⚠️ You will lose your ${goal.stake} USDC stake
         </p>
 
         {/* Premium Option - Extend */}

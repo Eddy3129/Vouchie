@@ -275,7 +275,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                 <button
                   key={chip.label}
                   onClick={chip.action}
-                  className={`flex-1 py-1.5 rounded-lg font-bold text-[10px] transition-all active:scale-95 ${
+                  className={`flex-1 py-1.5 rounded-lg font-bold text-xs transition-all active:scale-95 ${
                     activeChip === chip.label
                       ? "bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900"
                       : "bg-white dark:bg-stone-700 text-stone-500 dark:text-stone-400 hover:text-[#8B5A2B] dark:hover:text-orange-300"
@@ -291,7 +291,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Users size={14} weight="fill" className="text-stone-400" />
-              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Squad</span>
+              <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Squad</span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               <button className="flex-shrink-0 w-10 h-10 rounded-xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center border-2 border-dashed border-stone-200 dark:border-stone-700 text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors">
@@ -301,7 +301,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                 <button
                   key={v.id}
                   onClick={() => toggleVouchie(v.id)}
-                  className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg border-b-3 transition-all relative ${
+                  className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-2xl border-b-3 transition-all relative ${
                     formData.vouchies.includes(v.id)
                       ? "bg-amber-100 dark:bg-orange-900/30 border-[#8B5A2B] dark:border-[#FFA726] translate-y-[1px] border-b-2"
                       : "bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700"
@@ -325,12 +325,11 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
               <Wallet size={18} weight="fill" className="text-[#8B5A2B] dark:text-[#FFA726]" />
               <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lock</span>
             </div>
-            <div className="flex-1 flex items-center gap-1">
-              <span className="text-lg font-bold text-stone-400">$</span>
+            <div className="flex-1 flex items-center justify-end gap-1">
               <input
                 type="number"
                 placeholder="10"
-                className="bg-transparent text-xl font-bold w-full outline-none text-stone-800 dark:text-stone-100 placeholder:text-stone-300 dark:placeholder:text-stone-600"
+                className="bg-transparent text-xl font-bold w-24 outline-none text-right text-stone-800 dark:text-stone-100 placeholder:text-stone-300 dark:placeholder:text-stone-600"
                 value={formData.stake}
                 onChange={e => setFormData({ ...formData, stake: Number(e.target.value) })}
               />

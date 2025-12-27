@@ -10,6 +10,7 @@ interface GoalCardProps {
   goal: Goal;
   onStart: (goal: Goal) => void;
   onViewDetails: (goal: Goal) => void;
+  isTimelineMode?: boolean;
 }
 
 const MOCK_PROFILES = [
@@ -43,7 +44,7 @@ const MOCK_PROFILES = [
   },
 ];
 
-const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
+const GoalCard = ({ goal, onStart, onViewDetails, isTimelineMode = false }: GoalCardProps) => {
   const isUrgent = goal.deadline - Date.now() < 1000 * 60 * 60 * 4;
   const isDone = goal.status === "done";
   const isPending = goal.status === "pending";
@@ -51,7 +52,8 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
 
   return (
     <div
-      className={`relative transition-all duration-300 ${isUrgent && goal.status === "in_progress" ? "urgent-glow rounded-2xl" : ""}`}
+      className={`relative transition-all duration-300 ${isUrgent && goal.status === "in_progress" ? "urgent-glow rounded-2xl" : ""} ${isTimelineMode ? "cursor-pointer" : ""}`}
+      onClick={() => isTimelineMode && onViewDetails(goal)}
     >
       <Card color={goal.status === "verifying" ? "bg-white" : goal.color} className="flex flex-col gap-4 mb-4">
         <div className="flex justify-between items-start">
@@ -124,7 +126,7 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
           </div>
         )}
 
-        {goal.status === "in_progress" && (
+        {!isTimelineMode && goal.status === "in_progress" && (
           <div>
             <div className="flex justify-between text-xs font-bold text-stone-500 dark:text-stone-400 mb-2">
               <span>Progress</span>
@@ -143,7 +145,7 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
           </button>
         )}
 
-        {goal.status === "in_progress" && (
+        {!isTimelineMode && goal.status === "in_progress" && (
           <div className="flex gap-2 mt-1">
             <button
               onClick={() => onViewDetails(goal)}

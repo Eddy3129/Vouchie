@@ -1,17 +1,44 @@
-import React from "react";
+import React, { useState } from "react";
 import { Goal } from "../../types/vouchie";
 import Card from "./Helper/Card";
-import { CalendarPlus, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { CalendarPlus, CaretLeft, CaretRight, CheckCircle, Clock, XCircle } from "@phosphor-icons/react";
 
 interface CalendarViewProps {
   tasks: Goal[];
 }
 
 const CalendarView = ({ tasks }: CalendarViewProps) => {
+  const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+
   const days = Array.from({ length: 35 }, (_, i) => {
     const day = i - 2;
     return day > 0 && day <= 31 ? day : null;
   });
+
+  const upcomingTasks = tasks.filter(t => t.status !== "done" && t.status !== "failed");
+  const pastTasks = tasks.filter(t => t.status === "done" || t.status === "failed");
+
+  const getDurationLeft = (deadline: number) => {
+    const now = new Date().getTime();
+    const diff = deadline - now;
+    if (diff <= 0) return "Overdue";
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    if (hours > 24) return `${Math.floor(hours / 24)}d left`;
+    if (hours > 0) return `${hours}h ${minutes}m left`;
+    return `${minutes}m left`;
+  };
+
+  const formatDateTime = (timestamp: number) => {
+    return new Date(timestamp).toLocaleString([], {
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const displayedTasks = activeTab === "upcoming" ? upcomingTasks : pastTasks;
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -57,27 +84,95 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
       </Card>
 
       <div className="space-y-3">
-        <h3 className="text-lg font-bold text-stone-700 dark:text-stone-200">Upcoming</h3>
-        <div className="bg-white/50 dark:bg-stone-800/50 p-4 rounded-2xl border border-stone-200 dark:border-stone-700 mb-3">
-          <div className="flex items-center gap-3 text-stone-500 dark:text-stone-400">
-            <CalendarPlus size={18} weight="bold" />
-            <p className="text-sm font-semibold">Write calendar feature coming soon</p>
-          </div>
-        </div>
-        {tasks.map(task => (
-          <div
-            key={task.id}
-            className="bg-white dark:bg-stone-800 p-3 rounded-2xl flex items-center gap-3 shadow-sm border border-stone-100 dark:border-stone-700"
+        {/* Tabs */}
+        <div className="flex gap-6 border-b border-stone-200 dark:border-stone-700 mb-4 px-2">
+          <button
+            onClick={() => setActiveTab("upcoming")}
+            className={`pb-2 text-sm font-bold transition-colors relative ${
+              activeTab === "upcoming"
+                ? "text-[#8B5A2B] dark:text-[#FFA726]"
+                : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
+            }`}
           >
-            <div className={`w-2 h-10 rounded-full ${task.color}`} />
-            <div>
-              <p className="font-bold text-stone-700 dark:text-stone-200">{task.title}</p>
-              <p className="text-xs text-stone-400 font-bold">
-                {new Date(task.deadline).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-              </p>
-            </div>
+            Upcoming
+            {activeTab === "upcoming" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#8B5A2B] dark:bg-[#FFA726] rounded-full" />
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("past")}
+            className={`pb-2 text-sm font-bold transition-colors relative ${
+              activeTab === "past"
+                ? "text-[#8B5A2B] dark:text-[#FFA726]"
+                : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
+            }`}
+          >
+            Past
+            {activeTab === "past" && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#8B5A2B] dark:bg-[#FFA726] rounded-full" />
+            )}
+          </button>
+        </div>
+
+        {/* Task List */}
+        {displayedTasks.length === 0 ? (
+          <div className="text-center py-8 text-stone-400 font-bold text-sm">
+            {activeTab === "upcoming" ? "No upcoming tasks!" : "No past tasks yet."}
           </div>
-        ))}
+        ) : (
+          displayedTasks.map(task => (
+            <div
+              key={task.id}
+              className="relative bg-white dark:bg-stone-800 py-1 pr-2 pl-4 rounded-lg flex items-center justify-between shadow-sm border border-stone-100 dark:border-stone-700"
+            >
+              <div
+                className={`absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full ${
+                  task.status === "done"
+                    ? "bg-green-500"
+                    : task.status === "failed"
+                      ? "bg-red-500"
+                      : "bg-[#8B5A2B] dark:bg-[#FFA726]"
+                }`}
+              />
+              <div className="flex flex-col min-w-0 flex-1 mr-2 pl-2 justify-center">
+                <p className="font-bold text-sm text-stone-800 dark:text-stone-100 truncate leading-none mb-1">
+                  {task.title}
+                </p>
+                <p className="text-[10px] text-stone-400 font-bold flex items-center gap-1 leading-none">
+                  {activeTab === "upcoming" ? (
+                    <>
+                      <Clock size={10} weight="bold" />
+                      {getDurationLeft(task.deadline)}
+                    </>
+                  ) : (
+                    <>
+                      {task.status === "done" ? (
+                        <span className="text-green-500 flex items-center gap-1">
+                          <CheckCircle size={10} weight="fill" /> Completed at {formatDateTime(task.deadline)}
+                        </span>
+                      ) : (
+                        <span className="text-red-500 flex items-center gap-1">
+                          <XCircle size={10} weight="fill" /> Failed at {formatDateTime(task.deadline)}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </p>
+              </div>
+              <div className="flex-shrink-0">
+                <span
+                  className={`text-sm font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 ${
+                    task.status === "failed"
+                      ? "bg-red-50 dark:bg-red-900/20 text-red-500"
+                      : "bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400"
+                  }`}
+                >
+                  {task.status === "failed" && <span>💸</span>}${task.stake}
+                </span>
+              </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

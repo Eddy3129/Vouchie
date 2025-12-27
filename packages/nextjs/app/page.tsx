@@ -23,11 +23,12 @@ import { parseEther } from "viem";
 import { useAccount } from "wagmi";
 import { useMiniapp } from "~~/components/MiniappProvider";
 import CalendarView from "~~/components/vouchie/CalendarView";
-import DirectionView from "~~/components/vouchie/DirectionView";
+import FriendActivityView from "~~/components/vouchie/FriendActivityView";
 import GoalCard from "~~/components/vouchie/GoalCard";
 import FontStyles from "~~/components/vouchie/Helper/FontStyles";
 import LoadingState from "~~/components/vouchie/LoadingState";
 import AddModal from "~~/components/vouchie/Modals/AddModal";
+import GiveUpModal from "~~/components/vouchie/Modals/GiveUpModal";
 import StartTaskModal from "~~/components/vouchie/Modals/StartTaskModal";
 import TaskDetailModal from "~~/components/vouchie/Modals/TaskDetailModal";
 import ProfileView from "~~/components/vouchie/ProfileView";
@@ -36,7 +37,7 @@ import Timeline from "~~/components/vouchie/Timeline";
 import VouchieView from "~~/components/vouchie/VouchieView";
 import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useFamousQuotes } from "~~/hooks/vouchie/useFamousQuotes";
-import { useLockiData } from "~~/hooks/vouchie/useLockiData";
+import { useVouchieData } from "~~/hooks/vouchie/useVouchieData";
 import { Goal, LongTermGoal } from "~~/types/vouchie";
 
 const MOCK_PROFILES = [
@@ -47,6 +48,8 @@ const MOCK_PROFILES = [
     avatarColor: "#8B5A2B",
     score: 2450,
     status: "online",
+    streak: 12,
+    saved: 350,
   },
   {
     id: 2,
@@ -55,6 +58,8 @@ const MOCK_PROFILES = [
     avatarColor: "#A67B5B",
     score: 2100,
     status: "offline",
+    streak: 5,
+    saved: 120,
   },
   {
     id: 3,
@@ -63,6 +68,8 @@ const MOCK_PROFILES = [
     avatarColor: "#FFA726",
     score: 1850,
     status: "online",
+    streak: 30,
+    saved: 500,
   },
 ];
 
@@ -88,7 +95,7 @@ const MOCK_LONG_TERM: LongTermGoal[] = [
   },
 ];
 
-const LockiApp = () => {
+const VouchieApp = () => {
   const { address } = useAccount();
   const { context } = useMiniapp();
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -99,26 +106,27 @@ const LockiApp = () => {
   // Selection States
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<Goal | null>(null);
   const [selectedTaskForStart, setSelectedTaskForStart] = useState<Goal | null>(null);
+  const [selectedTaskForGiveUp, setSelectedTaskForGiveUp] = useState<Goal | null>(null);
 
   // Data Hook
-  const { goals, loading, refresh } = useLockiData();
+  const { goals, loading, refresh } = useVouchieData();
   const [longTermGoals, setLongTermGoals] = useState<LongTermGoal[]>(MOCK_LONG_TERM);
 
   // Quotes
   const { dailyQuote } = useFamousQuotes();
 
   // Contract Info
-  const { data: vaultInfo } = useDeployedContractInfo("VouchieVault");
+  const { data: vaultInfo } = useDeployedContractInfo({ contractName: "VouchieVault" });
 
   // Contract Writes - VouchieVault
-  const { writeContractAsync: createGoal } = useScaffoldWriteContract("VouchieVault");
-  const { writeContractAsync: verifySolo } = useScaffoldWriteContract("VouchieVault");
-  const { writeContractAsync: streakFreeze } = useScaffoldWriteContract("VouchieVault");
-  const { writeContractAsync: cancelGoal } = useScaffoldWriteContract("VouchieVault");
+  const { writeContractAsync: createGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: verifySolo } = useScaffoldWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: streakFreeze } = useScaffoldWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: cancelGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
 
   // Contract Writes - MockUSDC
-  const { writeContractAsync: approveUSDC } = useScaffoldWriteContract("MockUSDC");
-  const { writeContractAsync: faucetUSDC } = useScaffoldWriteContract("MockUSDC");
+  const { writeContractAsync: approveUSDC } = useScaffoldWriteContract({ contractName: "MockUSDC" });
+  const { writeContractAsync: faucetUSDC } = useScaffoldWriteContract({ contractName: "MockUSDC" });
 
   // Read user's MockUSDC balance
   const { data: usdcBalance, refetch: refetchBalance } = useScaffoldReadContract({
@@ -190,9 +198,11 @@ const LockiApp = () => {
     console.log("Started task:", goalId, image);
   };
 
-  const handleSubmitProof = async (goalId: number) => {
+  const handleSubmitProof = async (goalId: number, _proof: string) => {
     const goal = goals.find(g => g.id === goalId);
     if (!goal) return;
+
+    console.log("Submitting proof:", _proof);
 
     try {
       if (goal.mode === "Solo") {
@@ -211,6 +221,10 @@ const LockiApp = () => {
   };
 
   const handleGiveUp = async (goalId: number) => {
+    setSelectedTaskForGiveUp(goals.find(g => g.id === goalId) || null);
+  };
+
+  const handleConfirmGiveUp = async (goalId: number) => {
     try {
       await cancelGoal({
         functionName: "cancelGoal",
@@ -218,6 +232,7 @@ const LockiApp = () => {
       });
       refresh();
       setSelectedTaskForDetails(null);
+      setSelectedTaskForGiveUp(null);
     } catch (e) {
       console.error("Error cancelling goal:", e);
     }
@@ -268,7 +283,7 @@ const LockiApp = () => {
               {[
                 { id: "dashboard", icon: House, label: "Home" },
                 { id: "calendar", icon: CalendarBlank, label: "Calendar" },
-                { id: "direction", icon: Compass, label: "Direction" },
+                { id: "feed", icon: Compass, label: "Feed" },
                 { id: "squad", icon: Users, label: "Vouchie" },
                 { id: "profile", icon: User, label: "Profile" },
               ].map(t => (
@@ -317,13 +332,13 @@ const LockiApp = () => {
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto px-4 pb-24 lg:px-8 lg:pb-8">
-              <div className="max-w-3xl mx-auto pt-2">
+            <div className="flex-1 overflow-y-auto px-6 pb-24 lg:px-8 lg:pb-8">
+              <div className="max-w-4xl mx-auto pt-6">
                 {activeTab === "dashboard" && (
                   <div className="space-y-6 animate-in fade-in duration-500">
                     <header>
-                      <h1 className="text-3xl font-bold text-stone-800 dark:text-stone-100">
-                        Hi, There! <span className="text-xs ml-1 opacity-80">👋</span>
+                      <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100">
+                        Let&apos;s start grinding.
                       </h1>
                     </header>
 
@@ -380,9 +395,9 @@ const LockiApp = () => {
                       <div className="flex-1 space-y-3 min-w-0">
                         {loading && <LoadingState variant="full" text="Loading goals..." />}
 
-                        {!loading && goals.length === 0 && (
+                        {!loading && goals.filter(t => t.status !== "done" && t.status !== "failed").length === 0 && (
                           <div className="p-8 text-center text-stone-400 font-bold border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
-                            No active goals. Start one! <span className="text-xs ml-1">🚀</span>
+                            Woohoo! No pending tasks! <span className="text-xs ml-1">🎉</span>
                           </div>
                         )}
 
@@ -395,6 +410,7 @@ const LockiApp = () => {
                                 goal={task}
                                 onStart={setSelectedTaskForStart}
                                 onViewDetails={setSelectedTaskForDetails}
+                                isTimelineMode={isTimelineView}
                               />
                             ))}
 
@@ -422,9 +438,7 @@ const LockiApp = () => {
                 )}
 
                 {activeTab === "calendar" && <CalendarView tasks={goals} />}
-                {activeTab === "direction" && (
-                  <DirectionView longTermGoals={longTermGoals} setLongTermGoals={setLongTermGoals} />
-                )}
+                {activeTab === "feed" && <FriendActivityView />}
                 {activeTab === "squad" && <VouchieView />}
                 {activeTab === "profile" && (
                   <ProfileView user={MOCK_PROFILES[0]} stats={MOCK_STATS} leaderboard={MOCK_PROFILES} />
@@ -436,9 +450,12 @@ const LockiApp = () => {
             <div className="hidden lg:block fixed bottom-10 right-10 z-50">
               <button
                 onClick={() => setAddModalOpen(true)}
-                className="w-16 h-16 bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 rounded-2xl shadow-xl hover:bg-[#6B4423] dark:hover:bg-[#FF9800] hover:scale-105 transition-all duration-200 flex items-center justify-center"
+                className="relative w-16 h-16 rounded-2xl overflow-hidden hover:scale-110 transition-all duration-300 shadow-[0_0_15px_rgba(255,167,38,0.3)] group"
               >
-                <Plus size={28} weight="bold" />
+                <div className="absolute inset-[-100%] bg-[conic-gradient(from_90deg_at_50%_50%,#1F1F1F_0%,#FFA726_50%,#1F1F1F_100%)] animate-[spin_2s_linear_infinite]" />
+                <div className="absolute inset-[2px] bg-[#1F1F1F] rounded-[14px] flex items-center justify-center z-10">
+                  <Plus size={32} weight="bold" className="text-[#FFA726]" />
+                </div>
               </button>
             </div>
 
@@ -459,15 +476,18 @@ const LockiApp = () => {
               {/* Center FAB in nav */}
               <button
                 onClick={() => setAddModalOpen(true)}
-                className="w-12 h-12 bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 rounded-xl shadow-lg hover:bg-[#6B4423] dark:hover:bg-[#FF9800] flex items-center justify-center -mt-2"
+                className="relative w-14 h-14 rounded-xl overflow-hidden hover:scale-105 transition-all duration-300 shadow-[0_0_15px_rgba(255,167,38,0.3)] -mt-4 group"
               >
-                <Plus size={24} weight="bold" />
+                <div className="absolute inset-[-100%] bg-[conic-gradient(from_90deg_at_50%_50%,#1F1F1F_0%,#FFA726_50%,#1F1F1F_100%)] animate-[spin_2s_linear_infinite]" />
+                <div className="absolute inset-[2px] bg-[#1F1F1F] rounded-[10px] flex items-center justify-center z-10">
+                  <Plus size={28} weight="bold" className="text-[#FFA726]" />
+                </div>
               </button>
               <button
-                onClick={() => setActiveTab("direction")}
-                className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "direction" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
+                onClick={() => setActiveTab("feed")}
+                className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "feed" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
               >
-                <Compass size={22} weight={activeTab === "direction" ? "fill" : "bold"} />
+                <Compass size={22} weight={activeTab === "feed" ? "fill" : "bold"} />
               </button>
               <button
                 onClick={() => setActiveTab("profile")}
@@ -489,6 +509,14 @@ const LockiApp = () => {
               onExtend={handleExtend}
             />
 
+            <GiveUpModal
+              isOpen={!!selectedTaskForGiveUp}
+              goal={selectedTaskForGiveUp}
+              onClose={() => setSelectedTaskForGiveUp(null)}
+              onConfirmGiveUp={handleConfirmGiveUp}
+              onExtend={handleExtend}
+            />
+
             <StartTaskModal
               isOpen={!!selectedTaskForStart}
               goal={selectedTaskForStart}
@@ -506,4 +534,4 @@ const LockiApp = () => {
   );
 };
 
-export default LockiApp;
+export default VouchieApp;

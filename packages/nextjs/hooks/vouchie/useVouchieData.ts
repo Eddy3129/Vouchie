@@ -20,7 +20,7 @@ const getStatus = (goal: any): "pending" | "in_progress" | "verifying" | "done" 
   return "in_progress";
 };
 
-export const useLockiData = () => {
+export const useVouchieData = () => {
   useAccount();
   const { targetNetwork } = useTargetNetwork();
   const [goals, setGoals] = useState<Goal[]>([]);

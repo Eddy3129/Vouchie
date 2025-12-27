@@ -54,6 +54,8 @@ export interface UserProfile {
   score: number;
   status: string;
   address?: string;
+  streak?: number;
+  saved?: number;
 }
 
 export interface Stats {
