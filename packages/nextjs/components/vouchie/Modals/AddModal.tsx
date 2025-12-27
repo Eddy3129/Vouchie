@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
-import { AlertTriangle, ArrowRight, Check, Edit2, Plus, Shield, Users, Wallet, X } from "lucide-react";
+import { ArrowRight, Check, CheckCircle2, Edit2, Plus, Users, Wallet, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 
 interface AddModalProps {
@@ -377,35 +377,34 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
       {/* Confirmation Modal Overlay */}
       {showConfirm && (
         <div className="absolute inset-0 z-[60] flex items-center justify-center p-6 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-[32px] p-6 w-full max-w-sm text-center animate-in zoom-in-95 duration-200 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-indigo-400 to-purple-400" />
-
-            <div className="w-20 h-20 bg-indigo-50 rounded-full flex items-center justify-center mx-auto mb-4 text-indigo-500 shadow-inner ring-4 ring-indigo-50">
-              <Shield size={40} fill="currentColor" className="opacity-20" />
-              <div className="absolute">
-                <Check size={32} strokeWidth={4} />
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm text-center animate-in zoom-in-95 duration-200 shadow-2xl relative overflow-hidden border border-stone-100">
+            <div className="flex flex-col items-center mb-6">
+              <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center text-orange-500">
+                <div className="text-2xl">🔒</div>
               </div>
+              <h4 className="text-2xl font-bold text-stone-800">Confirm Goal</h4>
             </div>
 
-            <h4 className="text-3xl chubby-text text-stone-800 mb-2">Lock it in?</h4>
-            <p className="text-stone-500 font-bold mb-8 leading-relaxed">
-              You&apos;re betting{" "}
-              <span className="text-stone-900 bg-yellow-100 px-2 rounded-lg border border-yellow-200 mx-1">
-                ${formData.stake}
-              </span>{" "}
-              on <br />
-              <span className="text-indigo-600 text-lg">&quot;{formData.title}&quot;</span>
-            </p>
+            <div className="mb-6">
+              <p className="text-stone-600 font-semibold mb-2">
+                You are about to stake{" "}
+                <span className="font-bold text-stone-900 bg-orange-100 px-2 py-1 rounded-lg border border-orange-200">
+                  USDC {formData.stake}
+                </span>
+              </p>
+              <p className="text-lg font-bold text-[#8B5A2B] leading-relaxed">&quot;{formData.title}&quot;</p>
+            </div>
 
-            {/* Solo Mode Hazard Warning (Now in Confirmation) */}
             {isSolo && (
-              <div className="bg-red-50 border border-red-100 rounded-2xl p-3 flex items-start gap-3 mb-6 animate-in fade-in slide-in-from-bottom-2 text-left">
-                <AlertTriangle className="text-red-500 flex-shrink-0 mt-0.5" size={18} />
-                <div>
-                  <p className="text-xs font-bold text-red-800 uppercase mb-0.5">Hazard: Solo Mode</p>
-                  <p className="text-[11px] font-bold text-red-600 leading-snug">
-                    YOU WILL LOSE ALL THE FUNDS IF YOU FAIL TO ACCOMPLISH YOUR GOAL. NO SQUAD TO VERIFY YOU.
-                  </p>
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
+                <div className="flex items-start gap-3">
+                  <span className="text-red-500 text-lg">⚠</span>
+                  <div className="text-left">
+                    <p className="text-xs font-bold text-red-800 uppercase mb-1">Important</p>
+                    <p className="text-sm text-red-600 font-semibold leading-snug">
+                      In Solo mode, you will lose your stake if you fail to complete the goal on time.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -413,18 +412,17 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
             <div className="flex flex-col gap-3">
               <button
                 onClick={confirmAdd}
-                className="w-full py-4 rounded-2xl font-bold text-white bg-stone-900 hover:bg-stone-800 transition-colors shadow-lg shadow-stone-200 text-lg flex items-center justify-center gap-2"
+                className="w-full py-4 rounded-xl font-bold text-white bg-[#8B5A2B] hover:bg-[#6B4423] transition-colors shadow-lg text-lg flex items-center justify-center gap-2"
               >
-                Yes, Let&apos;s Go! 🚀
+                <CheckCircle2 size={20} /> Confirm Goal
               </button>
               <button
                 onClick={() => {
                   setShowConfirm(false);
-                  setSliderValue(0);
                 }}
-                className="w-full py-3 rounded-xl font-bold text-stone-400 hover:text-stone-600 transition-colors"
+                className="w-full py-3 rounded-xl font-semibold text-stone-500 hover:bg-stone-100 hover:text-stone-700 transition-colors"
               >
-                Wait, not yet
+                Go Back
               </button>
             </div>
           </div>

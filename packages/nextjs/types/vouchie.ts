@@ -3,7 +3,7 @@ export interface Goal {
   title: string;
   stake: number;
   currency: string;
-  deadline: number; // timestamp
+  deadline: number;
   mode: "Squad" | "Solo";
   status: "pending" | "in_progress" | "verifying" | "done" | "failed";
   startTime: number | null;
@@ -19,6 +19,7 @@ export interface Goal {
 export interface Vouchie {
   name: string;
   avatar: string;
+  avatarColor?: string;
   status?: string;
   address?: string;
 }
@@ -47,8 +48,9 @@ export interface Routine {
 export interface UserProfile {
   id: number;
   name: string;
-  color: string;
+  color?: string;
   avatar: string;
+  avatarColor?: string;
   score: number;
   status: string;
   address?: string;

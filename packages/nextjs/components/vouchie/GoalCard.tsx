@@ -1,8 +1,10 @@
 import React from "react";
 import { Goal } from "../../types/vouchie";
-import CuteCard from "./Helper/CuteCard";
+import Avatar from "./Avatar";
+import Card from "./Helper/Card";
 import ProgressBar from "./Helper/ProgressBar";
-import { Clock, Eye, Play } from "lucide-react";
+import { Clock, Eye, Play } from "@phosphor-icons/react";
+import toast from "react-hot-toast";
 
 interface GoalCardProps {
   goal: Goal;
@@ -11,10 +13,34 @@ interface GoalCardProps {
 }
 
 const MOCK_PROFILES = [
-  { id: 1, name: "Mochi", color: "bg-pink-200", avatar: "🐱", score: 2450, status: "online" },
-  { id: 2, name: "Pudding", color: "bg-blue-200", avatar: "🐶", score: 2100, status: "offline" },
-  { id: 3, name: "Bunny", color: "bg-green-200", avatar: "🐰", score: 1850, status: "online" },
-  { id: 4, name: "Froggy", color: "bg-teal-200", avatar: "🐸", score: 1200, status: "offline" },
+  {
+    id: 1,
+    name: "Mochi",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mochi",
+    score: 2450,
+    status: "online",
+  },
+  {
+    id: 2,
+    name: "Pudding",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Pudding",
+    score: 2100,
+    status: "offline",
+  },
+  {
+    id: 3,
+    name: "Bunny",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Bunny",
+    score: 1850,
+    status: "online",
+  },
+  {
+    id: 4,
+    name: "Froggy",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Froggy",
+    score: 1200,
+    status: "offline",
+  },
 ];
 
 const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
@@ -25,13 +51,12 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
 
   return (
     <div
-      className={`relative transition-all duration-300 ${isUrgent && goal.status === "in_progress" ? "urgent-glow rounded-[28px]" : ""}`}
+      className={`relative transition-all duration-300 ${isUrgent && goal.status === "in_progress" ? "urgent-glow rounded-2xl" : ""}`}
     >
-      <CuteCard color={goal.status === "verifying" ? "bg-stone-100" : goal.color} className="flex flex-col gap-4 mb-4">
-        {/* Header */}
+      <Card color={goal.status === "verifying" ? "bg-white" : goal.color} className="flex flex-col gap-4 mb-4">
         <div className="flex justify-between items-start">
           <div>
-            <span className={`text-[10px] font-black uppercase tracking-widest ${goal.accent} opacity-60 mb-1 block`}>
+            <span className={`text-[10px] font-bold uppercase tracking-widest ${goal.accent} opacity-60 mb-1 block`}>
               {goal.mode} Quest
             </span>
             <h3
@@ -45,7 +70,7 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
               <div
                 className={`mt-1 text-xs font-bold flex items-center gap-1 ${isUrgent ? "text-orange-500" : "text-stone-400"}`}
               >
-                <Clock size={12} />
+                <Clock size={12} weight="bold" />
                 {Math.floor((goal.deadline - Date.now()) / (1000 * 60 * 60))}h left
               </div>
             )}
@@ -58,51 +83,59 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
           </div>
         </div>
 
-        {/* Comment Bubble */}
         {!isDone && latestComment && (
           <div className="mt-1">
-            <div className="relative bg-white/70 p-3 rounded-2xl rounded-tl-sm border border-white/50 group">
+            <div
+              className="relative bg-white/70 p-3 rounded-2xl border border-white/50 group cursor-pointer"
+              onClick={() => {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(latestComment.text);
+                  toast.success("Comment copied!", { duration: 2000, position: "top-center" });
+                }
+              }}
+            >
               <div className="flex gap-3 items-start">
-                <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center text-xs border border-white shadow-sm flex-shrink-0">
-                  {MOCK_PROFILES.find(p => p.name === latestComment.user)?.avatar || "👤"}
-                </div>
+                <Avatar
+                  src={MOCK_PROFILES.find(p => p.name === latestComment.user)?.avatar || ""}
+                  name={latestComment.user}
+                  size="sm"
+                  showBorder
+                />
                 <div className="flex-1">
-                  <span className="font-bold text-stone-700">{latestComment.user}</span>: &quot;{latestComment.text}
-                  &quot;
+                  <span className="font-bold text-stone-700 text-sm">{latestComment.user}</span>: &quot;
+                  {latestComment.text}&quot;
+                  <span className="text-xs text-stone-400 ml-2">📋</span>
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Started Time / Selfie Icon */}
         {goal.startTime && !isDone && (
           <div className="flex items-center gap-2 text-xs font-bold text-stone-500 bg-white/40 p-2 rounded-xl">
-            {goal.startImage && <span>{goal.startImage}</span>}
+            {goal.startImage && <span className="text-xs">{goal.startImage}</span>}
             <span>
               Started at {new Date(goal.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </span>
           </div>
         )}
 
-        {/* Progress */}
         {goal.status === "in_progress" && (
           <div>
             <div className="flex justify-between text-xs font-bold text-stone-500 mb-2">
               <span>Progress</span>
               <span>{goal.progress}%</span>
             </div>
-            <ProgressBar progress={goal.progress} color={goal.barColor} />
+            <ProgressBar progress={goal.progress} color="bg-orange-500" />
           </div>
         )}
 
-        {/* Actions */}
         {goal.status === "pending" && (
           <button
             onClick={() => onStart(goal)}
-            className="w-full py-3 bg-stone-800 text-white rounded-xl font-bold text-sm shadow-sm hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+            className="w-full py-3 bg-stone-800 text-white rounded-xl font-bold text-sm shadow-sm hover:bg-stone-700 transition-colors flex items-center justify-center gap-2 min-h-[44px]"
           >
-            Begin Task <Play size={16} fill="currentColor" />
+            Begin Task <Play size={16} weight="fill" />
           </button>
         )}
 
@@ -110,9 +143,9 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
           <div className="flex gap-2 mt-1">
             <button
               onClick={() => onViewDetails(goal)}
-              className="flex-1 py-3 bg-white rounded-xl text-stone-700 font-bold text-sm shadow-sm hover:bg-stone-50 transition-colors flex items-center justify-center gap-2 border border-stone-100"
+              className="flex-1 py-3 bg-white rounded-xl text-stone-700 font-bold text-sm shadow-sm hover:bg-stone-50 transition-colors flex items-center justify-center gap-2 border border-stone-200 min-h-[44px]"
             >
-              View Details <Eye size={16} />
+              View Details <Eye size={16} weight="bold" />
             </button>
           </div>
         )}
@@ -122,7 +155,7 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
             <Clock size={14} className="animate-spin" /> Verifying...
           </div>
         )}
-      </CuteCard>
+      </Card>
     </div>
   );
 };

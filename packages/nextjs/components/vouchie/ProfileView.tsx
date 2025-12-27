@@ -1,7 +1,7 @@
 import React from "react";
 import { Stats, UserProfile } from "../../types/vouchie";
-import CuteCard from "./Helper/CuteCard";
-import { CheckCircle2, Heart, Wallet, Zap } from "lucide-react";
+import Avatar from "./Avatar";
+import { CheckCircle, Fire, Heart, Star, Trophy, Wallet } from "@phosphor-icons/react";
 
 interface ProfileViewProps {
   user: UserProfile;
@@ -9,80 +9,159 @@ interface ProfileViewProps {
   leaderboard: UserProfile[];
 }
 
-const ProfileView = ({ user, stats, leaderboard }: ProfileViewProps) => (
-  <div className="space-y-6 animate-in fade-in duration-500">
-    {/* Header Profile Card */}
-    <div className="bg-white rounded-[32px] p-8 soft-shadow flex flex-col items-center text-center relative overflow-hidden">
-      {/* Decorative BG */}
-      <div className="absolute top-0 w-full h-32 bg-gradient-to-r from-indigo-200 to-pink-200 opacity-50" />
-
-      <div className="relative mt-12 mb-4">
-        <div
-          className={`w-24 h-24 rounded-full ${user.color} flex items-center justify-center text-5xl border-4 border-white shadow-md`}
-        >
-          {user.avatar}
-        </div>
-        <div className="absolute bottom-0 right-0 bg-indigo-500 text-white text-xs font-bold px-2 py-1 rounded-full border-2 border-white">
-          Lvl 5
-        </div>
-      </div>
-
-      <h2 className="text-3xl chubby-text text-stone-800">{user.name}</h2>
-      <p className="text-stone-400 font-bold mb-6">Productivity Wizard 🧙‍♂️</p>
-
-      <div className="flex gap-2">
-        <span className="bg-stone-100 text-stone-500 px-3 py-1 rounded-full text-xs font-bold">#Solidify</span>
-        <span className="bg-stone-100 text-stone-500 px-3 py-1 rounded-full text-xs font-bold">#Fitness</span>
-      </div>
-    </div>
-
-    {/* Stats Grid */}
-    <div className="grid grid-cols-2 gap-4">
-      <CuteCard className="flex flex-col items-center justify-center gap-2 bg-indigo-50">
-        <CheckCircle2 className="text-indigo-400" size={32} />
-        <span className="text-2xl chubby-text text-stone-700">{stats.tasksCompleted}</span>
-        <span className="text-xs font-bold text-stone-400 uppercase">Tasks Done</span>
-      </CuteCard>
-      <CuteCard className="flex flex-col items-center justify-center gap-2 bg-green-50">
-        <Wallet className="text-green-400" size={32} />
-        <span className="text-2xl chubby-text text-stone-700">${stats.usdcSaved}</span>
-        <span className="text-xs font-bold text-stone-400 uppercase">Saved</span>
-      </CuteCard>
-      <CuteCard className="flex flex-col items-center justify-center gap-2 bg-orange-50">
-        <Zap className="text-orange-400" size={32} />
-        <span className="text-2xl chubby-text text-stone-700">{stats.streak}</span>
-        <span className="text-xs font-bold text-stone-400 uppercase">Day Streak</span>
-      </CuteCard>
-      <CuteCard className="flex flex-col items-center justify-center gap-2 bg-pink-50">
-        <Heart className="text-pink-400" size={32} />
-        <span className="text-2xl chubby-text text-stone-700">{stats.reputation}</span>
-        <span className="text-xs font-bold text-stone-400 uppercase">Reputation</span>
-      </CuteCard>
-    </div>
-
-    {/* Leaderboard */}
-    <div className="space-y-4">
-      <h3 className="text-xl chubby-text text-stone-800 px-2">Friend Leaderboard</h3>
-      {leaderboard
-        .sort((a, b) => b.score - a.score)
-        .map((friend, index) => (
-          <CuteCard key={friend.id} className="flex items-center justify-between py-4 px-6">
-            <div className="flex items-center gap-4">
-              <span
-                className={`font-black text-xl w-6 ${index === 0 ? "text-yellow-500" : index === 1 ? "text-stone-400" : index === 2 ? "text-orange-400" : "text-stone-300"}`}
-              >
-                {index + 1}
-              </span>
-              <div className={`w-10 h-10 rounded-full ${friend.color} flex items-center justify-center text-lg`}>
-                {friend.avatar}
-              </div>
-              <span className="font-bold text-stone-700">{friend.name}</span>
-            </div>
-            <div className="text-sm font-bold text-stone-500">{friend.score} pts</div>
-          </CuteCard>
-        ))}
+const StatCard = ({ icon, value, label }: { icon: React.ReactNode; value: string | number; label: string }) => (
+  <div className="bg-white rounded-2xl p-5 shadow-md border border-stone-100 flex flex-col items-center gap-4">
+    <div className="text-3xl">{icon}</div>
+    <div className="flex-1 text-center">
+      <p className="text-3xl font-bold text-stone-800">{value}</p>
+      <p className="text-sm font-semibold text-stone-500">{label}</p>
     </div>
   </div>
 );
+
+const WeeklyChart = () => {
+  const data = [4, 6, 5, 7, 8, 6, 5, 4];
+  const max = Math.max(...data);
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-md border border-stone-100">
+      <h3 className="text-lg font-bold text-stone-800 mb-4">Weekly Goals</h3>
+      <div className="flex items-end gap-2 h-32 relative">
+        {/* Simple visualization */}
+        {[...data].map((value, i) => (
+          <div key={i} className="flex-1 flex flex-col justify-end h-full">
+            <div
+              className="w-full bg-[#F5F1EA] rounded-t-lg transition-all hover:bg-[#E8E1D5]"
+              style={{ height: `${(value / max) * 100}%` }}
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const StreakChart = () => {
+  const data = [
+    { day: "M", value: 0 },
+    { day: "T", value: 2 },
+    { day: "W", value: 1 },
+    { day: "T", value: 4 },
+    { day: "F", value: 3 },
+    { day: "S", value: 5 },
+    { day: "S", value: 7 },
+    { day: "S", value: 4 },
+  ];
+  const max = Math.max(...data.map(d => d.value));
+
+  return (
+    <div className="bg-white rounded-2xl p-6 shadow-md border border-stone-100">
+      <h3 className="text-lg font-bold text-stone-800 mb-4">7-Day Streak</h3>
+      <div className="flex items-end gap-2 h-40">
+        {data.map((d, i) => (
+          <div key={i} className="flex-1 flex flex-col justify-end h-full">
+            <div
+              className={`w-full rounded-t-md transition-all ${d.value > 0 ? "bg-[#8B5A2B]" : "bg-stone-100"}`}
+              style={{ height: `${(d.value / max) * 100}%` }}
+            />
+            <span className="text-xs font-bold text-stone-400 mt-2 text-center block">{d.day}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+const ProfileView = ({ user, stats, leaderboard }: ProfileViewProps) => {
+  return (
+    <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Profile Header */}
+      <div className="bg-white rounded-2xl p-8 shadow-md border border-stone-100 relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-[#FAF7F2] to-white" />
+        <div className="relative flex flex-col items-center mb-2">
+          <Avatar src={user.avatar} name={user.name} size="xl" showBorder />
+          <div className="text-center mt-4">
+            <h1 className="text-3xl font-bold text-stone-800">{user.name}</h1>
+            <p className="text-stone-500 font-semibold">Productivity Wizard</p>
+            <div className="flex items-center justify-center gap-2 mt-2">
+              <div className="bg-[#FFA726] text-white px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
+                <Star weight="fill" /> Lvl 5
+              </div>
+              <div className="bg-[#8B5A2B] text-white px-3 py-1 rounded-lg text-sm font-bold flex items-center gap-1">
+                <Trophy weight="fill" /> {user.score} XP
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="md:col-span-1">
+          <WeeklyChart />
+        </div>
+        <div className="md:col-span-1">
+          <StreakChart />
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <StatCard
+          icon={<CheckCircle weight="fill" className="text-green-600" />}
+          value={stats.tasksCompleted}
+          label="Tasks Done"
+        />
+        <StatCard
+          icon={<Wallet weight="fill" className="text-[#8B5A2B]" />}
+          value={`USDC ${stats.usdcSaved}`}
+          label="USDC Saved"
+        />
+        <StatCard
+          icon={<Fire weight="fill" className="text-orange-500" />}
+          value={`${stats.streak} days`}
+          label="Day Streak"
+        />
+        <StatCard
+          icon={<Heart weight="fill" className="text-[#A67B5B]" />}
+          value={stats.reputation}
+          label="Reputation"
+        />
+      </div>
+
+      {/* Leaderboard */}
+      <div className="bg-white rounded-2xl p-6 shadow-md border border-stone-100">
+        <h3 className="text-xl font-bold text-stone-800 mb-4">Vouchie Leaderboard</h3>
+        <div className="space-y-3">
+          {leaderboard
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 6)
+            .map((friend, index) => (
+              <div
+                key={friend.id}
+                className="flex items-center justify-between py-3 px-4 bg-stone-50 rounded-xl hover:bg-stone-100 transition-colors"
+              >
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <Avatar src={friend.avatar} name={friend.name} size="md" showBorder />
+                    <div
+                      className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold border-2 border-white ${index === 0 ? "bg-yellow-400" : index === 1 ? "bg-gray-400" : index === 2 ? "bg-orange-400" : "bg-stone-300"}`}
+                    >
+                      {index + 1}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="font-bold text-stone-700 text-sm">{friend.name}</p>
+                    <p className="text-xs text-stone-400">Reputation: {friend.score}</p>
+                  </div>
+                </div>
+                <div className="text-xl font-bold font-black text-stone-800">#{index + 1}</div>
+              </div>
+            ))}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export default ProfileView;

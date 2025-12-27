@@ -7,6 +7,16 @@
 @theme {
   --shadow-center: 0 0 12px -2px rgb(0 0 0 / 0.05);
   --animate-pulse-fast: pulse 1s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-shimmer: shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
 }
 
 @plugin "daisyui" {
@@ -18,22 +28,22 @@
 @plugin "daisyui/theme" {
   name: "light";
 
-  --color-primary: #93bbfb;
-  --color-primary-content: #212638;
-  --color-secondary: #dae8ff;
-  --color-secondary-content: #212638;
-  --color-accent: #93bbfb;
-  --color-accent-content: #212638;
-  --color-neutral: #212638;
+  --color-primary: #8B5A2B;
+  --color-primary-content: #ffffff;
+  --color-secondary: #A67B5B;
+  --color-secondary-content: #ffffff;
+  --color-accent: #FFA726;
+  --color-accent-content: #ffffff;
+  --color-neutral: #2C241B;
   --color-neutral-content: #ffffff;
   --color-base-100: #ffffff;
-  --color-base-200: #f4f8ff;
-  --color-base-300: #dae8ff;
-  --color-base-content: #212638;
-  --color-info: #93bbfb;
-  --color-success: #34eeb6;
-  --color-warning: #ffcf72;
-  --color-error: #ff8863;
+  --color-base-200: #F5F1EA;
+  --color-base-300: #E8E1D5;
+  --color-base-content: #2C241B;
+  --color-info: #8B5A2B;
+  --color-success: #4CAF50;
+  --color-warning: #FF9800;
+  --color-error: #F44336;
 
   --radius-field: 9999rem;
   --radius-box: 1rem;
@@ -43,22 +53,22 @@
 @plugin "daisyui/theme" {
   name: "dark";
 
-  --color-primary: #212638;
-  --color-primary-content: #f9fbff;
-  --color-secondary: #323f61;
-  --color-secondary-content: #f9fbff;
-  --color-accent: #4969a6;
-  --color-accent-content: #f9fbff;
-  --color-neutral: #f9fbff;
-  --color-neutral-content: #385183;
-  --color-base-100: #385183;
-  --color-base-200: #2a3655;
-  --color-base-300: #212638;
-  --color-base-content: #f9fbff;
-  --color-info: #385183;
-  --color-success: #34eeb6;
-  --color-warning: #ffcf72;
-  --color-error: #ff8863;
+  --color-primary: #FFA726;
+  --color-primary-content: #1A1A1A;
+  --color-secondary: #FFB74D;
+  --color-secondary-content: #1A1A1A;
+  --color-accent: #FF9800;
+  --color-accent-content: #ffffff;
+  --color-neutral: #F5F5F5;
+  --color-neutral-content: #2D2D2D;
+  --color-base-100: #2D2D2D;
+  --color-base-200: #242424;
+  --color-base-300: #1A1A1A;
+  --color-base-content: #F5F5F5;
+  --color-info: #FFA726;
+  --color-success: #66BB6A;
+  --color-warning: #FFA726;
+  --color-error: #EF5350;
 
   --radius-field: 9999rem;
   --radius-box: 1rem;
@@ -107,7 +117,7 @@
 }
 
 .btn {
-  @apply shadow-md;
+  @apply shadow-sm transition-all duration-200;
 }
 
 .btn.btn-ghost {

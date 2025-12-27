@@ -14,17 +14,17 @@ const StartTaskModal = ({ isOpen, onClose, goal, onStart }: StartTaskModalProps)
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#FDFBF7] w-full max-w-md rounded-[32px] p-6 soft-shadow animate-in slide-in-from-bottom-10 duration-300">
+      <div className="bg-[#FAF7F2] w-full max-w-md rounded-3xl p-6 shadow-md animate-in slide-in-from-bottom-10 duration-300">
         <div className="flex justify-between items-center mb-6">
-          <h3 className="text-2xl chubby-text text-stone-800">Ready to Start?</h3>
-          <button onClick={onClose} className="p-2 bg-stone-100 rounded-full hover:bg-stone-200">
+          <h3 className="text-2xl font-bold text-stone-800">Ready to Start?</h3>
+          <button onClick={onClose} className="p-2 bg-stone-100 rounded-full hover:bg-stone-200 transition-colors">
             <X size={20} />
           </button>
         </div>
 
         <div className="text-center mb-6">
-          <div className="w-20 h-20 bg-indigo-100 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">
-            📸
+          <div className="w-20 h-20 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-4 text-orange-500 shadow-inner ring-4 ring-orange-50">
+            <Camera size={32} />
           </div>
           <p className="text-stone-600 font-bold text-lg mb-2">Motivate Yourself!</p>
           <p className="text-stone-400 text-sm font-semibold px-4">
@@ -33,7 +33,7 @@ const StartTaskModal = ({ isOpen, onClose, goal, onStart }: StartTaskModalProps)
         </div>
 
         <button
-          className="w-full py-4 bg-stone-100 border-2 border-dashed border-stone-300 rounded-2xl mb-4 font-bold text-stone-500 hover:bg-stone-200 hover:border-stone-400 transition-colors flex items-center justify-center gap-2"
+          className="w-full py-4 bg-stone-100 border-2 border-dashed border-stone-300 rounded-2xl mb-4 font-bold text-stone-500 hover:bg-stone-200 hover:border-stone-400 transition-colors flex items-center justify-center gap-2 min-h-[52px]"
           onClick={() => onStart(goal.id, "📸")}
         >
           <Camera size={20} /> Tap to Snap & Start
@@ -47,7 +47,7 @@ const StartTaskModal = ({ isOpen, onClose, goal, onStart }: StartTaskModalProps)
 
         <button
           onClick={() => onStart(goal.id, null)}
-          className="w-full py-3 mt-4 text-stone-500 font-bold hover:bg-stone-100 rounded-2xl transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3 mt-4 text-stone-500 font-bold hover:bg-stone-100 rounded-2xl transition-colors flex items-center justify-center gap-2 min-h-[48px]"
         >
           Skip for now <ChevronRight size={16} />
         </button>
