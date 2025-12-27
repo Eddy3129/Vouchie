@@ -12,8 +12,8 @@ const getStatus = (goal: any): "pending" | "in_progress" | "verifying" | "done" 
   }
   const now = Date.now() / 1000;
   if (now > goal.deadline) {
-    // Deadline passed but not resolved -> verifying (waiting for resolution) or failed/expired
-    return "verifying";
+    // Deadline passed but not resolved -> failed (awaiting liquidation)
+    return "failed";
   }
   // If we had a "startTime", we could distinguish pending vs in_progress.
   // The contract doesn't store "startTime", so we assume "in_progress" if created.
@@ -99,15 +99,14 @@ export const useVouchieData = () => {
         const g: any = goalResult.result; // Struct
         const v: any = vouchiesResult.result; // Address array
 
-        // g is [id, creator, stakeAmount, deadline, description, resolved, successful, votesValid, votesInvalid]
-        // Accessing by index or property depending on wagmi config, typically array or object if named.
-        // Based on ABI, it returns named tuple.
-
+        // g is [id, creator, stakeAmount, deadline, createdAt, description, resolved, successful, votesValid, votesInvalid]
+        // Note: createdAt was added to the struct
         const stake = Number(g[2]);
         const deadline = Number(g[3]);
-        const description = g[4];
-        const resolved = g[5];
-        const successful = g[6];
+        const createdAt = Number(g[4]);
+        const description = g[5];
+        const resolved = g[6];
+        const successful = g[7];
 
         const vouchieAddresses = v as string[];
         const mode = vouchieAddresses.length === 0 ? "Solo" : "Squad";
@@ -125,6 +124,7 @@ export const useVouchieData = () => {
           stake: Number(stake) / 1e18, // Assuming 18 decimals
           currency: "USDC", // Mock
           deadline: deadline * 1000, // JS timestamp
+          createdAt: createdAt * 1000, // JS timestamp
           mode,
           status: getStatus({ resolved, successful, deadline }),
           startTime: null, // Contract doesn't track this

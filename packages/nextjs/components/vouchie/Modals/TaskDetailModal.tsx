@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Goal } from "../../../types/vouchie";
 import { Camera, CheckCircle, SmileySad, X } from "@phosphor-icons/react";
 
@@ -13,25 +13,37 @@ interface TaskDetailModalProps {
 
 const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp }: TaskDetailModalProps) => {
   const [proofText, setProofText] = useState("");
+  const [now, setNow] = useState(Date.now());
+
+  // Update time every second for live countdown
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const interval = setInterval(() => {
+      setNow(Date.now());
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [isOpen]);
 
   // Calculate time remaining and urgency
   const timeData = useMemo(() => {
-    if (!goal) return { hoursLeft: 0, minutesLeft: 0, percentRemaining: 0, urgency: "safe" };
+    if (!goal) return { hoursLeft: 0, minutesLeft: 0, secondsLeft: 0, percentRemaining: 0, urgency: "safe" };
 
-    const now = Date.now();
     const totalMs = goal.deadline - (goal.startTime || now - 3600000); // Assume 1h if no start
     const remainingMs = Math.max(0, goal.deadline - now);
 
     const hoursLeft = Math.floor(remainingMs / (1000 * 60 * 60));
     const minutesLeft = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+    const secondsLeft = Math.floor((remainingMs % (1000 * 60)) / 1000);
     const percentRemaining = Math.min(100, Math.max(0, (remainingMs / totalMs) * 100));
 
     let urgency: "safe" | "warning" | "danger" = "safe";
     if (hoursLeft < 1) urgency = "danger";
     else if (hoursLeft < 4) urgency = "warning";
 
-    return { hoursLeft, minutesLeft, percentRemaining, urgency };
-  }, [goal]);
+    return { hoursLeft, minutesLeft, secondsLeft, percentRemaining, urgency };
+  }, [goal, now]);
 
   if (!isOpen || !goal) return null;
   const isSolo = goal.mode === "Solo";
@@ -79,7 +91,7 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp }: TaskDeta
             <svg width="180" height="180" className="transform -rotate-90">
               {/* Background ring */}
               <circle cx="90" cy="90" r={radius} stroke="#374151" strokeWidth="8" fill="none" />
-              {/* Progress ring */}
+              {/* Progress ring - smooth transition */}
               <circle
                 cx="90"
                 cy="90"
@@ -90,7 +102,7 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp }: TaskDeta
                 strokeLinecap="round"
                 strokeDasharray={circumference}
                 strokeDashoffset={strokeDashoffset}
-                className="transition-all duration-1000"
+                style={{ transition: "stroke-dashoffset 1s linear, stroke 0.3s ease" }}
               />
             </svg>
 
@@ -123,10 +135,10 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp }: TaskDeta
           </div>
         </div>
 
-        {/* Time remaining text */}
+        {/* Time remaining text - now with seconds */}
         <div className="text-center mb-6">
           <div
-            className={`text-3xl font-bold ${
+            className={`text-3xl font-bold tabular-nums ${
               timeData.urgency === "danger"
                 ? "text-red-400"
                 : timeData.urgency === "warning"
@@ -134,7 +146,7 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp }: TaskDeta
                   : "text-green-400"
             }`}
           >
-            {timeData.hoursLeft}h {timeData.minutesLeft}m
+            {timeData.hoursLeft}h {timeData.minutesLeft}m {timeData.secondsLeft}s
           </div>
           <p className="text-stone-500 text-sm font-semibold">remaining</p>
         </div>

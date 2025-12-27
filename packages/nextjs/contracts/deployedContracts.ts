@@ -7,7 +7,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 const deployedContracts = {
   31337: {
     MockUSDC: {
-      address: "0x700b6a60ce7eaaea56f065753d8dcb9653dbad35",
+      address: "0x0c8e79f3534b00d9a3d4a856b665bf4ebc22f2ba",
       abi: [
         {
           type: "constructor",
@@ -355,10 +355,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 2,
+      deployedOnBlock: 29,
     },
     VouchieBadge: {
-      address: "0xa15bb66138824a1c7167f5e85b957d04dd34e468",
+      address: "0xed1db453c3156ff3155a97ad217b3087d5dc5f6e",
       abi: [
         {
           type: "constructor",
@@ -990,10 +990,10 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 2,
+      deployedOnBlock: 29,
     },
     VouchieVault: {
-      address: "0xb19b36b1456e65e3a6d514d3f715f204bd59f431",
+      address: "0xf7cd8fa9b94db2aa972023b379c7f72c65e4de9d",
       abi: [
         {
           type: "constructor",
@@ -1005,6 +1005,19 @@ const deployedContracts = {
             },
           ],
           stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
+          name: "CANCEL_GRACE_PERIOD",
+          inputs: [],
+          outputs: [
+            {
+              name: "",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
         },
         {
           type: "function",
@@ -1031,6 +1044,19 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "batchResolve",
+          inputs: [
+            {
+              name: "_goalIds",
+              type: "uint256[]",
+              internalType: "uint256[]",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
         },
         {
           type: "function",
@@ -1132,6 +1158,19 @@ const deployedContracts = {
         },
         {
           type: "function",
+          name: "forfeit",
+          inputs: [
+            {
+              name: "_goalId",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
+        },
+        {
+          type: "function",
           name: "getGoalDetails",
           inputs: [
             {
@@ -1173,6 +1212,30 @@ const deployedContracts = {
             },
             {
               name: "invalidVotes",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "getGracePeriodStatus",
+          inputs: [
+            {
+              name: "_goalId",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [
+            {
+              name: "inGracePeriod",
+              type: "bool",
+              internalType: "bool",
+            },
+            {
+              name: "remainingTime",
               type: "uint256",
               internalType: "uint256",
             },
@@ -1243,6 +1306,11 @@ const deployedContracts = {
               internalType: "uint256",
             },
             {
+              name: "createdAt",
+              type: "uint256",
+              internalType: "uint256",
+            },
+            {
               name: "description",
               type: "string",
               internalType: "string",
@@ -1266,6 +1334,25 @@ const deployedContracts = {
               name: "votesInvalid",
               type: "uint256",
               internalType: "uint256",
+            },
+          ],
+          stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "isGoalExpired",
+          inputs: [
+            {
+              name: "_goalId",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [
+            {
+              name: "isExpired",
+              type: "bool",
+              internalType: "bool",
             },
           ],
           stateMutability: "view",
@@ -1776,7 +1863,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 2,
+      deployedOnBlock: 29,
     },
   },
 } as const;

@@ -4,6 +4,7 @@ export interface Goal {
   stake: number;
   currency: string;
   deadline: number;
+  createdAt?: number; // Timestamp when goal was created (for grace period)
   mode: "Squad" | "Solo";
   status: "pending" | "in_progress" | "verifying" | "done" | "failed";
   startTime: number | null;
@@ -15,6 +16,9 @@ export interface Goal {
   accent: string;
   barColor: string;
 }
+
+// Grace period constant (10 minutes in ms) - must match contract
+export const CANCEL_GRACE_PERIOD_MS = 10 * 60 * 1000;
 
 export interface Vouchie {
   name: string;

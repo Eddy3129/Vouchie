@@ -45,11 +45,15 @@ contract VouchieVault is ReentrancyGuard, Ownable {
 
     // --- Data Structures ---
 
+    /// @notice Grace period for free cancellation (10 minutes)
+    uint256 public constant CANCEL_GRACE_PERIOD = 10 minutes;
+
     struct Goal {
         uint256 id;
         address creator;
         uint256 stakeAmount;
         uint256 deadline;
+        uint256 createdAt;      // Timestamp when goal was created
         string description;
         address[] vouchies;     // Empty array implies Solo Mode
         bool resolved;
@@ -153,6 +157,7 @@ contract VouchieVault is ReentrancyGuard, Ownable {
         newGoal.creator = msg.sender;
         newGoal.stakeAmount = _amount;
         newGoal.deadline = block.timestamp + _duration;
+        newGoal.createdAt = block.timestamp;
         newGoal.description = _description;
         newGoal.vouchies = _vouchies;
 
@@ -160,24 +165,78 @@ contract VouchieVault is ReentrancyGuard, Ownable {
     }
 
     /**
-     * @notice Allows creator to cancel and refund if voting hasn't started.
-     * @dev Prevents accidental locks or typo errors.
+     * @notice Allows creator to cancel and get full refund within grace period (10 min).
+     * @dev Only works within CANCEL_GRACE_PERIOD after creation. Use forfeit() after that.
      */
     function cancelGoal(uint256 _goalId) external nonReentrant {
         Goal storage goal = goals[_goalId];
         require(msg.sender == goal.creator, "Only creator");
         require(!goal.resolved, "Already resolved");
+        require(block.timestamp <= goal.createdAt + CANCEL_GRACE_PERIOD, "Grace period expired, use forfeit");
         require(goal.votesValid == 0 && goal.votesInvalid == 0, "Cannot cancel: voting started");
 
         goal.resolved = true;
-        
+
         uint256 refund = goal.stakeAmount;
         if (refund > 0) {
             goal.stakeAmount = 0;
             token.safeTransfer(msg.sender, refund);
         }
-        
+
         emit GoalCanceled(_goalId, msg.sender, refund);
+    }
+
+    /**
+     * @notice Allows creator to forfeit a goal after grace period.
+     * @dev Stake goes to treasury (solo) or becomes claimable by squad (squad mode).
+     * @param _goalId The ID of the goal to forfeit.
+     */
+    function forfeit(uint256 _goalId) external nonReentrant {
+        Goal storage goal = goals[_goalId];
+        require(msg.sender == goal.creator, "Only creator");
+        require(!goal.resolved, "Already resolved");
+        require(block.timestamp > goal.createdAt + CANCEL_GRACE_PERIOD, "Use cancelGoal during grace period");
+
+        bool isSolo = goal.vouchies.length == 0;
+
+        // Mark as failed
+        goal.successful = false;
+        goal.resolved = true;
+
+        // Handle stake distribution (same as failure logic)
+        if (goal.stakeAmount > 0) {
+            if (isSolo) {
+                // Solo forfeit: 100% goes to treasury
+                uint256 amount = goal.stakeAmount;
+                goal.stakeAmount = 0;
+                token.safeTransfer(treasury, amount);
+            } else if (lazyTaxBps > 0) {
+                // Squad forfeit: Protocol takes tax, rest available for squad to claim
+                uint256 fee = (goal.stakeAmount * lazyTaxBps) / 10000;
+                if (fee > 0) {
+                    goal.stakeAmount -= fee;
+                    token.safeTransfer(treasury, fee);
+                }
+            }
+        }
+
+        emit GoalResolved(_goalId, false, isSolo);
+    }
+
+    /**
+     * @notice Check if a goal is still within the cancellation grace period.
+     * @param _goalId The ID of the goal to check.
+     * @return inGracePeriod True if goal can still be cancelled for full refund.
+     * @return remainingTime Seconds remaining in grace period (0 if expired).
+     */
+    function getGracePeriodStatus(uint256 _goalId) external view returns (bool inGracePeriod, uint256 remainingTime) {
+        Goal storage goal = goals[_goalId];
+        uint256 graceEndTime = goal.createdAt + CANCEL_GRACE_PERIOD;
+
+        if (block.timestamp <= graceEndTime) {
+            return (true, graceEndTime - block.timestamp);
+        }
+        return (false, 0);
     }
 
     // --- Verification Logic ---
@@ -236,13 +295,37 @@ contract VouchieVault is ReentrancyGuard, Ownable {
     /**
      * @notice Triggers final settlement if deadline has passed.
      * @dev Anyone can call this (Creator, Squad, or Keeper bots).
+     *      For solo goals, this liquidates the stake to treasury.
      */
     function resolve(uint256 _goalId) external nonReentrant {
         Goal storage goal = goals[_goalId];
         require(!goal.resolved, "Already resolved");
         require(block.timestamp > goal.deadline, "Cannot force resolve before deadline");
-        
+
         _resolve(_goalId);
+    }
+
+    /**
+     * @notice Check if a goal is expired (deadline passed but not resolved).
+     * @param _goalId The ID of the goal.
+     * @return isExpired True if deadline passed and not yet resolved.
+     */
+    function isGoalExpired(uint256 _goalId) external view returns (bool isExpired) {
+        Goal storage goal = goals[_goalId];
+        return !goal.resolved && block.timestamp > goal.deadline;
+    }
+
+    /**
+     * @notice Batch resolve multiple expired goals (for keepers/bots).
+     * @param _goalIds Array of goal IDs to resolve.
+     */
+    function batchResolve(uint256[] calldata _goalIds) external nonReentrant {
+        for (uint256 i = 0; i < _goalIds.length; i++) {
+            Goal storage goal = goals[_goalIds[i]];
+            if (!goal.resolved && block.timestamp > goal.deadline) {
+                _resolve(_goalIds[i]);
+            }
+        }
     }
 
     /**

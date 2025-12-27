@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import {
   Bell,
@@ -18,9 +18,9 @@ import {
   User,
   Users,
 } from "@phosphor-icons/react";
-import { formatEther } from "viem";
-import { parseEther } from "viem";
-import { useAccount } from "wagmi";
+import { formatUnits, parseUnits } from "viem";
+import { erc20Abi } from "viem";
+import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { useMiniapp } from "~~/components/MiniappProvider";
 import CalendarView from "~~/components/vouchie/CalendarView";
 import FriendActivityView from "~~/components/vouchie/FriendActivityView";
@@ -35,50 +35,15 @@ import ProfileView from "~~/components/vouchie/ProfileView";
 import SplashScreen from "~~/components/vouchie/SplashScreen";
 import Timeline from "~~/components/vouchie/Timeline";
 import VouchieView from "~~/components/vouchie/VouchieView";
-import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import {
+  useDeployedContractInfo,
+  useScaffoldReadContract,
+  useScaffoldWriteContract,
+  useTargetNetwork,
+} from "~~/hooks/scaffold-eth";
 import { useFamousQuotes } from "~~/hooks/vouchie/useFamousQuotes";
 import { useVouchieData } from "~~/hooks/vouchie/useVouchieData";
-import { Goal, LongTermGoal } from "~~/types/vouchie";
-
-const MOCK_PROFILES = [
-  {
-    id: 1,
-    name: "You",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=You",
-    avatarColor: "#8B5A2B",
-    score: 2450,
-    status: "online",
-    streak: 12,
-    saved: 350,
-  },
-  {
-    id: 2,
-    name: "Pudding",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Pudding",
-    avatarColor: "#A67B5B",
-    score: 2100,
-    status: "offline",
-    streak: 5,
-    saved: 120,
-  },
-  {
-    id: 3,
-    name: "Bunny",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Bunny",
-    avatarColor: "#FFA726",
-    score: 1850,
-    status: "online",
-    streak: 30,
-    saved: 500,
-  },
-];
-
-const MOCK_STATS = {
-  tasksCompleted: 42,
-  usdcSaved: 350,
-  streak: 12,
-  reputation: 98,
-};
+import { CANCEL_GRACE_PERIOD_MS, Goal, LongTermGoal } from "~~/types/vouchie";
 
 const MOCK_LONG_TERM: LongTermGoal[] = [
   {
@@ -115,38 +80,45 @@ const VouchieApp = () => {
   // Quotes
   const { dailyQuote } = useFamousQuotes();
 
+  // Network Check
+  const { targetNetwork } = useTargetNetwork();
+  const usdcContractName = targetNetwork.id === 31337 ? "MockUSDC" : "USDC";
+  const usdcDecimals = targetNetwork.id === 31337 ? 18 : 6;
+
   // Contract Info
   const { data: vaultInfo } = useDeployedContractInfo({ contractName: "VouchieVault" });
+  const { data: usdcInfo } = useDeployedContractInfo({ contractName: usdcContractName as any });
+
+  // Public client for waiting on transactions
+  const publicClient = usePublicClient();
 
   // Contract Writes - VouchieVault
   const { writeContractAsync: createGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
   const { writeContractAsync: verifySolo } = useScaffoldWriteContract({ contractName: "VouchieVault" });
   const { writeContractAsync: streakFreeze } = useScaffoldWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: forfeitGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
   const { writeContractAsync: cancelGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: batchResolveGoals } = useScaffoldWriteContract({ contractName: "VouchieVault" });
 
-  // Contract Writes - MockUSDC
-  const { writeContractAsync: approveUSDC } = useScaffoldWriteContract({ contractName: "MockUSDC" });
-  const { writeContractAsync: faucetUSDC } = useScaffoldWriteContract({ contractName: "MockUSDC" });
+  // Silent approval (no notification) using wagmi directly
+  const { writeContractAsync: silentApprove } = useWriteContract();
 
-  // Read user's MockUSDC balance
-  const { data: usdcBalance, refetch: refetchBalance } = useScaffoldReadContract({
-    contractName: "MockUSDC",
+  // Read user's USDC balance
+  const { data: usdcBalance, refetch: refetchBalance } = useReadContract({
+    address: usdcInfo?.address,
+    abi: erc20Abi,
     functionName: "balanceOf",
-    args: [address],
+    args: address ? [address] : undefined,
+    query: {
+      enabled: !!address && !!usdcInfo?.address,
+    },
   });
 
-  // Faucet handler - mints 1000 USDC to user
-  const handleFaucet = async () => {
-    try {
-      await faucetUSDC({
-        functionName: "faucet",
-        args: [parseEther("1000")],
-      });
-      refetchBalance();
-    } catch (e) {
-      console.error("Faucet error:", e);
-    }
-  };
+  // Read extension fee from VouchieVault
+  const { data: extensionFee } = useScaffoldReadContract({
+    contractName: "VouchieVault",
+    functionName: "extensionFee",
+  });
 
   const handleAdd = async (formData: any) => {
     if (formData.type === "goal") {
@@ -166,21 +138,25 @@ const VouchieApp = () => {
       ]);
     } else {
       try {
-        const stakeAmount = parseEther(formData.stake.toString());
+        const stakeAmount = parseUnits(formData.stake.toString(), usdcDecimals);
         const durationSeconds =
           formData.durationSeconds ||
           (formData.deadline === "1h" ? 3600 : formData.deadline === "24h" ? 86400 : 604800);
         const vouchies = formData.mode === "Vouchie" ? ["0x123..."] : [];
 
-        // Step 1: Approve MockUSDC tokens to VouchieVault
-        if (vaultInfo?.address) {
-          await approveUSDC({
+        // Step 1: Silent approve (no notification popup)
+        if (vaultInfo?.address && usdcInfo?.address) {
+          const approveTxHash = await silentApprove({
+            address: usdcInfo.address,
+            abi: erc20Abi,
             functionName: "approve",
             args: [vaultInfo.address, stakeAmount],
           });
+          // Wait for approval to be confirmed
+          await publicClient?.waitForTransactionReceipt({ hash: approveTxHash });
         }
 
-        // Step 2: Create the goal (will transferFrom the approved tokens)
+        // Step 2: Create the goal (shows single success notification)
         await createGoal({
           functionName: "createGoal",
           args: [stakeAmount, BigInt(durationSeconds), formData.title, vouchies as any[]],
@@ -225,31 +201,119 @@ const VouchieApp = () => {
   };
 
   const handleConfirmGiveUp = async (goalId: number) => {
+    const goal = goals.find(g => g.id === goalId);
+    if (!goal) return;
+
     try {
-      await cancelGoal({
-        functionName: "cancelGoal",
-        args: [BigInt(goalId)],
-      });
+      // Read grace period status from contract (source of truth for blockchain time)
+      let isInGracePeriod = false;
+      if (vaultInfo?.address && publicClient) {
+        try {
+          const [inGracePeriod] = (await publicClient.readContract({
+            address: vaultInfo.address,
+            abi: [
+              {
+                name: "getGracePeriodStatus",
+                type: "function",
+                stateMutability: "view",
+                inputs: [{ name: "_goalId", type: "uint256" }],
+                outputs: [
+                  { name: "inGracePeriod", type: "bool" },
+                  { name: "remainingTime", type: "uint256" },
+                ],
+              },
+            ],
+            functionName: "getGracePeriodStatus",
+            args: [BigInt(goalId)],
+          })) as [boolean, bigint];
+          isInGracePeriod = inGracePeriod;
+        } catch {
+          // Fallback to local calculation if contract call fails
+          const now = Date.now();
+          isInGracePeriod = goal.createdAt ? now <= goal.createdAt + CANCEL_GRACE_PERIOD_MS : false;
+        }
+      }
+
+      if (isInGracePeriod) {
+        // Within grace period - cancel with full refund
+        await cancelGoal({
+          functionName: "cancelGoal",
+          args: [BigInt(goalId)],
+        });
+      } else {
+        // Grace period expired - forfeit (money goes to treasury/squad)
+        await forfeitGoal({
+          functionName: "forfeit",
+          args: [BigInt(goalId)],
+        });
+      }
       refresh();
+      refetchBalance();
       setSelectedTaskForDetails(null);
       setSelectedTaskForGiveUp(null);
     } catch (e) {
-      console.error("Error cancelling goal:", e);
+      console.error("Error giving up goal:", e);
     }
   };
 
   const handleExtend = async (goalId: number) => {
     try {
+      // Step 1: Silent approve extension fee (no notification popup)
+      if (vaultInfo?.address && usdcInfo?.address && extensionFee) {
+        const approveTxHash = await silentApprove({
+          address: usdcInfo.address,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [vaultInfo.address, extensionFee],
+        });
+        // Wait for approval to be confirmed
+        await publicClient?.waitForTransactionReceipt({ hash: approveTxHash });
+      }
+
+      // Step 2: Call streakFreeze (shows single success notification)
       await streakFreeze({
         functionName: "streakFreeze",
         args: [BigInt(goalId)],
       });
       refresh();
+      refetchBalance();
       setSelectedTaskForDetails(null);
+      setSelectedTaskForGiveUp(null);
     } catch (e) {
       console.error("Error extending goal:", e);
     }
   };
+
+  // Auto-resolve goals that are past deadline (triggers on-chain liquidation)
+  const autoResolveExpiredGoals = useCallback(async () => {
+    const now = Date.now();
+    // Find goals past deadline that haven't been resolved yet (status="failed" with deadline < now)
+    const unresolvedExpired = goals.filter(g => g.status === "failed" && g.deadline < now);
+    if (unresolvedExpired.length === 0) return;
+
+    const expiredIds = unresolvedExpired.map(g => BigInt(g.id));
+
+    try {
+      await batchResolveGoals({
+        functionName: "batchResolve",
+        args: [expiredIds],
+      });
+      refresh();
+    } catch (e) {
+      // Likely already resolved on-chain, just refresh
+      console.error("Error batch resolving goals:", e);
+      refresh();
+    }
+  }, [goals, batchResolveGoals, refresh]);
+
+  // Auto-resolve expired goals when detected
+  useEffect(() => {
+    const now = Date.now();
+    const hasUnresolvedExpired = goals.some(g => g.status === "failed" && g.deadline < now);
+    if (hasUnresolvedExpired && !loading) {
+      autoResolveExpiredGoals();
+    }
+  }, [goals, loading, autoResolveExpiredGoals]);
 
   return (
     <>
@@ -314,17 +378,10 @@ const VouchieApp = () => {
                 <div className="flex items-center gap-1.5 bg-white dark:bg-stone-800 rounded-full px-3 py-1.5 shadow-sm">
                   <Coins size={16} className="text-[#8B5A2B] dark:text-[#FFA726]" weight="fill" />
                   <span className="text-xs font-bold text-stone-600 dark:text-stone-300">
-                    {usdcBalance ? Number(formatEther(usdcBalance)).toFixed(0) : "0"}
+                    {usdcBalance ? Number(formatUnits(usdcBalance, usdcDecimals)).toFixed(0) : "0"}
                   </span>
-                  <span className="text-[10px] text-stone-400">mUSDC</span>
+                  <span className="text-[10px] text-stone-400">USDC</span>
                 </div>
-                <button
-                  onClick={handleFaucet}
-                  className="h-8 px-2.5 rounded-full bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 text-xs font-bold shadow-sm hover:opacity-90 transition-opacity"
-                  title="Get 1000 test USDC"
-                >
-                  +1K
-                </button>
                 <button className="w-10 h-10 rounded-full bg-white dark:bg-stone-800 shadow-sm flex items-center justify-center text-stone-400 hover:text-[#8B5A2B] dark:hover:text-[#FFA726]">
                   <Bell size={20} />
                 </button>
@@ -373,9 +430,6 @@ const VouchieApp = () => {
 
                     {/* Section Header */}
                     <div className="flex justify-between items-center">
-                      <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider">
-                        Trajectory of the Day
-                      </h3>
                       <button
                         onClick={() => setIsTimelineView(!isTimelineView)}
                         className="p-1.5 rounded-lg bg-white/50 dark:bg-stone-800/50 text-stone-400 hover:bg-white dark:hover:bg-stone-700 hover:text-[#8B5A2B] dark:hover:text-[#FFA726] transition-colors sm:hidden"
@@ -440,9 +494,7 @@ const VouchieApp = () => {
                 {activeTab === "calendar" && <CalendarView tasks={goals} />}
                 {activeTab === "feed" && <FriendActivityView />}
                 {activeTab === "squad" && <VouchieView />}
-                {activeTab === "profile" && (
-                  <ProfileView user={MOCK_PROFILES[0]} stats={MOCK_STATS} leaderboard={MOCK_PROFILES} />
-                )}
+                {activeTab === "profile" && <ProfileView />}
               </div>
             </div>
 

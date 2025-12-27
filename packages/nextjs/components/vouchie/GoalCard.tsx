@@ -2,7 +2,6 @@ import React from "react";
 import { Goal } from "../../types/vouchie";
 import Avatar from "./Avatar";
 import Card from "./Helper/Card";
-import ProgressBar from "./Helper/ProgressBar";
 import { Clock, Eye, Play } from "@phosphor-icons/react";
 import toast from "react-hot-toast";
 
@@ -44,10 +43,49 @@ const MOCK_PROFILES = [
   },
 ];
 
+// Helper to format time remaining
+const formatTimeRemaining = (deadline: number) => {
+  const now = Date.now();
+  const diff = deadline - now;
+
+  if (diff <= 0) return { text: "Expired", hours: 0, minutes: 0 };
+
+  const totalMinutes = Math.floor(diff / (1000 * 60));
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  if (hours > 24) {
+    const days = Math.floor(hours / 24);
+    const remainingHours = hours % 24;
+    return { text: `${days}d ${remainingHours}h`, hours, minutes };
+  }
+
+  if (hours > 0) {
+    return { text: `${hours}h ${minutes}m`, hours, minutes };
+  }
+
+  return { text: `${minutes}m`, hours, minutes };
+};
+
+// Calculate time remaining as percentage (for visual bar)
+const getTimeRemainingPercent = (deadline: number, createdAt?: number) => {
+  const now = Date.now();
+  // Default to 24h duration if createdAt not available
+  const startTime = createdAt || deadline - 24 * 60 * 60 * 1000;
+  const totalDuration = deadline - startTime;
+  const elapsed = now - startTime;
+  const remaining = Math.max(0, 100 - (elapsed / totalDuration) * 100);
+  return Math.min(100, Math.max(0, remaining));
+};
+
 const GoalCard = ({ goal, onStart, onViewDetails, isTimelineMode = false }: GoalCardProps) => {
-  const isUrgent = goal.deadline - Date.now() < 1000 * 60 * 60 * 4;
+  const timeRemaining = formatTimeRemaining(goal.deadline);
+  const timePercent = getTimeRemainingPercent(goal.deadline, goal.createdAt);
+  const isUrgent = goal.deadline - Date.now() < 1000 * 60 * 60 * 4; // < 4 hours
+  const isCritical = goal.deadline - Date.now() < 1000 * 60 * 60; // < 1 hour
   const isDone = goal.status === "done";
   const isPending = goal.status === "pending";
+  const isFailed = goal.status === "failed";
   const latestComment = goal.comments.length > 0 ? goal.comments[0] : null;
 
   return (
@@ -55,25 +93,28 @@ const GoalCard = ({ goal, onStart, onViewDetails, isTimelineMode = false }: Goal
       className={`relative transition-all duration-300 ${isUrgent && goal.status === "in_progress" ? "urgent-glow rounded-2xl" : ""} ${isTimelineMode ? "cursor-pointer" : ""}`}
       onClick={() => isTimelineMode && onViewDetails(goal)}
     >
-      <Card color={goal.status === "verifying" ? "bg-white" : goal.color} className="flex flex-col gap-4 mb-4">
+      <Card
+        color={isFailed ? "bg-red-50 dark:bg-red-900/10" : goal.status === "verifying" ? "bg-white" : goal.color}
+        className={`flex flex-col gap-4 mb-4 ${isFailed ? "opacity-75" : ""}`}
+      >
         <div className="flex justify-between items-start">
           <div>
             <span className={`text-[10px] font-bold uppercase tracking-widest ${goal.accent} opacity-60 mb-1 block`}>
               {goal.mode} Quest
             </span>
             <h3
-              className={`text-lg font-bold text-stone-800 dark:text-stone-100 leading-tight ${isDone ? "line-through opacity-50 decoration-2 decoration-stone-400" : ""}`}
+              className={`text-lg font-bold text-stone-800 dark:text-stone-100 leading-tight ${isDone ? "line-through opacity-50 decoration-2 decoration-stone-400" : ""} ${isFailed ? "line-through opacity-50 decoration-2 decoration-red-400" : ""}`}
             >
               {goal.title}
             </h3>
           </div>
           <div className="flex flex-col items-end">
-            {!isDone && !isPending && (
+            {!isDone && !isPending && !isFailed && (
               <div
-                className={`mt-1 text-xs font-bold flex items-center gap-1 ${isUrgent ? "text-orange-500" : "text-stone-400"}`}
+                className={`mt-1 text-xs font-bold flex items-center gap-1 ${isCritical ? "text-red-500 animate-pulse" : isUrgent ? "text-orange-500" : "text-stone-400"}`}
               >
                 <Clock size={12} weight="bold" />
-                {Math.floor((goal.deadline - Date.now()) / (1000 * 60 * 60))}h left
+                {timeRemaining.text} left
               </div>
             )}
             {isPending && (
@@ -84,6 +125,11 @@ const GoalCard = ({ goal, onStart, onViewDetails, isTimelineMode = false }: Goal
             {isDone && (
               <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded-lg text-xs font-bold">
                 Complete
+              </span>
+            )}
+            {isFailed && (
+              <span className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-1 rounded-lg text-xs font-bold">
+                Failed
               </span>
             )}
           </div>
@@ -129,10 +175,19 @@ const GoalCard = ({ goal, onStart, onViewDetails, isTimelineMode = false }: Goal
         {!isTimelineMode && goal.status === "in_progress" && (
           <div>
             <div className="flex justify-between text-xs font-bold text-stone-500 dark:text-stone-400 mb-2">
-              <span>Progress</span>
-              <span>{goal.progress}%</span>
+              <span>Time Remaining</span>
+              <span className={isCritical ? "text-red-500" : isUrgent ? "text-orange-500" : ""}>
+                {timeRemaining.text}
+              </span>
             </div>
-            <ProgressBar progress={goal.progress} color="bg-orange-500" />
+            <div className="h-2 bg-stone-200 dark:bg-stone-700 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-500 ${
+                  isCritical ? "bg-red-500" : isUrgent ? "bg-orange-500" : "bg-green-500"
+                }`}
+                style={{ width: `${timePercent}%` }}
+              />
+            </div>
           </div>
         )}
 
@@ -159,6 +214,12 @@ const GoalCard = ({ goal, onStart, onViewDetails, isTimelineMode = false }: Goal
         {goal.status === "verifying" && (
           <div className="bg-white/50 dark:bg-stone-700/50 p-3 rounded-xl text-center text-xs font-bold text-stone-500 dark:text-stone-400 flex items-center justify-center gap-2">
             <Clock size={14} className="animate-spin" /> Verifying...
+          </div>
+        )}
+
+        {isFailed && (
+          <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-xl text-center text-xs font-bold text-red-600 dark:text-red-400">
+            Lost ${goal.stake} {goal.currency}
           </div>
         )}
       </Card>
