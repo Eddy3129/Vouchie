@@ -205,7 +205,7 @@ const LockiApp = () => {
         />
       ) : (
         <div
-          className="flex h-screen w-full bg-[#FAF7F2] text-stone-800 overflow-hidden"
+          className="flex h-screen w-full bg-[#FAF7F2] dark:bg-stone-900 text-stone-800 dark:text-stone-100 overflow-hidden"
           style={{
             paddingTop: context?.client?.safeAreaInsets?.top ?? 0,
             paddingBottom: context?.client?.safeAreaInsets?.bottom ?? 0,
@@ -216,12 +216,12 @@ const LockiApp = () => {
           <FontStyles />
 
           {/* Desktop Sidebar */}
-          <div className="hidden lg:flex w-64 bg-white/50 backdrop-blur-xl border-r border-stone-100 flex-col p-6 h-full sticky top-0">
+          <div className="hidden lg:flex w-64 bg-white/50 backdrop-blur-xl border-r border-stone-100 dark:border-stone-800 flex-col p-6 h-full sticky top-0 dark:bg-stone-800/50">
             <div className="flex items-center gap-3 mb-10">
               <div className="w-10 h-10 rounded-2xl bg-[#8B5A2B] flex items-center justify-center text-white shadow-lg hover-lift">
-                <Star size={24} fill="currentColor" />
+                <Star size={24} weight="fill" />
               </div>
-              <span className="text-2xl font-bold text-[#8B5A2B]">Vouchie</span>
+              <span className="text-2xl font-bold text-[#8B5A2B] dark:text-[#FFA726]">Vouchie</span>
             </div>
             <nav className="space-y-2">
               {[
@@ -234,9 +234,9 @@ const LockiApp = () => {
                 <button
                   key={t.id}
                   onClick={() => setActiveTab(t.id)}
-                  className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeTab === t.id ? "bg-white shadow-md text-[#8B5A2B]" : "text-stone-500 hover:bg-white/60"}`}
+                  className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeTab === t.id ? "bg-white dark:bg-stone-700 shadow-md text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-500 dark:text-stone-400 hover:bg-white/60 dark:hover:bg-stone-800/60"}`}
                 >
-                  <t.icon size={24} strokeWidth={2.5} />
+                  <t.icon size={24} weight={activeTab === t.id ? "fill" : "regular"} />
                   <span className="font-bold text-lg">{t.label}</span>
                 </button>
               ))}
@@ -249,12 +249,12 @@ const LockiApp = () => {
             <div className="h-20 flex items-center justify-between px-6 pt-4 lg:pt-0 flex-shrink-0 z-10">
               <div className="lg:hidden flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-[#8B5A2B] text-white flex items-center justify-center">
-                  <Star size={18} fill="currentColor" />
+                  <Star size={18} weight="fill" />
                 </div>
-                <span className="text-xl font-bold text-[#8B5A2B]">Vouchie</span>
+                <span className="text-xl font-bold text-[#8B5A2B] dark:text-[#FFA726]">Vouchie</span>
               </div>
               <div className="flex items-center gap-3 ml-auto">
-                <button className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-stone-400 hover:text-[#8B5A2B]">
+                <button className="w-10 h-10 rounded-full bg-white dark:bg-stone-800 shadow-sm flex items-center justify-center text-stone-400 hover:text-[#8B5A2B] dark:hover:text-[#FFA726]">
                   <Bell size={20} />
                 </button>
               </div>
@@ -266,7 +266,7 @@ const LockiApp = () => {
                 {activeTab === "dashboard" && (
                   <div className="space-y-6 animate-in fade-in duration-500">
                     <header>
-                      <h1 className="text-3xl font-bold text-stone-800">
+                      <h1 className="text-3xl font-bold text-stone-800 dark:text-stone-100">
                         Hi, There! <span className="text-xs ml-1 opacity-80">👋</span>
                       </h1>
                     </header>
@@ -367,31 +367,31 @@ const LockiApp = () => {
             </div>
 
             {/* Bottom Nav (Mobile) */}
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white/90 backdrop-blur-lg border-t border-stone-100 flex justify-between items-center px-6 pb-2 z-40">
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white/90 dark:bg-stone-900/90 backdrop-blur-lg border-t border-stone-100 dark:border-stone-800 flex justify-between items-center px-6 pb-2 z-40">
               <button
                 onClick={() => setActiveTab("dashboard")}
-                className={`flex flex-col items-center gap-1 ${activeTab === "dashboard" ? "text-[#8B5A2B]" : "text-stone-400"}`}
+                className={`flex flex-col items-center gap-1 ${activeTab === "dashboard" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
               >
-                <House size={24} weight="bold" />
+                <House size={24} weight={activeTab === "dashboard" ? "fill" : "bold"} />
               </button>
               <button
                 onClick={() => setActiveTab("calendar")}
-                className={`flex flex-col items-center gap-1 ${activeTab === "calendar" ? "text-[#8B5A2B]" : "text-stone-400"}`}
+                className={`flex flex-col items-center gap-1 ${activeTab === "calendar" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
               >
-                <CalendarBlank size={24} weight="bold" />
+                <CalendarBlank size={24} weight={activeTab === "calendar" ? "fill" : "bold"} />
               </button>
               <div className="w-8"></div> {/* Spacer for FAB */}
               <button
                 onClick={() => setActiveTab("direction")}
-                className={`flex flex-col items-center gap-1 ${activeTab === "direction" ? "text-[#8B5A2B]" : "text-stone-400"}`}
+                className={`flex flex-col items-center gap-1 ${activeTab === "direction" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
               >
-                <Compass size={24} weight="bold" />
+                <Compass size={24} weight={activeTab === "direction" ? "fill" : "bold"} />
               </button>
               <button
                 onClick={() => setActiveTab("profile")}
-                className={`flex flex-col items-center gap-1 ${activeTab === "profile" ? "text-[#8B5A2B]" : "text-stone-400"}`}
+                className={`flex flex-col items-center gap-1 ${activeTab === "profile" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
               >
-                <User size={24} weight="bold" />
+                <User size={24} weight={activeTab === "profile" ? "fill" : "bold"} />
               </button>
             </div>
 
