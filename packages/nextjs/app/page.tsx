@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
+import Image from "next/image";
 import {
   Bell,
   CalendarBlank,
   CheckCircle,
   Clock,
+  Coins,
   Compass,
   House,
   List,
@@ -16,6 +18,7 @@ import {
   User,
   Users,
 } from "@phosphor-icons/react";
+import { formatEther } from "viem";
 import { parseEther } from "viem";
 import { useAccount } from "wagmi";
 import { useMiniapp } from "~~/components/MiniappProvider";
@@ -31,7 +34,7 @@ import ProfileView from "~~/components/vouchie/ProfileView";
 import SplashScreen from "~~/components/vouchie/SplashScreen";
 import Timeline from "~~/components/vouchie/Timeline";
 import VouchieView from "~~/components/vouchie/VouchieView";
-import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useDeployedContractInfo, useScaffoldReadContract, useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useFamousQuotes } from "~~/hooks/vouchie/useFamousQuotes";
 import { useLockiData } from "~~/hooks/vouchie/useLockiData";
 import { Goal, LongTermGoal } from "~~/types/vouchie";
@@ -86,7 +89,7 @@ const MOCK_LONG_TERM: LongTermGoal[] = [
 ];
 
 const LockiApp = () => {
-  useAccount();
+  const { address } = useAccount();
   const { context } = useMiniapp();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isAddModalOpen, setAddModalOpen] = useState(false);
@@ -104,11 +107,38 @@ const LockiApp = () => {
   // Quotes
   const { dailyQuote } = useFamousQuotes();
 
-  // Contract Writes
+  // Contract Info
+  const { data: vaultInfo } = useDeployedContractInfo("VouchieVault");
+
+  // Contract Writes - VouchieVault
   const { writeContractAsync: createGoal } = useScaffoldWriteContract("VouchieVault");
   const { writeContractAsync: verifySolo } = useScaffoldWriteContract("VouchieVault");
   const { writeContractAsync: streakFreeze } = useScaffoldWriteContract("VouchieVault");
   const { writeContractAsync: cancelGoal } = useScaffoldWriteContract("VouchieVault");
+
+  // Contract Writes - MockUSDC
+  const { writeContractAsync: approveUSDC } = useScaffoldWriteContract("MockUSDC");
+  const { writeContractAsync: faucetUSDC } = useScaffoldWriteContract("MockUSDC");
+
+  // Read user's MockUSDC balance
+  const { data: usdcBalance, refetch: refetchBalance } = useScaffoldReadContract({
+    contractName: "MockUSDC",
+    functionName: "balanceOf",
+    args: [address],
+  });
+
+  // Faucet handler - mints 1000 USDC to user
+  const handleFaucet = async () => {
+    try {
+      await faucetUSDC({
+        functionName: "faucet",
+        args: [parseEther("1000")],
+      });
+      refetchBalance();
+    } catch (e) {
+      console.error("Faucet error:", e);
+    }
+  };
 
   const handleAdd = async (formData: any) => {
     if (formData.type === "goal") {
@@ -128,16 +158,27 @@ const LockiApp = () => {
       ]);
     } else {
       try {
+        const stakeAmount = parseEther(formData.stake.toString());
         const durationSeconds =
           formData.durationSeconds ||
           (formData.deadline === "1h" ? 3600 : formData.deadline === "24h" ? 86400 : 604800);
         const vouchies = formData.mode === "Vouchie" ? ["0x123..."] : [];
 
+        // Step 1: Approve MockUSDC tokens to VouchieVault
+        if (vaultInfo?.address) {
+          await approveUSDC({
+            functionName: "approve",
+            args: [vaultInfo.address, stakeAmount],
+          });
+        }
+
+        // Step 2: Create the goal (will transferFrom the approved tokens)
         await createGoal({
           functionName: "createGoal",
-          args: [parseEther(formData.stake.toString()), BigInt(durationSeconds), formData.title, vouchies as any[]],
+          args: [stakeAmount, BigInt(durationSeconds), formData.title, vouchies as any[]],
         });
         refresh();
+        refetchBalance();
       } catch (e) {
         console.error("Error creating goal:", e);
       }
@@ -253,7 +294,22 @@ const LockiApp = () => {
                 </div>
                 <span className="text-xl font-bold text-[#8B5A2B] dark:text-[#FFA726]">Vouchie</span>
               </div>
-              <div className="flex items-center gap-3 ml-auto">
+              <div className="flex items-center gap-2 ml-auto">
+                {/* Balance & Faucet */}
+                <div className="flex items-center gap-1.5 bg-white dark:bg-stone-800 rounded-full px-3 py-1.5 shadow-sm">
+                  <Coins size={16} className="text-[#8B5A2B] dark:text-[#FFA726]" weight="fill" />
+                  <span className="text-xs font-bold text-stone-600 dark:text-stone-300">
+                    {usdcBalance ? Number(formatEther(usdcBalance)).toFixed(0) : "0"}
+                  </span>
+                  <span className="text-[10px] text-stone-400">mUSDC</span>
+                </div>
+                <button
+                  onClick={handleFaucet}
+                  className="h-8 px-2.5 rounded-full bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 text-xs font-bold shadow-sm hover:opacity-90 transition-opacity"
+                  title="Get 1000 test USDC"
+                >
+                  +1K
+                </button>
                 <button className="w-10 h-10 rounded-full bg-white dark:bg-stone-800 shadow-sm flex items-center justify-center text-stone-400 hover:text-[#8B5A2B] dark:hover:text-[#FFA726]">
                   <Bell size={20} />
                 </button>
@@ -261,7 +317,7 @@ const LockiApp = () => {
             </div>
 
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto px-4 pb-32 lg:px-8 lg:pb-8">
+            <div className="flex-1 overflow-y-auto px-4 pb-24 lg:px-8 lg:pb-8">
               <div className="max-w-3xl mx-auto pt-2">
                 {activeTab === "dashboard" && (
                   <div className="space-y-6 animate-in fade-in duration-500">
@@ -271,41 +327,61 @@ const LockiApp = () => {
                       </h1>
                     </header>
 
-                    {/* Motivation Banner */}
-                    <div className="bg-gradient-to-r from-[#8B5A2B] to-[#A67B5B] rounded-2xl p-6 text-white shadow-lg shadow-stone-200 relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-32 h-32 bg-white opacity-10 rounded-full -mr-10 -mt-10 blur-2xl" />
-                      <Quotes className="absolute top-4 right-4 opacity-20 transform rotate-180" size={32} />
-                      <p className="font-bold text-sm relative z-10 leading-snug">&quot;{dailyQuote.text}&quot;</p>
-                      <p className="text-xs text-stone-200 mt-2 italic relative z-10">- {dailyQuote.author}</p>
-                      <div className="mt-4 inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-[#8B5A2B]">
-                        <TrendUp size={14} /> Daily Wisdom
+                    {/* Motivation Banner - Compact with Silhouette */}
+                    <div className="bg-gradient-to-r from-[#8B5A2B] to-[#A67B5B] dark:from-[#5D4E37] dark:to-[#8B5A2B] rounded-2xl p-4 text-white relative overflow-hidden">
+                      {/* Background blur decoration */}
+                      <div className="absolute top-0 right-0 w-20 h-20 bg-white opacity-10 rounded-full -mr-6 -mt-6 blur-xl" />
+
+                      {/* Author silhouette decoration */}
+                      <div className="absolute right-0 bottom-0 w-24 h-24 opacity-[0.08] pointer-events-none">
+                        <Image
+                          src={dailyQuote.silhouette}
+                          alt=""
+                          width={96}
+                          height={96}
+                          className="w-full h-full object-contain"
+                        />
+                      </div>
+
+                      {/* Quote icon */}
+                      <Quotes className="absolute top-3 right-3 opacity-15 transform rotate-180" size={20} />
+
+                      {/* Quote content */}
+                      <p className="font-bold text-sm relative z-10 leading-snug pr-6">&quot;{dailyQuote.text}&quot;</p>
+                      <p className="text-xs text-white/70 mt-1.5 italic relative z-10">- {dailyQuote.author}</p>
+
+                      {/* Badge */}
+                      <div className="mt-3 inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white/90">
+                        <TrendUp size={12} /> Daily Wisdom
                       </div>
                     </div>
 
-                    <div className="flex">
+                    {/* Section Header */}
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider">
+                        Trajectory of the Day
+                      </h3>
+                      <button
+                        onClick={() => setIsTimelineView(!isTimelineView)}
+                        className="p-1.5 rounded-lg bg-white/50 dark:bg-stone-800/50 text-stone-400 hover:bg-white dark:hover:bg-stone-700 hover:text-[#8B5A2B] dark:hover:text-[#FFA726] transition-colors sm:hidden"
+                      >
+                        {isTimelineView ? <List size={18} /> : <Clock size={18} />}
+                      </button>
+                    </div>
+
+                    {/* Timeline + Task List */}
+                    <div className="flex gap-4">
                       {/* Vertical Timeline - Visible if toggled or on Desktop */}
-                      <div className={`${isTimelineView ? "block" : "hidden"} sm:block`}>
+                      <div className={`${isTimelineView ? "block" : "hidden"} sm:block flex-shrink-0`}>
                         <Timeline />
                       </div>
 
                       {/* Task List */}
-                      <div className="flex-1 grid gap-4">
-                        <div className="flex justify-between items-center mb-2 pl-2 pr-2">
-                          <h3 className="text-sm font-bold text-stone-400 uppercase tracking-wider">
-                            Trajectory of the Day
-                          </h3>
-                          <button
-                            onClick={() => setIsTimelineView(!isTimelineView)}
-                            className="p-1.5 rounded-lg bg-white/50 text-stone-400 hover:bg-white hover:text-[#8B5A2B] transition-colors sm:hidden"
-                          >
-                            {isTimelineView ? <List size={18} /> : <Clock size={18} />}
-                          </button>
-                        </div>
-
+                      <div className="flex-1 space-y-3 min-w-0">
                         {loading && <LoadingState variant="full" text="Loading goals..." />}
 
                         {!loading && goals.length === 0 && (
-                          <div className="p-8 text-center text-stone-400 font-bold border-2 border-dashed border-stone-200 rounded-2xl">
+                          <div className="p-8 text-center text-stone-400 font-bold border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
                             No active goals. Start one! <span className="text-xs ml-1">🚀</span>
                           </div>
                         )}
@@ -323,17 +399,17 @@ const LockiApp = () => {
                             ))}
 
                         {!loading && goals.filter(t => t.status === "done").length > 0 && (
-                          <div className="pt-4 border-t border-stone-200">
-                            <h4 className="text-stone-400 font-bold mb-2 text-sm pl-2">Completed</h4>
+                          <div className="pt-4 border-t border-stone-200 dark:border-stone-700">
+                            <h4 className="text-stone-400 font-bold mb-2 text-sm">Completed</h4>
                             {goals
                               .filter(t => t.status === "done")
                               .map(task => (
                                 <div
                                   key={task.id}
-                                  className="p-4 bg-white rounded-2xl opacity-60 mb-2 flex items-center gap-2 border border-stone-100 shadow-sm"
+                                  className="p-4 bg-white dark:bg-stone-800 rounded-2xl opacity-60 mb-2 flex items-center gap-2 border border-stone-100 dark:border-stone-700 shadow-sm"
                                 >
                                   <CheckCircle size={16} className="text-green-500" />
-                                  <span className="font-bold text-stone-500 line-through decoration-2 decoration-stone-400">
+                                  <span className="font-bold text-stone-500 dark:text-stone-400 line-through decoration-2 decoration-stone-400">
                                     {task.title}
                                   </span>
                                 </div>
@@ -356,42 +432,48 @@ const LockiApp = () => {
               </div>
             </div>
 
-            {/* Floating Action Button (Centered) */}
-            <div className="fixed bottom-16 left-1/2 -translate-x-1/2 lg:left-auto lg:translate-x-0 lg:bottom-10 lg:right-10 z-50">
+            {/* Desktop FAB */}
+            <div className="hidden lg:block fixed bottom-10 right-10 z-50">
               <button
                 onClick={() => setAddModalOpen(true)}
-                className="w-16 h-16 bg-[#8B5A2B] text-white rounded-2xl shadow-xl hover:bg-[#6B4423] hover:scale-110 transition-all duration-300 flex items-center justify-center border-4 border-[#FAF7F2] lg:border-0"
+                className="w-16 h-16 bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 rounded-2xl shadow-xl hover:bg-[#6B4423] dark:hover:bg-[#FF9800] hover:scale-105 transition-all duration-200 flex items-center justify-center"
               >
-                <Plus size={32} strokeWidth={3} />
+                <Plus size={28} weight="bold" />
               </button>
             </div>
 
-            {/* Bottom Nav (Mobile) */}
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 h-20 bg-white/90 dark:bg-stone-900/90 backdrop-blur-lg border-t border-stone-100 dark:border-stone-800 flex justify-between items-center px-6 pb-2 z-40">
+            {/* Bottom Nav (Mobile) - FAB integrated in center */}
+            <div className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-stone-900/95 backdrop-blur-lg border-t border-stone-100 dark:border-stone-800 flex items-center justify-around px-4 z-40">
               <button
                 onClick={() => setActiveTab("dashboard")}
-                className={`flex flex-col items-center gap-1 ${activeTab === "dashboard" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
+                className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "dashboard" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
               >
-                <House size={24} weight={activeTab === "dashboard" ? "fill" : "bold"} />
+                <House size={22} weight={activeTab === "dashboard" ? "fill" : "bold"} />
               </button>
               <button
                 onClick={() => setActiveTab("calendar")}
-                className={`flex flex-col items-center gap-1 ${activeTab === "calendar" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
+                className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "calendar" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
               >
-                <CalendarBlank size={24} weight={activeTab === "calendar" ? "fill" : "bold"} />
+                <CalendarBlank size={22} weight={activeTab === "calendar" ? "fill" : "bold"} />
               </button>
-              <div className="w-8"></div> {/* Spacer for FAB */}
+              {/* Center FAB in nav */}
+              <button
+                onClick={() => setAddModalOpen(true)}
+                className="w-12 h-12 bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 rounded-xl shadow-lg hover:bg-[#6B4423] dark:hover:bg-[#FF9800] flex items-center justify-center -mt-2"
+              >
+                <Plus size={24} weight="bold" />
+              </button>
               <button
                 onClick={() => setActiveTab("direction")}
-                className={`flex flex-col items-center gap-1 ${activeTab === "direction" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
+                className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "direction" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
               >
-                <Compass size={24} weight={activeTab === "direction" ? "fill" : "bold"} />
+                <Compass size={22} weight={activeTab === "direction" ? "fill" : "bold"} />
               </button>
               <button
                 onClick={() => setActiveTab("profile")}
-                className={`flex flex-col items-center gap-1 ${activeTab === "profile" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
+                className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "profile" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
               >
-                <User size={24} weight={activeTab === "profile" ? "fill" : "bold"} />
+                <User size={22} weight={activeTab === "profile" ? "fill" : "bold"} />
               </button>
             </div>
 

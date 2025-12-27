@@ -132,8 +132,8 @@ export const useLockiData = () => {
           vouchies: vouchieList,
           comments: [], // No comments in contract
           progress: 0,
-          color: mode === "Solo" ? "bg-orange-100" : "bg-indigo-100",
-          accent: mode === "Solo" ? "text-orange-600" : "text-indigo-600",
+          color: "bg-white", // Use white for all modes - Card handles dark mode
+          accent: mode === "Solo" ? "text-orange-600 dark:text-orange-400" : "text-indigo-600 dark:text-indigo-400",
           barColor: mode === "Solo" ? "bg-orange-400" : "bg-indigo-400",
         });
       }

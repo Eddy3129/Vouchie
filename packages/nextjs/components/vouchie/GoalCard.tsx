@@ -60,7 +60,7 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
               {goal.mode} Quest
             </span>
             <h3
-              className={`text-lg font-bold text-stone-800 leading-tight ${isDone ? "line-through opacity-50 decoration-2 decoration-stone-400" : ""}`}
+              className={`text-lg font-bold text-stone-800 dark:text-stone-100 leading-tight ${isDone ? "line-through opacity-50 decoration-2 decoration-stone-400" : ""}`}
             >
               {goal.title}
             </h3>
@@ -75,10 +75,14 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
               </div>
             )}
             {isPending && (
-              <span className="bg-stone-200 text-stone-500 px-2 py-1 rounded-lg text-xs font-bold">Not Started</span>
+              <span className="bg-stone-200 dark:bg-stone-700 text-stone-500 dark:text-stone-400 px-2 py-1 rounded-lg text-xs font-bold">
+                Not Started
+              </span>
             )}
             {isDone && (
-              <span className="bg-green-100 text-green-700 px-2 py-1 rounded-lg text-xs font-bold">Complete</span>
+              <span className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-1 rounded-lg text-xs font-bold">
+                Complete
+              </span>
             )}
           </div>
         </div>
@@ -86,7 +90,7 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
         {!isDone && latestComment && (
           <div className="mt-1">
             <div
-              className="relative bg-white/70 p-3 rounded-2xl border border-white/50 group cursor-pointer"
+              className="relative bg-white/70 dark:bg-stone-700/50 p-3 rounded-2xl border border-white/50 dark:border-stone-600/50 group cursor-pointer"
               onClick={() => {
                 if (navigator.clipboard && navigator.clipboard.writeText) {
                   navigator.clipboard.writeText(latestComment.text);
@@ -101,8 +105,8 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
                   size="sm"
                   showBorder
                 />
-                <div className="flex-1">
-                  <span className="font-bold text-stone-700 text-sm">{latestComment.user}</span>: &quot;
+                <div className="flex-1 text-stone-700 dark:text-stone-200">
+                  <span className="font-bold text-sm">{latestComment.user}</span>: &quot;
                   {latestComment.text}&quot;
                   <span className="text-xs text-stone-400 ml-2">📋</span>
                 </div>
@@ -112,7 +116,7 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
         )}
 
         {goal.startTime && !isDone && (
-          <div className="flex items-center gap-2 text-xs font-bold text-stone-500 bg-white/40 p-2 rounded-xl">
+          <div className="flex items-center gap-2 text-xs font-bold text-stone-500 dark:text-stone-400 bg-white/40 dark:bg-stone-700/40 p-2 rounded-xl">
             {goal.startImage && <span className="text-xs">{goal.startImage}</span>}
             <span>
               Started at {new Date(goal.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
@@ -122,7 +126,7 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
 
         {goal.status === "in_progress" && (
           <div>
-            <div className="flex justify-between text-xs font-bold text-stone-500 mb-2">
+            <div className="flex justify-between text-xs font-bold text-stone-500 dark:text-stone-400 mb-2">
               <span>Progress</span>
               <span>{goal.progress}%</span>
             </div>
@@ -133,7 +137,7 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
         {goal.status === "pending" && (
           <button
             onClick={() => onStart(goal)}
-            className="w-full py-3 bg-stone-800 text-white rounded-xl font-bold text-sm shadow-sm hover:bg-stone-700 transition-colors flex items-center justify-center gap-2 min-h-[44px]"
+            className="w-full py-3 bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 rounded-xl font-bold text-sm shadow-sm hover:bg-[#6B4423] dark:hover:bg-[#FF9800] transition-colors flex items-center justify-center gap-2 min-h-[44px]"
           >
             Begin Task <Play size={16} weight="fill" />
           </button>
@@ -143,7 +147,7 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
           <div className="flex gap-2 mt-1">
             <button
               onClick={() => onViewDetails(goal)}
-              className="flex-1 py-3 bg-white rounded-xl text-stone-700 font-bold text-sm shadow-sm hover:bg-stone-50 transition-colors flex items-center justify-center gap-2 border border-stone-200 min-h-[44px]"
+              className="flex-1 py-3 bg-white dark:bg-stone-700 rounded-xl text-stone-700 dark:text-stone-200 font-bold text-sm shadow-sm hover:bg-stone-50 dark:hover:bg-stone-600 transition-colors flex items-center justify-center gap-2 border border-stone-200 dark:border-stone-600 min-h-[44px]"
             >
               View Details <Eye size={16} weight="bold" />
             </button>
@@ -151,7 +155,7 @@ const GoalCard = ({ goal, onStart, onViewDetails }: GoalCardProps) => {
         )}
 
         {goal.status === "verifying" && (
-          <div className="bg-white/50 p-3 rounded-xl text-center text-xs font-bold text-stone-500 flex items-center justify-center gap-2">
+          <div className="bg-white/50 dark:bg-stone-700/50 p-3 rounded-xl text-center text-xs font-bold text-stone-500 dark:text-stone-400 flex items-center justify-center gap-2">
             <Clock size={14} className="animate-spin" /> Verifying...
           </div>
         )}

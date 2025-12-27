@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Image from "next/image";
 
 interface AvatarProps {
   src: string;
@@ -49,11 +50,11 @@ const Avatar = ({ src, name, size = "md", status, showBorder = false, className 
           }}
         />
         <span className="relative z-10 text-lg">{emoji}</span>
-        {showBorder && <div className="absolute inset-0 rounded-full border-2 border-white" />}
+        {showBorder && <div className="absolute inset-0 rounded-full border-2 border-white dark:border-stone-800" />}
         {status && (
           <div
-            className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-              status === "online" ? "bg-green-500" : status === "away" ? "bg-orange-400" : "bg-stone-400"
+            className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-stone-800 ${
+              status === "online" ? "bg-green-500" : status === "away" ? "bg-[#FFA726]" : "bg-stone-400"
             }`}
           />
         )}
@@ -63,12 +64,20 @@ const Avatar = ({ src, name, size = "md", status, showBorder = false, className 
 
   return (
     <div className={`relative rounded-full overflow-hidden ${sizeClasses[size]} ${className}`}>
-      <img src={src} alt={name} className="w-full h-full object-cover" onError={() => setImageError(true)} />
-      {showBorder && <div className="absolute inset-0 rounded-full border-2 border-white" />}
+      <Image
+        src={src}
+        alt={name}
+        width={0}
+        height={0}
+        sizes="100vw"
+        className="w-full h-full object-cover"
+        onError={() => setImageError(true)}
+      />
+      {showBorder && <div className="absolute inset-0 rounded-full border-2 border-white dark:border-stone-800" />}
       {status && (
         <div
-          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white ${
-            status === "online" ? "bg-green-500" : status === "away" ? "bg-orange-400" : "bg-stone-400"
+          className={`absolute bottom-0 right-0 w-3 h-3 rounded-full border-2 border-white dark:border-stone-800 ${
+            status === "online" ? "bg-green-500" : status === "away" ? "bg-[#FFA726]" : "bg-stone-400"
           }`}
         />
       )}

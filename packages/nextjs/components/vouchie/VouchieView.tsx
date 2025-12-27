@@ -37,26 +37,26 @@ const MOCK_PROFILES = [
 const VouchieView = () => (
   <div className="space-y-6 animate-in fade-in duration-500">
     <header className="text-center mb-8">
-      <div className="w-16 h-16 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-4 text-orange-500">
+      <div className="w-16 h-16 bg-orange-50 dark:bg-orange-900/20 rounded-full flex items-center justify-center mx-auto mb-4 text-orange-500 dark:text-[#FFA726]">
         <Trophy size={32} weight="fill" />
       </div>
-      <h2 className="text-3xl font-bold text-stone-800">Vouchie Board</h2>
-      <p className="text-stone-500 font-bold">Keep each other accountable!</p>
+      <h2 className="text-3xl font-bold text-stone-800 dark:text-stone-100">Vouchie Board</h2>
+      <p className="text-stone-500 dark:text-stone-400 font-bold">Keep each other accountable!</p>
     </header>
 
     <div className="space-y-4">
       {MOCK_PROFILES.map((profile, i) => (
         <Card
           key={profile.id}
-          className="flex items-center justify-between group hover:bg-stone-50/50 transition-colors cursor-pointer"
+          className="flex items-center justify-between group hover:bg-stone-50/50 dark:hover:bg-stone-700/50 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-4">
             <Avatar src={profile.avatar} name={profile.name} size="lg" status={profile.status} showBorder />
             <div>
-              <h3 className="font-bold text-stone-700 text-lg flex items-center gap-2">
+              <h3 className="font-bold text-stone-700 dark:text-stone-200 text-lg flex items-center gap-2">
                 {profile.name}
                 {i === 0 && (
-                  <span className="text-xs bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full font-semibold">
+                  <span className="text-xs bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300 px-2 py-0.5 rounded-full font-semibold">
                     MVP
                   </span>
                 )}
@@ -64,12 +64,12 @@ const VouchieView = () => (
               <p className="text-xs text-stone-400 font-bold">{profile.score} Reputation Pts</p>
             </div>
           </div>
-          <button className="px-4 py-2 bg-white rounded-xl text-stone-600 font-bold text-sm shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-orange-500 hover:text-white transform translate-x-2 group-hover:translate-x-0 min-h-[44px]">
+          <button className="px-4 py-2 bg-white dark:bg-stone-700 rounded-xl text-stone-600 dark:text-stone-300 font-bold text-sm shadow-sm opacity-0 group-hover:opacity-100 transition-all hover:bg-[#FFA726] hover:text-white dark:hover:text-stone-900 transform translate-x-2 group-hover:translate-x-0 min-h-[44px]">
             Nudge <span className="text-xs ml-1 opacity-80">👋</span>
           </button>
         </Card>
       ))}
-      <button className="w-full py-4 border-2 border-dashed border-stone-200 rounded-2xl text-stone-400 font-bold hover:bg-white/50 hover:text-orange-500 hover:border-orange-200 transition-all min-h-[48px]">
+      <button className="w-full py-4 border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl text-stone-400 font-bold hover:bg-white/50 dark:hover:bg-stone-800/50 hover:text-[#FFA726] hover:border-[#FFA726] dark:hover:border-[#FFA726] transition-all min-h-[48px]">
         + Invite Vouchie
       </button>
     </div>

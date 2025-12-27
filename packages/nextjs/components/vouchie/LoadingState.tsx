@@ -23,7 +23,7 @@ const LoadingState = ({ variant = "full", size = "md", text = "Loading..." }: Lo
 
   if (variant === "card") {
     return (
-      <div className="p-5 rounded-2xl bg-white border border-stone-200 space-y-4">
+      <div className="p-5 rounded-2xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 space-y-4">
         <div className="flex items-center space-x-3">
           <div className="skeleton w-10 h-10 rounded-full" />
           <div className="flex-1 space-y-2">
@@ -43,7 +43,7 @@ const LoadingState = ({ variant = "full", size = "md", text = "Loading..." }: Lo
   return (
     <div className="flex flex-col items-center justify-center py-12 space-y-4">
       <div className={`spinner ${sizeClasses[size]}`} />
-      {text && <p className="text-sm font-semibold text-stone-500">{text}</p>}
+      {text && <p className="text-sm font-semibold text-stone-500 dark:text-stone-400">{text}</p>}
     </div>
   );
 };

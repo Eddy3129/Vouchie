@@ -16,15 +16,15 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex justify-between items-center mb-4">
-        <h2 className="text-3xl font-bold text-stone-800">October</h2>
+        <h2 className="text-3xl font-bold text-stone-800 dark:text-stone-100">October</h2>
         <div className="flex gap-2">
-          <button className="p-2 bg-white rounded-xl shadow-sm hover:bg-stone-100 transition-colors">
+          <button className="p-2 bg-white dark:bg-stone-800 rounded-xl shadow-sm hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-stone-700 dark:text-stone-300">
             <CaretLeft size={20} weight="bold" />
           </button>
-          <button className="p-2 bg-[#8B5A2B] text-white rounded-xl shadow-sm hover:bg-[#6B4423] transition-colors">
+          <button className="p-2 bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 rounded-xl shadow-sm hover:bg-[#6B4423] dark:hover:bg-[#FF9800] transition-colors">
             <CalendarPlus size={20} weight="fill" />
           </button>
-          <button className="p-2 bg-white rounded-xl shadow-sm hover:bg-stone-100 transition-colors">
+          <button className="p-2 bg-white dark:bg-stone-800 rounded-xl shadow-sm hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-stone-700 dark:text-stone-300">
             <CaretRight size={20} weight="bold" />
           </button>
         </div>
@@ -44,8 +44,8 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
               key={i}
               className={`
                 aspect-square rounded-xl flex flex-col items-center justify-center relative
-                ${!day ? "" : "hover:bg-stone-50 cursor-pointer"}
-                ${day === 24 ? "bg-orange-50 text-orange-700" : "text-stone-600"}
+                ${!day ? "" : "hover:bg-stone-50 dark:hover:bg-stone-700 cursor-pointer"}
+                ${day === 24 ? "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300" : "text-stone-600 dark:text-stone-300"}
               `}
             >
               <span className="font-bold text-sm">{day}</span>
@@ -57,9 +57,9 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
       </Card>
 
       <div className="space-y-3">
-        <h3 className="text-lg font-bold text-stone-700">Upcoming</h3>
-        <div className="bg-white/50 p-4 rounded-2xl border border-stone-200 mb-3">
-          <div className="flex items-center gap-3 text-stone-500">
+        <h3 className="text-lg font-bold text-stone-700 dark:text-stone-200">Upcoming</h3>
+        <div className="bg-white/50 dark:bg-stone-800/50 p-4 rounded-2xl border border-stone-200 dark:border-stone-700 mb-3">
+          <div className="flex items-center gap-3 text-stone-500 dark:text-stone-400">
             <CalendarPlus size={18} weight="bold" />
             <p className="text-sm font-semibold">Write calendar feature coming soon</p>
           </div>
@@ -67,11 +67,11 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
         {tasks.map(task => (
           <div
             key={task.id}
-            className="bg-white p-3 rounded-2xl flex items-center gap-3 shadow-sm border border-stone-100"
+            className="bg-white dark:bg-stone-800 p-3 rounded-2xl flex items-center gap-3 shadow-sm border border-stone-100 dark:border-stone-700"
           >
             <div className={`w-2 h-10 rounded-full ${task.color}`} />
             <div>
-              <p className="font-bold text-stone-700">{task.title}</p>
+              <p className="font-bold text-stone-700 dark:text-stone-200">{task.title}</p>
               <p className="text-xs text-stone-400 font-bold">
                 {new Date(task.deadline).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </p>

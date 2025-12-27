@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Goal } from "../../../types/vouchie";
-import { Camera, CheckCircle, Hourglass, Lightning, SmileySad, Wallet, X } from "@phosphor-icons/react";
+import { Camera, CheckCircle, SmileySad, X } from "@phosphor-icons/react";
 
 interface TaskDetailModalProps {
   isOpen: boolean;
@@ -11,96 +11,166 @@ interface TaskDetailModalProps {
   onExtend: (goalId: number) => void;
 }
 
-const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onExtend }: TaskDetailModalProps) => {
+const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp }: TaskDetailModalProps) => {
   const [proofText, setProofText] = useState("");
+
+  // Calculate time remaining and urgency
+  const timeData = useMemo(() => {
+    if (!goal) return { hoursLeft: 0, minutesLeft: 0, percentRemaining: 0, urgency: "safe" };
+
+    const now = Date.now();
+    const totalMs = goal.deadline - (goal.startTime || now - 3600000); // Assume 1h if no start
+    const remainingMs = Math.max(0, goal.deadline - now);
+
+    const hoursLeft = Math.floor(remainingMs / (1000 * 60 * 60));
+    const minutesLeft = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+    const percentRemaining = Math.min(100, Math.max(0, (remainingMs / totalMs) * 100));
+
+    let urgency: "safe" | "warning" | "danger" = "safe";
+    if (hoursLeft < 1) urgency = "danger";
+    else if (hoursLeft < 4) urgency = "warning";
+
+    return { hoursLeft, minutesLeft, percentRemaining, urgency };
+  }, [goal]);
 
   if (!isOpen || !goal) return null;
   const isSolo = goal.mode === "Solo";
 
+  // SVG ring calculations
+  const radius = 70;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference - (timeData.percentRemaining / 100) * circumference;
+
+  // Color based on urgency
+  const ringColor = timeData.urgency === "danger" ? "#EF4444" : timeData.urgency === "warning" ? "#F59E0B" : "#22C55E";
+
+  const bgGlow =
+    timeData.urgency === "danger"
+      ? "shadow-[0_0_60px_rgba(239,68,68,0.3)]"
+      : timeData.urgency === "warning"
+        ? "shadow-[0_0_60px_rgba(245,158,11,0.2)]"
+        : "";
+
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-[#FAF7F2] dark:bg-stone-900 w-full max-w-md rounded-3xl p-6 shadow-md animate-in slide-in-from-bottom-10 duration-300 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-2xl font-bold text-stone-800 dark:text-stone-100 flex items-center gap-2">
-            {goal.title}
-          </h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
+      <div
+        className={`bg-stone-900 w-full max-w-sm rounded-3xl p-6 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto ${bgGlow}`}
+      >
+        {/* Header */}
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex-1 pr-4">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-1 block">
+              {goal.mode} Quest
+            </span>
+            <h3 className="text-xl font-bold text-white leading-tight">{goal.title}</h3>
+          </div>
           <button
             onClick={onClose}
-            className="p-2 bg-stone-100 dark:bg-stone-800 rounded-full hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors text-stone-600 dark:text-stone-300"
+            className="p-2 bg-stone-800 rounded-full hover:bg-stone-700 transition-colors text-stone-400"
           >
-            <X size={20} weight="bold" />
+            <X size={18} weight="bold" />
           </button>
         </div>
 
-        <div className="flex gap-4 mb-6">
-          <div className="flex-1 bg-white dark:bg-stone-800 p-3 rounded-2xl border border-stone-100 dark:border-stone-700">
-            <p className="text-xs text-stone-400 font-bold uppercase">At Stake</p>
-            <p className="text-xl font-bold text-stone-700 dark:text-stone-200 flex items-center gap-1">
-              <Wallet size={18} weight="fill" className="text-stone-400" /> USDC {goal.stake}
-            </p>
-          </div>
-          <div className="flex-1 bg-white dark:bg-stone-800 p-3 rounded-2xl border border-stone-100 dark:border-stone-700">
-            <p className="text-xs text-stone-400 font-bold uppercase">Started</p>
-            <p className="text-md font-bold text-stone-700 dark:text-stone-200 flex items-center gap-1 mt-1">
-              {goal.startTime
-                ? new Date(goal.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-                : "Not yet"}
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="bg-white dark:bg-stone-800 p-4 rounded-2xl border border-stone-100 dark:border-stone-700">
-            <h4 className="font-bold text-stone-700 dark:text-stone-200 mb-2 flex items-center gap-2">
-              <Camera size={18} weight="bold" /> Submit Final Proof
-            </h4>
-            <div className="bg-stone-50 dark:bg-stone-700/50 p-4 rounded-xl border-2 border-dashed border-stone-200 dark:border-stone-600 mb-3 flex items-center justify-center text-stone-400 cursor-pointer hover:bg-stone-100 dark:hover:bg-stone-700">
-              <span className="text-sm font-semibold">Tap to upload photo</span>
-            </div>
-            {!isSolo && (
-              <textarea
-                rows={2}
-                placeholder="Tell your vouchie you did it..."
-                className="w-full bg-stone-50 dark:bg-stone-700/50 p-3 rounded-xl outline-none font-bold text-sm text-stone-600 dark:text-stone-300 resize-none mb-3 placeholder:text-stone-400"
-                value={proofText}
-                onChange={e => setProofText(e.target.value)}
+        {/* Countdown Ring with Money */}
+        <div className="flex justify-center my-6">
+          <div className="relative">
+            {/* SVG Ring */}
+            <svg width="180" height="180" className="transform -rotate-90">
+              {/* Background ring */}
+              <circle cx="90" cy="90" r={radius} stroke="#374151" strokeWidth="8" fill="none" />
+              {/* Progress ring */}
+              <circle
+                cx="90"
+                cy="90"
+                r={radius}
+                stroke={ringColor}
+                strokeWidth="8"
+                fill="none"
+                strokeLinecap="round"
+                strokeDasharray={circumference}
+                strokeDashoffset={strokeDashoffset}
+                className="transition-all duration-1000"
               />
-            )}
-            <button
-              onClick={() => onSubmit(goal.id, proofText)}
-              className="w-full py-3 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition-colors flex items-center justify-center gap-2 min-h-[48px]"
-            >
-              Mark as Done <CheckCircle size={18} weight="bold" />
-            </button>
-          </div>
+            </svg>
 
-          <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-2xl border border-orange-100 dark:border-orange-900/40">
-            <div className="flex justify-between items-center mb-2">
-              <h4 className="font-bold text-orange-800 dark:text-orange-200 flex items-center gap-2">
-                <Hourglass size={18} weight="bold" /> Need more time?
-              </h4>
-              <span className="bg-orange-200 dark:bg-orange-800 text-orange-800 dark:text-orange-100 text-xs font-bold px-2 py-1 rounded-full">
-                PREMIUM
-              </span>
+            {/* Center content - Money being ripped */}
+            <div className="absolute inset-0 flex flex-col items-center justify-center">
+              {/* Money graphic */}
+              <div
+                className={`text-5xl mb-1 ${timeData.urgency === "danger" ? "animate-pulse" : ""}`}
+                style={{
+                  filter: timeData.urgency === "danger" ? "grayscale(0.5)" : "none",
+                  transform: timeData.urgency === "danger" ? "scale(0.9)" : "scale(1)",
+                  transition: "all 0.3s",
+                }}
+              >
+                💸
+              </div>
+              {/* Stake amount */}
+              <div className="text-center">
+                <span className="text-2xl font-bold text-white">${goal.stake}</span>
+                <span className="text-xs text-stone-400 ml-1">USDC</span>
+              </div>
             </div>
-            <p className="text-xs text-orange-700 dark:text-orange-300 mb-3 font-semibold">
-              Extend deadline by 12 hours for a small fee.
-            </p>
-            <button
-              onClick={() => onExtend(goal.id)}
-              className="w-full py-2 bg-orange-400 text-white rounded-xl font-bold hover:bg-orange-500 transition-colors flex items-center justify-center gap-2 min-h-[44px]"
-            >
-              Extend (+12h) <Lightning size={16} weight="fill" />
-            </button>
-          </div>
 
-          <button
-            onClick={() => onGiveUp(goal.id)}
-            className="w-full py-3 text-red-400 font-bold hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors flex items-center justify-center gap-2 min-h-[48px]"
+            {/* Urgency indicator */}
+            {timeData.urgency === "danger" && (
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">
+                HURRY!
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Time remaining text */}
+        <div className="text-center mb-6">
+          <div
+            className={`text-3xl font-bold ${
+              timeData.urgency === "danger"
+                ? "text-red-400"
+                : timeData.urgency === "warning"
+                  ? "text-amber-400"
+                  : "text-green-400"
+            }`}
           >
-            <SmileySad size={18} weight="bold" /> Give Up & Lose Stake
+            {timeData.hoursLeft}h {timeData.minutesLeft}m
+          </div>
+          <p className="text-stone-500 text-sm font-semibold">remaining</p>
+        </div>
+
+        {/* Submit Proof Section */}
+        <div className="bg-stone-800 p-4 rounded-2xl mb-4 border border-stone-700">
+          <h4 className="font-bold text-white mb-3 flex items-center gap-2 text-sm">
+            <Camera size={16} weight="bold" className="text-stone-400" /> Submit Proof
+          </h4>
+          <div className="bg-stone-700/50 p-4 rounded-xl border-2 border-dashed border-stone-600 mb-3 flex items-center justify-center text-stone-400 cursor-pointer hover:bg-stone-700 hover:border-stone-500 transition-all">
+            <span className="text-sm font-semibold">Tap to upload photo</span>
+          </div>
+          {!isSolo && (
+            <textarea
+              rows={2}
+              placeholder="Tell your vouchie you did it..."
+              className="w-full bg-stone-700/50 p-3 rounded-xl outline-none font-semibold text-sm text-stone-200 resize-none mb-3 placeholder:text-stone-500 border border-stone-600 focus:border-stone-500"
+              value={proofText}
+              onChange={e => setProofText(e.target.value)}
+            />
+          )}
+          <button
+            onClick={() => onSubmit(goal.id, proofText)}
+            className="w-full py-3.5 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition-colors flex items-center justify-center gap-2 text-sm"
+          >
+            <CheckCircle size={18} weight="bold" /> Mark as Done
           </button>
         </div>
+
+        {/* Give Up Button - Opens GiveUpModal */}
+        <button
+          onClick={() => onGiveUp(goal.id)}
+          className="w-full py-3 text-red-400 font-bold hover:bg-red-900/20 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm border border-red-900/50"
+        >
+          <SmileySad size={16} weight="bold" /> I Can&apos;t Do This
+        </button>
       </div>
     </div>
   );

@@ -4,12 +4,12 @@ pragma solidity ^0.8.19;
 import "forge-std/Test.sol";
 import "../contracts/VouchieVault.sol";
 import "../contracts/VouchieBadge.sol";
-import "../contracts/MockToken.sol";
+import "../contracts/MockUSDC.sol";
 
 contract VouchieVaultTest is Test {
     VouchieVault public vault;
     VouchieBadge public badge;
-    MockToken public token;
+    MockUSDC public token;
 
     address public creator = address(1);
     address public bob = address(2);
@@ -21,7 +21,7 @@ contract VouchieVaultTest is Test {
     event GoalResolved(uint256 indexed goalId, bool successful, bool isSolo);
 
     function setUp() public {
-        token = new MockToken();
+        token = new MockUSDC();
         vault = new VouchieVault(address(token));
         badge = new VouchieBadge();
         

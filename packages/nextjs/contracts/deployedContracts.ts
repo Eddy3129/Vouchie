@@ -6,7 +6,7 @@ import { GenericContractsDeclaration } from "~~/utils/scaffold-eth/contract";
 
 const deployedContracts = {
   31337: {
-    MockToken: {
+    MockUSDC: {
       address: "0x700b6a60ce7eaaea56f065753d8dcb9653dbad35",
       abi: [
         {
@@ -93,6 +93,19 @@ const deployedContracts = {
             },
           ],
           stateMutability: "view",
+        },
+        {
+          type: "function",
+          name: "faucet",
+          inputs: [
+            {
+              name: "amount",
+              type: "uint256",
+              internalType: "uint256",
+            },
+          ],
+          outputs: [],
+          stateMutability: "nonpayable",
         },
         {
           type: "function",
@@ -342,7 +355,7 @@ const deployedContracts = {
         },
       ],
       inheritedFunctions: {},
-      deployedOnBlock: 1,
+      deployedOnBlock: 2,
     },
     VouchieBadge: {
       address: "0xa15bb66138824a1c7167f5e85b957d04dd34e468",
