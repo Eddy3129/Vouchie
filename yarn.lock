@@ -4220,6 +4220,7 @@ __metadata:
     next: ~15.2.8
     next-nprogress-bar: ~2.3.13
     next-themes: ~0.3.0
+    ponder: ^0.14.1
     postcss: ~8.4.45
     prettier: ~3.5.3
     qrcode.react: ~4.0.1
