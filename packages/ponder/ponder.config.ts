@@ -19,7 +19,11 @@ console.log("fallbackRpcUrl", fallbackRpcUrl);
 const chains = {
   [targetNetwork.name]: {
     id: targetNetwork.id,
-    rpc: fallbackRpcUrl,
+    rpc: http(fallbackRpcUrl, {
+      retryCount: 5,
+      retryDelay: 1000,
+    }),
+    maxRequestsPerSecond: 5,
   },
 };
 
