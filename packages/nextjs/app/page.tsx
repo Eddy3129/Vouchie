@@ -14,7 +14,6 @@ import {
   Plus,
   Quotes,
   Star,
-  TrendUp,
   User,
   Users,
 } from "@phosphor-icons/react";
@@ -393,38 +392,41 @@ const VouchieApp = () => {
               <div className="max-w-4xl mx-auto pt-6">
                 {activeTab === "dashboard" && (
                   <div className="space-y-6 animate-in fade-in duration-500">
-                    <header>
-                      <h1 className="text-2xl font-bold text-stone-800 dark:text-stone-100">
-                        Let&apos;s start grinding.
-                      </h1>
-                    </header>
+                    {/* Hero Quote Section */}
+                    <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900">
+                      {/* Subtle warm gradient overlay */}
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#8B5A2B]/10 via-transparent to-[#8B5A2B]/5" />
 
-                    {/* Motivation Banner - Compact with Silhouette */}
-                    <div className="bg-gradient-to-r from-[#8B5A2B] to-[#A67B5B] dark:from-[#5D4E37] dark:to-[#8B5A2B] rounded-2xl p-4 text-white relative overflow-hidden">
-                      {/* Background blur decoration */}
-                      <div className="absolute top-0 right-0 w-20 h-20 bg-white opacity-10 rounded-full -mr-6 -mt-6 blur-xl" />
-
-                      {/* Author silhouette decoration */}
-                      <div className="absolute right-0 bottom-0 w-24 h-24 opacity-[0.08] pointer-events-none">
+                      {/* Ghost silhouette - faded, bleeds off edge */}
+                      <div className="absolute -right-6 bottom-0 w-40 h-full opacity-[0.12] pointer-events-none flex items-end justify-center">
                         <Image
                           src={dailyQuote.silhouette}
                           alt=""
-                          width={96}
-                          height={96}
-                          className="w-full h-full object-contain"
+                          width={160}
+                          height={160}
+                          className="max-w-full max-h-full object-contain object-bottom"
+                          priority
+                          sizes="160px"
                         />
                       </div>
 
-                      {/* Quote icon */}
-                      <Quotes className="absolute top-3 right-3 opacity-15 transform rotate-180" size={20} />
+                      {/* Content */}
+                      <div className="relative p-4 pr-16">
+                        {/* Quote mark */}
+                        <Quotes className="absolute top-3 left-3 text-[#FFA726]/20" size={24} weight="fill" />
 
-                      {/* Quote content */}
-                      <p className="font-bold text-sm relative z-10 leading-snug pr-6">&quot;{dailyQuote.text}&quot;</p>
-                      <p className="text-xs text-white/70 mt-1.5 italic relative z-10">- {dailyQuote.author}</p>
+                        {/* Quote text */}
+                        <p
+                          className="text-white/90 text-sm leading-relaxed pl-5 italic"
+                          style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                        >
+                          {dailyQuote.text}
+                        </p>
 
-                      {/* Badge */}
-                      <div className="mt-3 inline-flex items-center gap-1.5 bg-white/15 backdrop-blur-sm px-2.5 py-0.5 rounded-full text-[10px] font-bold text-white/90">
-                        <TrendUp size={12} /> Daily Wisdom
+                        {/* Author */}
+                        <p className="text-[#FFA726]/80 text-[10px] mt-2 font-bold tracking-widest uppercase pl-5">
+                          — {dailyQuote.author}
+                        </p>
                       </div>
                     </div>
 

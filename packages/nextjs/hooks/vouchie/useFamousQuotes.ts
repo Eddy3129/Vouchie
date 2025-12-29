@@ -6,119 +6,72 @@ interface Quote {
   silhouette: string;
 }
 
-// Generate silhouette URL using DiceBear API
-const getSilhouette = (seed: string) =>
-  `https://api.dicebear.com/7.x/personas/svg?seed=${encodeURIComponent(seed)}&backgroundColor=transparent&clothingColor=ffffff&hairColor=ffffff&skinColor=ffffff`;
-
 const famousQuotes: Quote[] = [
+  // Discipline & Consistency
   {
-    text: "The future depends on what you do today.",
-    author: "Mahatma Gandhi",
-    silhouette: getSilhouette("gandhi"),
+    text: "I fear not the man who has practiced 10,000 kicks once, but the man who has practiced one kick 10,000 times.",
+    author: "Bruce Lee",
+    silhouette: "/quotes/bruce.png",
   },
   {
-    text: "Your time is limited, so don't waste it living someone else's life.",
-    author: "Steve Jobs",
-    silhouette: getSilhouette("jobs"),
-  },
-  {
-    text: "The only way to do great work is to love what you do.",
-    author: "Steve Jobs",
-    silhouette: getSilhouette("jobs"),
-  },
-  {
-    text: "Believe you can and you're halfway there.",
-    author: "Theodore Roosevelt",
-    silhouette: getSilhouette("roosevelt"),
-  },
-  {
-    text: "The secret of getting ahead is getting started.",
-    author: "Mark Twain",
-    silhouette: getSilhouette("twain"),
-  },
-  {
-    text: "Don't watch the clock; do what it does. Keep going.",
-    author: "Sam Levenson",
-    silhouette: getSilhouette("levenson"),
+    text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.",
+    author: "Aristotle",
+    silhouette: "/quotes/aristotle.png",
   },
   {
     text: "Success is the sum of small efforts repeated day in and day out.",
     author: "Robert Collier",
-    silhouette: getSilhouette("collier"),
+    silhouette: "/quotes/robert-collier.png",
+  },
+  // Grind & Hard Things
+  {
+    text: "Discipline is the bridge between goals and accomplishment.",
+    author: "Jim Rohn",
+    silhouette: "/quotes/jim-rohn.png",
   },
   {
-    text: "The harder you work for something, the greater you'll feel when you achieve it.",
-    author: "Arnold Schwarzenegger",
-    silhouette: getSilhouette("arnold"),
+    text: "Nothing in the world is worth having or worth doing unless it means effort, pain, difficulty.",
+    author: "Theodore Roosevelt",
+    silhouette: "/quotes/theodore-roosevelt.png",
+  },
+  // Time & Urgency
+  {
+    text: "The future depends on what you do today.",
+    author: "Mahatma Gandhi",
+    silhouette: "/quotes/gandhi.png",
   },
   {
-    text: "It does not matter how slowly you go as long as you do not stop.",
-    author: "Confucius",
-    silhouette: getSilhouette("confucius"),
+    text: "Lost time is never found again.",
+    author: "Benjamin Franklin",
+    silhouette: "/quotes/benjamin-franklin.png",
+  },
+  // Strength & Pressure
+  {
+    text: "What does not kill me makes me stronger.",
+    author: "Friedrich Nietzsche",
+    silhouette: "/quotes/nietzshce.png",
   },
   {
-    text: "Discipline is doing what needs to be done, even if you don't want to do it.",
-    author: "Unknown",
-    silhouette: getSilhouette("wisdom1"),
+    text: "Courage is resistance to fear, mastery of fear—not absence of fear.",
+    author: "Mark Twain",
+    silhouette: "/quotes/mark-twain.png",
   },
   {
-    text: "The distance between dreams and reality is called action.",
-    author: "Unknown",
-    silhouette: getSilhouette("wisdom2"),
-  },
-  {
-    text: "Every day is a new chance to get stronger.",
-    author: "Unknown",
-    silhouette: getSilhouette("wisdom3"),
-  },
-  {
-    text: "Small steps every day lead to big results.",
-    author: "Unknown",
-    silhouette: getSilhouette("wisdom4"),
-  },
-  {
-    text: "Focus on the step in front of you, not the whole staircase.",
-    author: "Unknown",
-    silhouette: getSilhouette("wisdom5"),
-  },
-  {
-    text: "You didn't come this far to only come this far.",
-    author: "Unknown",
-    silhouette: getSilhouette("wisdom6"),
-  },
-  {
-    text: "Your future self will thank you.",
-    author: "Unknown",
-    silhouette: getSilhouette("wisdom7"),
-  },
-  {
-    text: "Consistency is what transforms average into excellence.",
-    author: "Unknown",
-    silhouette: getSilhouette("wisdom8"),
-  },
-  {
-    text: "The best time to plant a tree was 20 years ago. The second best time is now.",
-    author: "Chinese Proverb",
-    silhouette: getSilhouette("proverb"),
-  },
-  {
-    text: "You don't have to be great to start, but you have to start to be great.",
-    author: "Zig Ziglar",
-    silhouette: getSilhouette("ziglar"),
-  },
-  {
-    text: "The secret of your future is hidden in your daily routine.",
-    author: "Mike Murdock",
-    silhouette: getSilhouette("murdock"),
+    text: "The impediment to action advances action. What stands in the way becomes the way.",
+    author: "Marcus Aurelius",
+    silhouette: "/quotes/marcus-aurelis.png",
   },
 ];
 
+// Get a random quote
+const getRandomQuote = () => famousQuotes[Math.floor(Math.random() * famousQuotes.length)];
+
 export const useFamousQuotes = () => {
-  const [dailyQuote, setDailyQuote] = useState<Quote>(famousQuotes[0]);
+  // Initialize with a random quote on first load
+  const [dailyQuote, setDailyQuote] = useState<Quote>(() => getRandomQuote());
 
   const refreshQuote = () => {
-    const randomIndex = Math.floor(Math.random() * famousQuotes.length);
-    setDailyQuote(famousQuotes[randomIndex]);
+    setDailyQuote(getRandomQuote());
   };
 
   return { dailyQuote, refreshQuote };

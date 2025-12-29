@@ -230,6 +230,9 @@ const FriendActivityView = () => {
                       alt={formatAddress(activity.user)}
                       width={44}
                       height={44}
+                      sizes="44px"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
                     />
                   </div>
                   <div

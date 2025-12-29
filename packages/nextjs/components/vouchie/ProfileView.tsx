@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Avatar from "./Avatar";
 import { CaretDown, CaretUp, Fire, Spinner, Wallet } from "@phosphor-icons/react";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
 import { UserStats, useLeaderboard, useUserStats } from "~~/hooks/vouchie/usePonderData";
@@ -64,6 +65,80 @@ const ProfileView = () => {
         <div className="flex flex-col items-center justify-center py-12 text-stone-400">
           <Spinner size={32} className="animate-spin mb-3" />
           <p className="font-medium">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show connect wallet prompt if not connected
+  if (!address) {
+    return (
+      <div className="space-y-3 animate-in fade-in duration-500">
+        <div className="bg-white dark:bg-stone-800 rounded-xl p-6 shadow-sm border border-stone-100 dark:border-stone-700">
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            {/* Large wallet icon */}
+            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#8B5A2B] to-[#FFA726] flex items-center justify-center mb-4 shadow-lg">
+              <Wallet size={40} weight="fill" className="text-white" />
+            </div>
+
+            <h2 className="text-xl font-bold text-stone-800 dark:text-stone-100 mb-2">Connect Your Wallet</h2>
+            <p className="text-sm text-stone-500 dark:text-stone-400 mb-6 max-w-xs">
+              Connect your wallet to view your profile, track your goals, and see the leaderboard.
+            </p>
+
+            {/* Large, prominent connect button */}
+            <ConnectButton.Custom>
+              {({ openConnectModal, mounted }) => {
+                const ready = mounted;
+                return (
+                  <button
+                    onClick={openConnectModal}
+                    disabled={!ready}
+                    className="w-full max-w-xs py-4 px-6 bg-gradient-to-r from-[#8B5A2B] to-[#A0522D] hover:from-[#7A4A1B] hover:to-[#8B4513] text-white font-bold text-lg rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-3 active:scale-[0.98]"
+                  >
+                    <Wallet size={24} weight="fill" />
+                    Connect Wallet
+                  </button>
+                );
+              }}
+            </ConnectButton.Custom>
+          </div>
+        </div>
+
+        {/* Still show leaderboard preview even when not connected */}
+        <div className="bg-white dark:bg-stone-800 rounded-xl p-3 shadow-sm border border-stone-100 dark:border-stone-700 opacity-75">
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Leaderboard</span>
+          </div>
+          {leaderboardLoading ? (
+            <div className="flex items-center justify-center py-4 text-stone-400">
+              <Spinner size={20} className="animate-spin" />
+            </div>
+          ) : leaderboardEntries.length === 0 ? (
+            <div className="text-center py-4 text-stone-400 text-sm">No users on leaderboard yet. Be the first!</div>
+          ) : (
+            <div className="space-y-1.5">
+              {leaderboardEntries.slice(0, 3).map((friend, index) => (
+                <div key={friend.id} className="flex items-center gap-2 py-1.5 px-2 rounded-lg">
+                  <div
+                    className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] text-white font-bold flex-shrink-0 ${
+                      index === 0 ? "bg-yellow-400" : index === 1 ? "bg-gray-400" : "bg-orange-400"
+                    }`}
+                  >
+                    {index + 1}
+                  </div>
+                  <Avatar src={friend.avatar} name={friend.name} size="sm" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-xs truncate text-stone-700 dark:text-stone-200">{friend.name}</p>
+                  </div>
+                  <span className="text-xs font-bold text-orange-500 flex items-center gap-1">
+                    <Fire size={10} weight="fill" /> {friend.streak}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="mt-3 text-center text-xs text-stone-400">Connect wallet to see your rank</div>
         </div>
       </div>
     );

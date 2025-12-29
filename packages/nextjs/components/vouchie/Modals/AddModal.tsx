@@ -2,11 +2,17 @@ import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, Check, CheckCircle, Plus, Users, Wallet, X } from "@phosphor-icons/react";
 import { toast } from "react-hot-toast";
 
+// Animation states for smooth transitions
+type AnimationState = "entering" | "entered" | "exiting" | "exited";
+
 interface AddModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (formData: any) => void;
 }
+
+const ANIMATION_DURATION_IN = 400; // ms for smooth slow slide in
+const ANIMATION_DURATION_OUT = 100; // ms for quick slide out
 
 const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
   // Default deadline is now + 1 hour
@@ -35,6 +41,30 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
   // Track active chip for highlighting
   const [activeChip, setActiveChip] = useState<string | null>("+1h");
 
+  // Animation state management
+  const [animationState, setAnimationState] = useState<AnimationState>("exited");
+  const [shouldRender, setShouldRender] = useState(false);
+
+  // Handle open/close animations
+  useEffect(() => {
+    if (isOpen) {
+      setShouldRender(true);
+      // Small delay to ensure DOM is ready before starting animation
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setAnimationState("entering");
+          setTimeout(() => setAnimationState("entered"), ANIMATION_DURATION_IN);
+        });
+      });
+    } else if (shouldRender) {
+      setAnimationState("exiting");
+      setTimeout(() => {
+        setAnimationState("exited");
+        setShouldRender(false);
+      }, ANIMATION_DURATION_OUT);
+    }
+  }, [isOpen, shouldRender]);
+
   // Reset state when opening
   useEffect(() => {
     if (isOpen) {
@@ -52,7 +82,39 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
     }
   }, [isOpen]);
 
-  if (!isOpen) return null;
+  // Handle close with animation
+  const handleClose = () => {
+    setAnimationState("exiting");
+    setTimeout(() => {
+      onClose();
+    }, ANIMATION_DURATION_OUT);
+  };
+
+  if (!shouldRender) return null;
+
+  // Animation classes
+  const backdropClasses = `
+    fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4
+    transition-all ease-out
+    ${animationState === "entering" || animationState === "entered" ? "bg-black/40 backdrop-blur-md" : "bg-black/0 backdrop-blur-none"}
+  `;
+
+  const modalClasses = `
+    bg-[#FDFBF7] dark:bg-stone-900 w-full max-w-md rounded-[28px] p-5 soft-shadow
+    max-h-[90vh] overflow-y-auto overflow-x-hidden
+    transition-all ease-out
+    ${shake ? "animate-shake" : ""}
+    ${
+      animationState === "entering" || animationState === "entered"
+        ? "opacity-100 translate-y-0 scale-100"
+        : "opacity-0 translate-y-8 scale-95"
+    }
+  `;
+
+  const isExiting = animationState === "exiting";
+  const transitionStyle = {
+    transitionDuration: `${isExiting ? ANIMATION_DURATION_OUT : ANIMATION_DURATION_IN}ms`,
+  };
 
   // --- Slider Logic ---
   const handleDragStart = () => {
@@ -180,20 +242,12 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
     Math.abs(formData.startTime.getTime() - new Date().getTime()) < 60000;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40 backdrop-blur-md animate-in fade-in duration-200"
-      onMouseUp={handleDragEnd}
-      onTouchEnd={handleDragEnd}
-    >
-      <div
-        className={`bg-[#FDFBF7] dark:bg-stone-900 w-full max-w-md rounded-[28px] p-5 soft-shadow animate-in slide-in-from-bottom-10 duration-300 max-h-[90vh] overflow-y-auto overflow-x-hidden ${shake ? "animate-shake" : ""}`}
-        onMouseMove={handleDragMove}
-        onTouchMove={handleDragMove}
-      >
+    <div className={backdropClasses} style={transitionStyle} onMouseUp={handleDragEnd} onTouchEnd={handleDragEnd}>
+      <div className={modalClasses} style={transitionStyle} onMouseMove={handleDragMove} onTouchMove={handleDragMove}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-bold text-stone-800 dark:text-stone-100">New Goal</h3>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-1.5 bg-stone-100 dark:bg-stone-800 rounded-full hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400"
           >
             <X size={18} weight="bold" />
@@ -291,7 +345,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Users size={14} weight="fill" className="text-stone-400" />
-              <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Squad</span>
+              <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Vouchie</span>
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               <button className="flex-shrink-0 w-10 h-10 rounded-xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center border-2 border-dashed border-stone-200 dark:border-stone-700 text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors">
@@ -375,53 +429,116 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
       {/* Confirmation Popup */}
       {showConfirm && (
         <div className="absolute inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-stone-900 rounded-2xl p-5 w-full max-w-xs animate-in zoom-in-95 duration-200 shadow-2xl border border-stone-100 dark:border-stone-800">
-            {/* Lock Icon */}
-            <div className="flex justify-center mb-3">
-              <div className="w-12 h-12 bg-[#8B5A2B]/10 dark:bg-[#FFA726]/10 rounded-full flex items-center justify-center">
-                <span className="text-2xl">🔒</span>
-              </div>
-            </div>
-
-            {/* Title */}
-            <h4 className="text-center text-lg font-bold text-stone-800 dark:text-stone-100 mb-1">Begin Challenge?</h4>
-
-            {/* Goal Title */}
-            <p className="text-center text-sm font-bold text-[#8B5A2B] dark:text-[#FFA726] mb-3 line-clamp-2">
-              &quot;{formData.title}&quot;
-            </p>
-
-            {/* Lock Amount - Prominent */}
-            <div className="bg-stone-50 dark:bg-stone-800 rounded-xl p-3 mb-4 text-center">
-              <p className="text-xs text-stone-400 mb-1">You&apos;re locking</p>
-              <p className="text-2xl font-bold text-stone-800 dark:text-stone-100">
-                ${formData.stake} <span className="text-sm font-semibold text-stone-400">USDC</span>
+          <div className="bg-white dark:bg-stone-900 rounded-2xl p-5 w-full max-w-sm animate-in zoom-in-95 duration-200 shadow-2xl border border-stone-100 dark:border-stone-800">
+            {/* Header */}
+            <div className="text-center mb-4">
+              <h4 className="text-xl font-bold text-stone-800 dark:text-stone-100 mb-1">Confirm Challenge</h4>
+              <p className="text-lg font-bold text-[#8B5A2B] dark:text-[#FFA726] line-clamp-2">
+                &quot;{formData.title}&quot;
               </p>
             </div>
 
-            {/* Warning - Single line if solo */}
-            {isSolo && (
-              <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2 mb-4 flex items-center gap-2">
-                <span className="text-amber-500 text-sm">⚠</span>
-                <p className="text-xs text-amber-700 dark:text-amber-300 font-semibold">
-                  Complete on time to get your stake back!
-                </p>
+            {/* Timeline Details */}
+            <div className="bg-stone-50 dark:bg-stone-800 rounded-xl p-4 mb-4 space-y-3">
+              {/* Start Time */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Starts</span>
+                <span className="text-sm font-bold text-stone-700 dark:text-stone-200">
+                  {isNow
+                    ? "Now"
+                    : formData.startTime.toLocaleString([], {
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                </span>
               </div>
-            )}
 
-            {/* Buttons - Side by side */}
-            <div className="flex gap-2">
+              {/* Deadline */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Deadline</span>
+                <span className="text-sm font-bold text-red-500 dark:text-red-400">
+                  {formData.deadline.toLocaleString([], {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+              </div>
+
+              {/* Divider */}
+              <div className="border-t border-stone-200 dark:border-stone-700" />
+
+              {/* Stake Amount */}
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Your Stake</span>
+                <span className="text-lg font-bold text-stone-800 dark:text-stone-100">
+                  ${formData.stake} <span className="text-xs font-semibold text-stone-400">USDC</span>
+                </span>
+              </div>
+            </div>
+
+            {/* What happens if you fail */}
+            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl p-4 mb-4">
+              <p className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-2">
+                If you fail...
+              </p>
+              {isSolo ? (
+                <p className="text-sm font-semibold text-red-700 dark:text-red-300">
+                  You lose your ${formData.stake} USDC stake to the treasury.
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-sm font-semibold text-red-700 dark:text-red-300">
+                    ${formData.stake} USDC will be split among:
+                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {formData.vouchies.map(vId => {
+                      const vouchie = MOCK_VOUCHIES.find(v => v.id === vId);
+                      if (!vouchie) return null;
+                      return (
+                        <div
+                          key={vId}
+                          className="flex items-center gap-1.5 bg-white dark:bg-stone-800 px-2 py-1 rounded-lg"
+                        >
+                          <span className="text-base">{vouchie.avatar}</span>
+                          <span className="text-xs font-bold text-stone-600 dark:text-stone-300">{vouchie.name}</span>
+                        </div>
+                      );
+                    })}
+                    <span className="text-xs font-bold text-red-500">
+                      (${(formData.stake / formData.vouchies.length).toFixed(2)} each)
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Success message */}
+            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-xl p-3 mb-4">
+              <p className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">
+                If you succeed...
+              </p>
+              <p className="text-sm font-semibold text-green-700 dark:text-green-300">
+                You get your ${formData.stake} USDC back!
+              </p>
+            </div>
+
+            {/* Buttons */}
+            <div className="flex gap-3">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 py-3 rounded-xl font-semibold text-stone-500 hover:bg-stone-100 dark:hover:bg-stone-800 transition-colors text-sm"
+                className="flex-1 py-3 rounded-xl font-bold text-stone-500 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmAdd}
-                className="flex-1 py-3 rounded-xl font-bold text-white bg-[#8B5A2B] dark:bg-[#FFA726] dark:text-stone-900 hover:bg-[#6B4423] dark:hover:bg-[#FF9800] transition-colors shadow-lg text-sm flex items-center justify-center gap-1"
+                className="flex-1 py-3 rounded-xl font-bold text-white bg-[#8B5A2B] dark:bg-[#FFA726] dark:text-stone-900 hover:bg-[#6B4423] dark:hover:bg-[#FF9800] transition-colors shadow-lg text-sm flex items-center justify-center gap-1.5"
               >
-                <CheckCircle size={16} weight="fill" /> Lock In
+                <CheckCircle size={18} weight="fill" /> Begin Challenge
               </button>
             </div>
           </div>

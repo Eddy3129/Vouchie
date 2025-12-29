@@ -18,6 +18,13 @@ const sizeClasses = {
   xl: "w-24 h-24 text-4xl",
 };
 
+const sizePx = {
+  sm: 32,
+  md: 40,
+  lg: 56,
+  xl: 96,
+};
+
 const generateGradient = (name: string): string => {
   const colors = [
     ["#8B5A2B", "#A67B5B"],
@@ -62,16 +69,19 @@ const Avatar = ({ src, name, size = "md", status, showBorder = false, className 
     );
   }
 
+  const px = sizePx[size];
+
   return (
     <div className={`relative rounded-full overflow-hidden ${sizeClasses[size]} ${className}`}>
       <Image
         src={src}
         alt={name}
-        width={0}
-        height={0}
-        sizes="100vw"
+        width={px}
+        height={px}
+        sizes={`${px}px`}
         className="w-full h-full object-cover"
         onError={() => setImageError(true)}
+        loading="lazy"
       />
       {showBorder && <div className="absolute inset-0 rounded-full border-2 border-white dark:border-stone-800" />}
       {status && (

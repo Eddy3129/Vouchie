@@ -9,11 +9,65 @@ interface CalendarViewProps {
 
 const CalendarView = ({ tasks }: CalendarViewProps) => {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
+  const [currentDate, setCurrentDate] = useState(new Date());
 
-  const days = Array.from({ length: 35 }, (_, i) => {
-    const day = i - 2;
-    return day > 0 && day <= 31 ? day : null;
-  });
+  // Get month details
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+  const today = new Date();
+  const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+  const todayDate = today.getDate();
+
+  // Get first day of month and total days
+  const firstDayOfMonth = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  // Build calendar grid (6 weeks max)
+  const calendarDays: (number | null)[] = [];
+  for (let i = 0; i < firstDayOfMonth; i++) {
+    calendarDays.push(null);
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    calendarDays.push(day);
+  }
+  // Fill remaining cells to complete the grid
+  while (calendarDays.length % 7 !== 0) {
+    calendarDays.push(null);
+  }
+
+  // Get tasks for a specific day
+  const getTasksForDay = (day: number) => {
+    const startOfDay = new Date(year, month, day, 0, 0, 0).getTime();
+    const endOfDay = new Date(year, month, day, 23, 59, 59).getTime();
+    return tasks.filter(t => t.deadline >= startOfDay && t.deadline <= endOfDay);
+  };
+
+  // Check if day has tasks
+  const dayHasTasks = (day: number) => getTasksForDay(day).length > 0;
+
+  // Get task status for day indicator color
+  const getDayStatus = (day: number) => {
+    const dayTasks = getTasksForDay(day);
+    if (dayTasks.length === 0) return null;
+    if (dayTasks.some(t => t.status === "failed")) return "failed";
+    if (dayTasks.every(t => t.status === "done")) return "done";
+    return "active";
+  };
+
+  // Navigate months
+  const goToPrevMonth = () => {
+    setCurrentDate(new Date(year, month - 1, 1));
+  };
+
+  const goToNextMonth = () => {
+    setCurrentDate(new Date(year, month + 1, 1));
+  };
+
+  const goToToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  const monthName = currentDate.toLocaleString("default", { month: "long" });
 
   const upcomingTasks = tasks.filter(t => t.status !== "done" && t.status !== "failed");
   const pastTasks = tasks.filter(t => t.status === "done" || t.status === "failed");
@@ -43,15 +97,27 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex justify-between items-center mb-4">
-        <h2 className="text-3xl font-bold text-stone-800 dark:text-stone-100">October</h2>
+        <div>
+          <h2 className="text-3xl font-bold text-stone-800 dark:text-stone-100">{monthName}</h2>
+          <p className="text-sm text-stone-400 font-semibold">{year}</p>
+        </div>
         <div className="flex gap-2">
-          <button className="p-2 bg-white dark:bg-stone-800 rounded-xl shadow-sm hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-stone-700 dark:text-stone-300">
+          <button
+            onClick={goToPrevMonth}
+            className="p-2 bg-white dark:bg-stone-800 rounded-xl shadow-sm hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-stone-700 dark:text-stone-300"
+          >
             <CaretLeft size={20} weight="bold" />
           </button>
-          <button className="p-2 bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 rounded-xl shadow-sm hover:bg-[#6B4423] dark:hover:bg-[#FF9800] transition-colors">
+          <button
+            onClick={goToToday}
+            className="p-2 bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 rounded-xl shadow-sm hover:bg-[#6B4423] dark:hover:bg-[#FF9800] transition-colors"
+          >
             <CalendarPlus size={20} weight="fill" />
           </button>
-          <button className="p-2 bg-white dark:bg-stone-800 rounded-xl shadow-sm hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-stone-700 dark:text-stone-300">
+          <button
+            onClick={goToNextMonth}
+            className="p-2 bg-white dark:bg-stone-800 rounded-xl shadow-sm hover:bg-stone-100 dark:hover:bg-stone-700 transition-colors text-stone-700 dark:text-stone-300"
+          >
             <CaretRight size={20} weight="bold" />
           </button>
         </div>
@@ -66,20 +132,38 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
           ))}
         </div>
         <div className="grid grid-cols-7 gap-2">
-          {days.map((day, i) => (
-            <div
-              key={i}
-              className={`
-                aspect-square rounded-xl flex flex-col items-center justify-center relative
-                ${!day ? "" : "hover:bg-stone-50 dark:hover:bg-stone-700 cursor-pointer"}
-                ${day === 24 ? "bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300" : "text-stone-600 dark:text-stone-300"}
-              `}
-            >
-              <span className="font-bold text-sm">{day}</span>
-              {day === 24 && <div className="w-1.5 h-1.5 rounded-full bg-orange-500 mt-1" />}
-              {day === 26 && <div className="w-1.5 h-1.5 rounded-full bg-orange-400 mt-1" />}
-            </div>
-          ))}
+          {calendarDays.map((day, i) => {
+            const isToday = isCurrentMonth && day === todayDate;
+            const status = day ? getDayStatus(day) : null;
+            const hasTasks = day ? dayHasTasks(day) : false;
+
+            return (
+              <div
+                key={i}
+                className={`
+                  aspect-square rounded-xl flex flex-col items-center justify-center relative
+                  ${!day ? "" : "hover:bg-stone-50 dark:hover:bg-stone-700 cursor-pointer"}
+                  ${isToday ? "bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900" : "text-stone-600 dark:text-stone-300"}
+                  ${hasTasks && !isToday ? "bg-orange-50 dark:bg-orange-900/20" : ""}
+                `}
+              >
+                <span className={`font-bold text-sm ${isToday ? "text-white dark:text-stone-900" : ""}`}>{day}</span>
+                {hasTasks && (
+                  <div
+                    className={`w-1.5 h-1.5 rounded-full mt-1 ${
+                      status === "done"
+                        ? "bg-green-500"
+                        : status === "failed"
+                          ? "bg-red-500"
+                          : isToday
+                            ? "bg-white dark:bg-stone-900"
+                            : "bg-orange-500"
+                    }`}
+                  />
+                )}
+              </div>
+            );
+          })}
         </div>
       </Card>
 
@@ -94,7 +178,7 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
                 : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
             }`}
           >
-            Upcoming
+            Upcoming ({upcomingTasks.length})
             {activeTab === "upcoming" && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#8B5A2B] dark:bg-[#FFA726] rounded-full" />
             )}
@@ -107,7 +191,7 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
                 : "text-stone-400 hover:text-stone-600 dark:hover:text-stone-300"
             }`}
           >
-            Past
+            Past ({pastTasks.length})
             {activeTab === "past" && (
               <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#8B5A2B] dark:bg-[#FFA726] rounded-full" />
             )}
