@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
   CalendarBlank,
@@ -67,6 +67,14 @@ const VouchieApp = () => {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isTimelineView, setIsTimelineView] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Reset scroll position when changing tabs
+  useEffect(() => {
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }, [activeTab]);
 
   // Selection States
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<Goal | null>(null);
@@ -443,7 +451,7 @@ const VouchieApp = () => {
           {/* Main Content */}
           <main className="flex-1 flex flex-col h-full relative overflow-hidden">
             {/* Content Area */}
-            <div className="flex-1 overflow-y-auto px-6 pb-24 lg:px-8 lg:pb-8">
+            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-6 pb-24 lg:px-8 lg:pb-8">
               <div className="max-w-4xl mx-auto pt-6">
                 {activeTab === "dashboard" && (
                   <div className="space-y-6 animate-in fade-in duration-500">

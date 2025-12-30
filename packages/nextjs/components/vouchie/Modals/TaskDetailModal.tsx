@@ -97,21 +97,21 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onComposeC
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className={`bg-stone-900 w-full max-w-sm rounded-3xl p-6 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto ${bgGlow}`}
+        className={`bg-white dark:bg-stone-900 w-full max-w-sm rounded-3xl p-6 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto border border-stone-200 dark:border-transparent ${bgGlow}`}
       >
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
           <div className="flex-1 pr-4">
-            <span className="text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-1 block">
+            <span className="text-[10px] font-bold uppercase tracking-widest text-[#8B5A2B] dark:text-orange-400 mb-1 block">
               {goal.mode} Quest
             </span>
-            <h3 className="text-xl font-bold text-white leading-tight">{goal.title}</h3>
+            <h3 className="text-xl font-bold text-stone-800 dark:text-white leading-tight">{goal.title}</h3>
           </div>
           <button
             onClick={onClose}
-            className="p-2 bg-stone-800 rounded-full hover:bg-stone-700 transition-colors text-stone-400"
+            className="p-2 bg-stone-100 dark:bg-stone-800 rounded-full hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors text-stone-500 dark:text-stone-400"
           >
             <X size={18} weight="bold" />
           </button>
@@ -123,7 +123,15 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onComposeC
             {/* SVG Ring */}
             <svg width="180" height="180" className="transform -rotate-90">
               {/* Background ring */}
-              <circle cx="90" cy="90" r={radius} stroke="#374151" strokeWidth="8" fill="none" />
+              <circle
+                cx="90"
+                cy="90"
+                r={radius}
+                stroke="#E5E7EB"
+                className="dark:stroke-[#374151]"
+                strokeWidth="8"
+                fill="none"
+              />
               {/* Progress ring - smooth transition */}
               <circle
                 cx="90"
@@ -154,7 +162,7 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onComposeC
               </div>
               {/* Stake amount */}
               <div className="text-center">
-                <span className="text-2xl font-bold text-white">${goal.stake}</span>
+                <span className="text-2xl font-bold text-stone-800 dark:text-white">${goal.stake}</span>
                 <span className="text-xs text-stone-400 ml-1">USDC</span>
               </div>
             </div>
@@ -185,18 +193,18 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onComposeC
         </div>
 
         {/* Submit Proof Section */}
-        <div className="bg-stone-800 p-4 rounded-2xl mb-4 border border-stone-700">
-          <h4 className="font-bold text-white mb-3 flex items-center gap-2 text-sm">
+        <div className="bg-stone-50 dark:bg-stone-800 p-4 rounded-2xl mb-4 border border-stone-200 dark:border-stone-700">
+          <h4 className="font-bold text-stone-800 dark:text-white mb-3 flex items-center gap-2 text-sm">
             <Camera size={16} weight="bold" className="text-stone-400" /> Submit Proof
           </h4>
-          <div className="bg-stone-700/50 p-4 rounded-xl border-2 border-dashed border-stone-600 mb-3 flex items-center justify-center text-stone-400 cursor-pointer hover:bg-stone-700 hover:border-stone-500 transition-all">
+          <div className="bg-stone-100 dark:bg-stone-700/50 p-4 rounded-xl border-2 border-dashed border-stone-300 dark:border-stone-600 mb-3 flex items-center justify-center text-stone-400 cursor-pointer hover:bg-stone-200 dark:hover:bg-stone-700 hover:border-stone-400 dark:hover:border-stone-500 transition-all">
             <span className="text-sm font-semibold">Tap to upload photo</span>
           </div>
           {!isSolo && (
             <textarea
               rows={2}
               placeholder="Tell your vouchies you did it..."
-              className="w-full bg-stone-700/50 p-3 rounded-xl outline-none font-semibold text-sm text-stone-200 resize-none mb-3 placeholder:text-stone-500 border border-stone-600 focus:border-stone-500"
+              className="w-full bg-stone-100 dark:bg-stone-700/50 p-3 rounded-xl outline-none font-semibold text-sm text-stone-800 dark:text-stone-200 resize-none mb-3 placeholder:text-stone-400 dark:placeholder:text-stone-500 border border-stone-200 dark:border-stone-600 focus:border-stone-400 dark:focus:border-stone-500"
               value={proofText}
               onChange={e => setProofText(e.target.value)}
             />

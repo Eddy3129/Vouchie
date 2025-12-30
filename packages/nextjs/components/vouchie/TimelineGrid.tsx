@@ -45,33 +45,29 @@ const TimelineView = ({ goals, onStart, onViewDetails }: TimelineViewProps) => {
   }, []);
 
   const getGoalStyle = (goal: Goal) => {
-    const start = new Date(goal.startTime || goal.createdAt || Date.now()); // Fallback to createdAt or now
-    // If goal is "pending" and has no specific start time, maybe defaulting to "now" or "9am" isn't right?
-    // But for this view, we need a time.
-    // If it's a scheduled goal, it should have a deadline.
-    // Let's assume deadline - duration = start time if start time is missing?
-    // Or just use startTime if present.
+    const now = new Date();
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const todayEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
-    // Improve logic:
-    // If goal.startTime exists, use it.
-    // If not, but goal.deadline exists, and we have a duration?
-    // Let's use user provided startTime from AddModal logic.
+    // Get actual start and end times
+    const actualStart = new Date(goal.startTime || goal.createdAt || Date.now());
+    const actualEnd = goal.deadline ? new Date(goal.deadline) : new Date(actualStart.getTime() + 60 * 60 * 1000); // Default 1 hour
 
-    // NOTE: In AddModal we set startTime.
+    // Clamp to today's bounds
+    const clampedStart = new Date(Math.max(todayStart.getTime(), Math.min(actualStart.getTime(), todayEnd.getTime())));
+    const clampedEnd = new Date(Math.max(todayStart.getTime(), Math.min(actualEnd.getTime(), todayEnd.getTime())));
 
-    const startMinutes = start.getHours() * 60 + start.getMinutes();
-    const top = (startMinutes / 60) * PIXELS_PER_HOUR;
-
-    // Calculate duration
-    let durationMinutes = 60; // Default 1 hour
-    if (goal.deadline) {
-      const end = new Date(goal.deadline);
-      const diffMs = end.getTime() - start.getTime();
-      durationMinutes = diffMs / (1000 * 60);
+    // If the task doesn't overlap with today at all, hide it (or show at top with min height)
+    if (actualEnd.getTime() < todayStart.getTime() || actualStart.getTime() > todayEnd.getTime()) {
+      return { top: "0px", height: "0px", display: "none" }; // Hide tasks not relevant to today
     }
 
-    // Cap minimum height for visibility
-    const height = Math.max(30, (durationMinutes / 60) * PIXELS_PER_HOUR);
+    const startMinutes = clampedStart.getHours() * 60 + clampedStart.getMinutes();
+    const endMinutes = clampedEnd.getHours() * 60 + clampedEnd.getMinutes();
+    const durationMinutes = Math.max(30, endMinutes - startMinutes); // Minimum 30 min for visibility
+
+    const top = (startMinutes / 60) * PIXELS_PER_HOUR;
+    const height = (durationMinutes / 60) * PIXELS_PER_HOUR;
 
     return {
       top: `${top}px`,

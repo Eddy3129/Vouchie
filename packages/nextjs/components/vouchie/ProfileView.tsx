@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Avatar from "./Avatar";
-import { CaretDown, CaretUp, Fire, Spinner, Wallet } from "@phosphor-icons/react";
+import { CaretDown, CaretUp, Fire, Moon, Spinner, Sun, Wallet } from "@phosphor-icons/react";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
 import { useMiniapp } from "~~/components/MiniappProvider";
@@ -24,6 +24,32 @@ const ProfileView = () => {
   const [showAllLeaderboard, setShowAllLeaderboard] = useState(false);
   const [farcasterUsers, setFarcasterUsers] = useState<Map<string, FarcasterUser | null>>(new Map());
   const [currentUserFc, setCurrentUserFc] = useState<FarcasterUser | null>(null);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+
+  // Initialize theme from localStorage on mount
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("theme");
+    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+    const shouldBeDark = savedTheme === "dark" || (!savedTheme && prefersDark);
+    setIsDarkMode(shouldBeDark);
+    if (shouldBeDark) {
+      document.documentElement.classList.add("dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+    }
+  }, []);
+
+  const toggleTheme = () => {
+    const newIsDark = !isDarkMode;
+    setIsDarkMode(newIsDark);
+    if (newIsDark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
 
   // Fetch user stats from Ponder
   const { data: userStats, isLoading: statsLoading } = useUserStats(address);
@@ -103,17 +129,13 @@ const ProfileView = () => {
 
           {/* Theme Toggle */}
           <div className="absolute top-4 right-4 z-20">
-            <label className="swap swap-rotate bg-stone-100 dark:bg-stone-800 p-2 rounded-full shadow-sm text-stone-500 dark:text-stone-400 hover:text-[#8B5A2B] dark:hover:text-[#FFA726] transition-colors">
-              <input type="checkbox" className="theme-controller" value="dark" />
-              {/* sun icon */}
-              <svg className="swap-on fill-current w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M5.64,17l-.71.71a1,1,0,0,0,0,1.41,1,1,0,0,0,1.41,0l.71-.71A1,1,0,0,0,5.64,17ZM5,12a1,1,0,0,0-1-1H3a1,1,0,0,0,0,2H4A1,1,0,0,0,5,12Zm7-7a1,1,0,0,0,1-1V3a1,1,0,0,0-2,0V4A1,1,0,0,0,12,5ZM5.64,7.05a1,1,0,0,0,.7.29,1,1,0,0,0,.71-.29,1,1,0,0,0,0-1.41l-.71-.71A1,1,0,0,0,4.93,4.93,1,1,0,0,0,5.64,7.05Zm12,1.41a1,1,0,0,0,.7.29l.71-.71a1,1,0,0,0,0-1.41l-.71-.71a1,1,0,0,0-1.41,1.41l.71.71A1,1,0,0,0,17.66,8.46Zm-1.2,5.6h-5a1,1,0,1,0,0,2h5a1,1,0,1,0,0-2Zm5.65-2.21a1,1,0,0,0-.7-.71h0l-.71.71a1,1,0,0,0,0,1.41l.71.71a1,1,0,0,0,1.41-1.41L22.11,11.85Z" />
-              </svg>
-              {/* moon icon */}
-              <svg className="swap-off fill-current w-5 h-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-                <path d="M21.64,13a1,1,0,0,0-1.05-.14,8.05,8.05,0,0,1-3.37.73A8.15,8.15,0,0,1,9.08,5.49a8.59,8.59,0,0,1,.25-2A1,1,0,0,0,8,2.36,10.14,10.14,0,1,0,22,14.05,1,1,0,0,0,21.64,13Zm-9.5,6.69A8.14,8.14,0,0,1,7.08,5.22v.27A10.15,10.15,0,0,0,17.22,15.63a9.79,9.79,0,0,0,2.1-.22A8.11,8.11,0,0,1,12.14,19.73Z" />
-              </svg>
-            </label>
+            <button
+              onClick={toggleTheme}
+              className="p-2.5 bg-stone-100 dark:bg-stone-800 rounded-full shadow-sm text-stone-500 dark:text-stone-400 hover:text-[#8B5A2B] dark:hover:text-[#FFA726] transition-all hover:scale-110"
+              aria-label="Toggle theme"
+            >
+              {isDarkMode ? <Sun size={20} weight="fill" /> : <Moon size={20} weight="fill" />}
+            </button>
           </div>
 
           <div className="relative z-10 flex flex-col items-center text-center">

@@ -26,8 +26,8 @@ interface AddModalProps {
   onAdd: (formData: any) => void;
 }
 
-const ANIMATION_DURATION_IN = 400; // ms for smooth slow slide in
-const ANIMATION_DURATION_OUT = 100; // ms for quick slide out
+const ANIMATION_DURATION_IN = 200; // ms - fast slide in
+const ANIMATION_DURATION_OUT = 100; // ms - quick slide out
 
 const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
   const { context } = useMiniapp();
@@ -73,16 +73,13 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
   const [animationState, setAnimationState] = useState<AnimationState>("exited");
   const [shouldRender, setShouldRender] = useState(false);
 
-  // Handle open/close animations
+  // Handle open/close animations - simplified for performance
   useEffect(() => {
     if (isOpen) {
       setShouldRender(true);
-      // Small delay to ensure DOM is ready before starting animation
+      // Single frame delay is enough
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          setAnimationState("entering");
-          setTimeout(() => setAnimationState("entered"), ANIMATION_DURATION_IN);
-        });
+        setAnimationState("entered");
       });
     } else if (shouldRender) {
       setAnimationState("exiting");
@@ -196,23 +193,19 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
 
   if (!shouldRender) return null;
 
-  // Animation classes
+  // Animation classes - simplified, no blur for performance
   const backdropClasses = `
     fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4
-    transition-all ease-out
-    ${animationState === "entering" || animationState === "entered" ? "bg-black/40 backdrop-blur-md" : "bg-black/0 backdrop-blur-none"}
+    transition-opacity duration-200 ease-out will-change-[opacity]
+    ${animationState === "entered" ? "bg-black/40" : "bg-black/0"}
   `;
 
   const modalClasses = `
     bg-[#FDFBF7] dark:bg-stone-900 w-full max-w-md rounded-[28px] p-5 soft-shadow
     max-h-[90vh] overflow-y-auto overflow-x-hidden
-    transition-all ease-out
+    transition-all duration-200 ease-out will-change-transform
     ${shake ? "animate-shake" : ""}
-    ${
-      animationState === "entering" || animationState === "entered"
-        ? "opacity-100 translate-y-0 scale-100"
-        : "opacity-0 translate-y-8 scale-95"
-    }
+    ${animationState === "entered" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
   `;
 
   const isExiting = animationState === "exiting";
