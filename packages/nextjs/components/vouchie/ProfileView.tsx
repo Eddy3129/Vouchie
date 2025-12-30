@@ -23,6 +23,7 @@ const ProfileView = () => {
   const { lookupBatch } = useFarcasterUser();
   const [showAllLeaderboard, setShowAllLeaderboard] = useState(false);
   const [farcasterUsers, setFarcasterUsers] = useState<Map<string, FarcasterUser | null>>(new Map());
+  const [currentUserFc, setCurrentUserFc] = useState<FarcasterUser | null>(null);
 
   // Fetch user stats from Ponder
   const { data: userStats, isLoading: statsLoading } = useUserStats(address);
@@ -30,15 +31,22 @@ const ProfileView = () => {
   // Fetch leaderboard from Ponder (Always sort by streak)
   const { data: leaderboard, isLoading: leaderboardLoading } = useLeaderboard("streak", 10);
 
-  // Lookup Farcaster users for leaderboard addresses
+  // Lookup Farcaster users for leaderboard addresses + current user
   useEffect(() => {
-    if (!leaderboard || leaderboard.length === 0) return;
+    const addressesToLookup = new Set<string>();
 
-    const addresses = leaderboard.map((u: UserStats) => u.id);
-    lookupBatch(addresses).then(results => {
+    if (address) addressesToLookup.add(address);
+    leaderboard?.forEach((u: UserStats) => addressesToLookup.add(u.id));
+
+    if (addressesToLookup.size === 0) return;
+
+    lookupBatch(Array.from(addressesToLookup)).then(results => {
       setFarcasterUsers(results);
+      if (address) {
+        setCurrentUserFc(results.get(address.toLowerCase()) || null);
+      }
     });
-  }, [leaderboard, lookupBatch]);
+  }, [leaderboard, lookupBatch, address]);
 
   // Compute display stats
   const stats = {
@@ -96,19 +104,16 @@ const ProfileView = () => {
           <div className="relative z-10 flex flex-col items-center text-center">
             <div className="mb-4 relative">
               <div className="absolute -inset-1 bg-gradient-to-r from-[#8B5A2B] to-[#FFA726] rounded-full blur opacity-75"></div>
-              <Avatar src={getAvatarUrl(address)} name="You" size="xl" />
+              <Avatar
+                src={currentUserFc?.pfpUrl || getAvatarUrl(address)}
+                name={currentUserFc?.displayName || "You"}
+                size="xl"
+              />
             </div>
 
-            <h1 className="text-2xl font-bold text-white mb-1">{formatAddress(address)}</h1>
-            <p className="text-xs font-bold text-[#FFA726] uppercase tracking-widest mb-6">
-              {stats.streak >= 30
-                ? "Legendary Achiever"
-                : stats.streak >= 10
-                  ? "Productivity Wizard"
-                  : stats.streak >= 5
-                    ? "Rising Star"
-                    : "Getting Started"}
-            </p>
+            <h1 className="text-2xl font-bold text-white mb-6">
+              {currentUserFc?.displayName || currentUserFc?.username || formatAddress(address)}
+            </h1>
 
             {/* Stats Grid */}
             <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
@@ -146,8 +151,8 @@ const ProfileView = () => {
       {/* Leaderboard Section */}
       <div className="bg-white dark:bg-stone-800 rounded-3xl p-6 shadow-sm border border-stone-100 dark:border-stone-700">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-stone-800 dark:text-stone-100 flex items-center gap-2">
-            <Fire size={28} weight="fill" className="text-orange-500" />
+          <h2 className="text-xl font-bold text-stone-800 dark:text-stone-100 flex items-center gap-2">
+            <Fire size={24} weight="fill" className="text-orange-500" />
             Streaks Leaderboard
           </h2>
         </div>
@@ -191,7 +196,7 @@ const ProfileView = () => {
                 >
                   <Avatar src={friend.avatar} name={friend.name} size="md" />
                   <p
-                    className={`font-bold text-base truncate ${
+                    className={`font-bold text-sm truncate ${
                       friend.isCurrentUser ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-700 dark:text-stone-200"
                     } ${friend.fid ? "group-hover:underline" : ""}`}
                   >
@@ -201,8 +206,8 @@ const ProfileView = () => {
 
                 {/* Streak Score */}
                 <div className="flex items-center gap-1.5 bg-orange-50 dark:bg-orange-900/20 px-3 py-1.5 rounded-xl">
-                  <Fire size={18} weight="fill" className="text-orange-500" />
-                  <span className="text-lg font-black text-orange-600 dark:text-orange-400">{friend.streak}</span>
+                  <Fire size={16} weight="fill" className="text-orange-500" />
+                  <span className="text-base font-black text-orange-600 dark:text-orange-400">{friend.streak}</span>
                 </div>
               </div>
             ))}

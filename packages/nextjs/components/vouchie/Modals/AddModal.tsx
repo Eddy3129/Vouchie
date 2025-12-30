@@ -288,12 +288,11 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
     setActiveChip("Tonight");
   };
 
-  const setTomorrowMorning = () => {
+  const setPlus24Hours = () => {
     const d = new Date();
-    d.setDate(d.getDate() + 1);
-    d.setHours(9, 0, 0, 0);
+    d.setHours(d.getHours() + 24);
     setFormData(prev => ({ ...prev, deadline: d }));
-    setActiveChip("Tomorrow");
+    setActiveChip("+24h");
   };
 
   const confirmAdd = () => {
@@ -369,11 +368,6 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   value={dateToInputString(formData.startTime)}
                   onChange={e => handleDateChange("startTime", e)}
-                  onClick={e => {
-                    try {
-                      e.currentTarget.showPicker();
-                    } catch {}
-                  }}
                 />
               </div>
 
@@ -398,11 +392,6 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   value={dateToInputString(formData.deadline)}
                   onChange={e => handleDateChange("deadline", e)}
-                  onClick={e => {
-                    try {
-                      e.currentTarget.showPicker();
-                    } catch {}
-                  }}
                 />
               </div>
             </div>
@@ -414,7 +403,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                 { label: "+1h", action: () => setDuration("+1h", 60) },
                 { label: "+2h", action: () => setDuration("+2h", 120) },
                 { label: "Tonight", action: () => setTimeToEndOfDay() },
-                { label: "Tmrw", action: () => setTomorrowMorning() },
+                { label: "+24h", action: () => setPlus24Hours() },
               ].map(chip => (
                 <button
                   key={chip.label}
