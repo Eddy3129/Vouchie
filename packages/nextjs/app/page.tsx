@@ -488,32 +488,35 @@ const VouchieApp = () => {
 
                     {/* Connect Wallet CTA (if not connected) */}
                     {!address && (
-                      <div className="bg-white dark:bg-stone-800 rounded-2xl p-6 shadow-sm border border-stone-100 dark:border-stone-700 animate-in fade-in slide-in-from-bottom-4 duration-700">
-                        <div className="flex flex-col items-center justify-center py-4 text-center">
-                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#8B5A2B] to-[#FFA726] flex items-center justify-center mb-4 shadow-lg ring-4 ring-orange-50 dark:ring-orange-900/20">
-                            <Wallet size={32} weight="fill" className="text-white" />
+                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-10 px-6">
+                        <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm -z-10 rounded-3xl" />
+                        <div className="bg-white dark:bg-stone-800 rounded-3xl p-8 shadow-2xl border border-stone-100 dark:border-stone-700 animate-in fade-in zoom-in-95 duration-500 mx-auto max-w-sm relative">
+                          <div className="flex flex-col items-center justify-center text-center">
+                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#8B5A2B] to-[#FFA726] flex items-center justify-center mb-6 shadow-xl ring-8 ring-orange-50 dark:ring-orange-900/20">
+                              <Wallet size={40} weight="fill" className="text-white" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-stone-800 dark:text-stone-100 mb-3">
+                              Start Your Journey
+                            </h2>
+                            <p className="text-stone-500 dark:text-stone-400 mb-8 leading-relaxed">
+                              Connect your wallet to set goals, stake USDC, and start changing your life today!
+                            </p>
+                            <ConnectButton.Custom>
+                              {({ openConnectModal, mounted }) => {
+                                const ready = mounted;
+                                return (
+                                  <button
+                                    onClick={openConnectModal}
+                                    disabled={!ready}
+                                    className="w-full py-4 px-6 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] hover:from-[#956A4A] hover:to-[#7A4A1B] dark:hover:from-[#E68A00] dark:hover:to-[#E67E00] text-white dark:text-stone-900 font-bold text-lg rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2.5 active:scale-[0.98]"
+                                  >
+                                    <Wallet size={24} weight="fill" />
+                                    Connect Wallet
+                                  </button>
+                                );
+                              }}
+                            </ConnectButton.Custom>
                           </div>
-                          <h2 className="text-xl font-bold text-stone-800 dark:text-stone-100 mb-2">
-                            Start Your Journey
-                          </h2>
-                          <p className="text-sm text-stone-500 dark:text-stone-400 mb-6 max-w-xs leading-relaxed">
-                            Connect your wallet to set goals, stake USDC, and start changing your life today!
-                          </p>
-                          <ConnectButton.Custom>
-                            {({ openConnectModal, mounted }) => {
-                              const ready = mounted;
-                              return (
-                                <button
-                                  onClick={openConnectModal}
-                                  disabled={!ready}
-                                  className="w-full max-w-xs py-3.5 px-6 bg-[#8B5A2B] hover:bg-[#7A4A1B] text-white font-bold text-base rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2.5 active:scale-[0.98]"
-                                >
-                                  <Wallet size={20} weight="fill" />
-                                  Connect Wallet
-                                </button>
-                              );
-                            }}
-                          </ConnectButton.Custom>
                         </div>
                       </div>
                     )}

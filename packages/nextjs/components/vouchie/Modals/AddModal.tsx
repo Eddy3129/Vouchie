@@ -11,7 +11,9 @@ import {
   Wallet,
   X,
 } from "@phosphor-icons/react";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { toast } from "react-hot-toast";
+import { useAccount } from "wagmi";
 import { useMiniapp } from "~~/components/MiniappProvider";
 import { Vouchie } from "~~/types/vouchie";
 
@@ -29,6 +31,8 @@ const ANIMATION_DURATION_OUT = 100; // ms for quick slide out
 
 const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
   const { context } = useMiniapp();
+  const { address } = useAccount();
+
   // Default deadline is now + 1 hour
   const getDefaultDeadline = () => {
     const d = new Date();
@@ -544,36 +548,56 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
             </span>
           </div>
 
-          {/* Slide to Confirm - Smaller */}
-          <div
-            ref={sliderRef}
-            className="relative h-14 bg-white dark:bg-stone-800 rounded-full p-1 shadow-inner overflow-hidden cursor-pointer select-none border border-stone-100 dark:border-stone-700"
-            onMouseDown={handleDragStart}
-            onTouchStart={handleDragStart}
-          >
-            {/* Background Text */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-              <span className="text-stone-300 dark:text-stone-600 font-bold text-xs uppercase tracking-[0.15em]">
-                Slide to Pledge
-              </span>
+          {/* Slide to Confirm OR Connect Wallet */}
+          {!address ? (
+            <div className="w-full">
+              <ConnectButton.Custom>
+                {({ openConnectModal, mounted }) => {
+                  const ready = mounted;
+                  return (
+                    <button
+                      onClick={openConnectModal}
+                      disabled={!ready}
+                      className="w-full h-14 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900 rounded-full font-bold text-sm uppercase tracking-wider shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                    >
+                      <Wallet size={20} weight="fill" />
+                      Connect to Pledge
+                    </button>
+                  );
+                }}
+              </ConnectButton.Custom>
             </div>
-
-            {/* Progress Fill */}
+          ) : (
             <div
-              className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] z-0 transition-all duration-75 ease-linear opacity-30"
-              style={{ width: `${sliderValue}%` }}
-            />
-
-            {/* Thumb */}
-            <div
-              className="absolute top-1 bottom-1 w-12 bg-stone-900 dark:bg-stone-100 rounded-full shadow-lg flex items-center justify-center z-10 transition-transform duration-75 ease-linear"
-              style={{
-                transform: `translateX(${(sliderValue / 100) * (sliderRef.current ? sliderRef.current.clientWidth - 56 : 220)}px)`,
-              }}
+              ref={sliderRef}
+              className="relative h-14 bg-white dark:bg-stone-800 rounded-full p-1 shadow-inner overflow-hidden cursor-pointer select-none border border-stone-100 dark:border-stone-700"
+              onMouseDown={handleDragStart}
+              onTouchStart={handleDragStart}
             >
-              <ArrowRight className="text-white dark:text-stone-900" size={20} weight="bold" />
+              {/* Background Text */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+                <span className="text-stone-300 dark:text-stone-600 font-bold text-xs uppercase tracking-[0.15em]">
+                  Slide to Pledge
+                </span>
+              </div>
+
+              {/* Progress Fill */}
+              <div
+                className="absolute left-0 top-0 bottom-0 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] z-0 transition-all duration-75 ease-linear opacity-30"
+                style={{ width: `${sliderValue}%` }}
+              />
+
+              {/* Thumb */}
+              <div
+                className="absolute top-1 bottom-1 w-12 bg-stone-900 dark:bg-stone-100 rounded-full shadow-lg flex items-center justify-center z-10 transition-transform duration-75 ease-linear"
+                style={{
+                  transform: `translateX(${(sliderValue / 100) * (sliderRef.current ? sliderRef.current.clientWidth - 56 : 220)}px)`,
+                }}
+              >
+                <ArrowRight className="text-white dark:text-stone-900" size={20} weight="bold" />
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
 
