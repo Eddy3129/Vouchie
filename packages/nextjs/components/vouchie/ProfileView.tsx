@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import Avatar from "./Avatar";
-import { CaretDown, CaretUp, Fire, Moon, Spinner, Sun, Wallet } from "@phosphor-icons/react";
+import { CaretDown, CaretUp, Fire, Spinner, Wallet } from "@phosphor-icons/react";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
 import { useMiniapp } from "~~/components/MiniappProvider";
@@ -24,40 +24,6 @@ const ProfileView = () => {
   const [showAllLeaderboard, setShowAllLeaderboard] = useState(false);
   const [farcasterUsers, setFarcasterUsers] = useState<Map<string, FarcasterUser | null>>(new Map());
   const [currentUserFc, setCurrentUserFc] = useState<FarcasterUser | null>(null);
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  // Initialize theme from localStorage on mount
-  useEffect(() => {
-    try {
-      const savedTheme = localStorage.getItem("theme");
-      const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-      const shouldBeDark = savedTheme === "dark" || (!savedTheme && prefersDark);
-      setIsDarkMode(shouldBeDark);
-      if (shouldBeDark) {
-        document.documentElement.classList.add("dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-      }
-    } catch (e) {
-      console.warn("Theme init failed:", e);
-    }
-  }, []);
-
-  const toggleTheme = () => {
-    try {
-      const newIsDark = !isDarkMode;
-      setIsDarkMode(newIsDark);
-      if (newIsDark) {
-        document.documentElement.classList.add("dark");
-        localStorage.setItem("theme", "dark");
-      } else {
-        document.documentElement.classList.remove("dark");
-        localStorage.setItem("theme", "light");
-      }
-    } catch (e) {
-      console.warn("Theme toggle failed:", e);
-    }
-  };
 
   // Fetch user stats from Ponder
   const { data: userStats, isLoading: statsLoading } = useUserStats(address);
@@ -134,17 +100,6 @@ const ProfileView = () => {
         <div className="relative overflow-hidden bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-xl border border-stone-100 dark:border-stone-800">
           {/* Background decoration */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#8B5A2B]/20 to-transparent rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
-
-          {/* Theme Toggle */}
-          <div className="absolute top-4 right-4 z-20">
-            <button
-              onClick={toggleTheme}
-              className="p-2.5 bg-stone-100 dark:bg-stone-800 rounded-full shadow-sm text-stone-500 dark:text-stone-400 hover:text-[#8B5A2B] dark:hover:text-[#FFA726] transition-all hover:scale-110"
-              aria-label="Toggle theme"
-            >
-              {isDarkMode ? <Sun size={20} weight="fill" /> : <Moon size={20} weight="fill" />}
-            </button>
-          </div>
 
           <div className="relative z-10 flex flex-col items-center text-center">
             <div className="mb-4 relative">

@@ -5,10 +5,8 @@ import Image from "next/image";
 import {
   CalendarBlank,
   CheckCircle,
-  Clock,
   Compass,
   House,
-  List,
   Plus,
   Quotes,
   ShieldCheck,
@@ -33,7 +31,6 @@ import TaskDetailModal from "~~/components/vouchie/Modals/TaskDetailModal";
 import VerifyModal from "~~/components/vouchie/Modals/VerifyModal";
 import ProfileView from "~~/components/vouchie/ProfileView";
 import SplashScreen from "~~/components/vouchie/SplashScreen";
-import TimelineView from "~~/components/vouchie/TimelineGrid";
 import VouchieView from "~~/components/vouchie/VouchieView";
 import {
   useDeployedContractInfo,
@@ -65,7 +62,6 @@ const VouchieApp = () => {
   const { context, composeCast } = useMiniapp();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isAddModalOpen, setAddModalOpen] = useState(false);
-  const [isTimelineView, setIsTimelineView] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -552,108 +548,148 @@ const VouchieApp = () => {
                       </div>
                     )}
 
-                    {/* View Toggle */}
-                    <div className="flex justify-between items-center mb-4">
-                      <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-xl">
-                        <button
-                          onClick={() => setIsTimelineView(false)}
-                          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${!isTimelineView ? "bg-white dark:bg-stone-700 shadow-sm text-stone-800 dark:text-stone-100" : "text-stone-500 dark:text-stone-400"}`}
-                        >
-                          <List size={16} weight="bold" /> List
-                        </button>
-                        <button
-                          onClick={() => setIsTimelineView(true)}
-                          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${isTimelineView ? "bg-white dark:bg-stone-700 shadow-sm text-stone-800 dark:text-stone-100" : "text-stone-500 dark:text-stone-400"}`}
-                        >
-                          <Clock size={16} weight="bold" /> Timeline
-                        </button>
-                      </div>
-                    </div>
+                    {/* Task List - Grouped by Day */}
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                      {/* Verification Requests */}
+                      {!loading && verificationGoals.length > 0 && (
+                        <div>
+                          <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                            <ShieldCheck size={16} className="text-blue-500" weight="fill" />
+                            Pending Verifications
+                          </h3>
+                          <div className="space-y-3">
+                            {verificationGoals.map(task => (
+                              <GoalCard
+                                key={task.id}
+                                goal={task}
+                                onStart={() => {}}
+                                onViewDetails={() => {
+                                  setSelectedVerificationGoal(task);
+                                  setIsVerifyModalOpen(true);
+                                }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
 
-                    {/* Content Area */}
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                      {isTimelineView ? (
-                        /* New Timeline Grid View */
-                        <TimelineView
-                          goals={goals.filter(t => t.status !== "done" && t.status !== "failed")}
-                          onStart={setSelectedTaskForStart}
-                          onViewDetails={setSelectedTaskForDetails}
-                        />
-                      ) : (
-                        /* Standard List View */
-                        <div className="space-y-4">
-                          {/* Verification Requests */}
-                          {!loading && verificationGoals.length > 0 && (
-                            <div className="mb-6">
-                              <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 flex items-center gap-2 uppercase tracking-wider">
-                                <ShieldCheck size={16} className="text-blue-500" weight="fill" />
-                                Pending Verifications
-                              </h3>
-                              <div className="space-y-3">
-                                {verificationGoals.map(task => (
-                                  <GoalCard
-                                    key={task.id}
-                                    goal={task}
-                                    onStart={() => {}}
-                                    onViewDetails={() => {
-                                      setSelectedVerificationGoal(task);
-                                      setIsVerifyModalOpen(true);
-                                    }}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
+                      {/* Empty State */}
+                      {!loading &&
+                        address &&
+                        goals.filter(t => t.status !== "done" && t.status !== "failed").length === 0 && (
+                          <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
+                            <p className="text-stone-400 font-bold text-lg mb-2">
+                              Woohoo! No pending tasks! <span className="text-2xl ml-1">🎉</span>
+                            </p>
+                            <p className="text-stone-400 text-sm">Use the + button to create a new goal.</p>
+                          </div>
+                        )}
 
-                          {/* Empty State */}
-                          {!loading &&
-                            address &&
-                            goals.filter(t => t.status !== "done" && t.status !== "failed").length === 0 && (
-                              <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
-                                <p className="text-stone-400 font-bold text-lg mb-2">
-                                  Woohoo! No pending tasks! <span className="text-2xl ml-1">🎉</span>
-                                </p>
-                                <p className="text-stone-400 text-sm">Use the + button to create a new goal.</p>
-                              </div>
-                            )}
+                      {/* Today's Tasks */}
+                      {!loading &&
+                        (() => {
+                          const today = new Date();
+                          today.setHours(0, 0, 0, 0);
+                          const tomorrow = new Date(today);
+                          tomorrow.setDate(tomorrow.getDate() + 1);
+                          const dayAfter = new Date(tomorrow);
+                          dayAfter.setDate(dayAfter.getDate() + 1);
 
-                          {/* Active Goals List */}
-                          {!loading &&
-                            goals
-                              .filter(t => t.status !== "done" && t.status !== "failed")
-                              .map(task => (
-                                <GoalCard
-                                  key={task.id}
-                                  goal={task}
-                                  onStart={setSelectedTaskForStart}
-                                  onViewDetails={setSelectedTaskForDetails}
-                                />
-                              ))}
+                          const activeGoals = goals.filter(t => t.status !== "done" && t.status !== "failed");
+                          const todayGoals = activeGoals.filter(t => {
+                            const deadline = new Date(t.deadline);
+                            return deadline >= today && deadline < tomorrow;
+                          });
+                          const tomorrowGoals = activeGoals.filter(t => {
+                            const deadline = new Date(t.deadline);
+                            return deadline >= tomorrow && deadline < dayAfter;
+                          });
+                          const otherGoals = activeGoals.filter(t => {
+                            const deadline = new Date(t.deadline);
+                            return deadline >= dayAfter;
+                          });
 
-                          {/* Completed Section */}
-                          {!loading && goals.filter(t => t.status === "done").length > 0 && (
-                            <div className="pt-8 border-t border-stone-200 dark:border-stone-700 mt-8">
-                              <h4 className="text-stone-400 font-bold mb-4 text-xs uppercase tracking-wider flex items-center gap-2">
-                                <CheckCircle size={14} weight="fill" /> Completed Today
-                              </h4>
-                              {goals
-                                .filter(t => t.status === "done")
-                                .map(task => (
-                                  <div
-                                    key={task.id}
-                                    className="p-4 bg-white dark:bg-stone-800 rounded-2xl opacity-60 mb-3 flex items-center gap-3 border border-stone-100 dark:border-stone-700 shadow-sm grayscale transition-all hover:grayscale-0 hover:opacity-100"
-                                  >
-                                    <CheckCircle size={20} className="text-green-500 flex-shrink-0" weight="fill" />
-                                    <div>
-                                      <p className="font-bold text-stone-600 dark:text-stone-300 line-through decoration-stone-400 decoration-2">
-                                        {task.title}
-                                      </p>
-                                      <p className="text-xs text-stone-400 font-bold mt-0.5">Completed</p>
-                                    </div>
+                          return (
+                            <>
+                              {todayGoals.length > 0 && (
+                                <div>
+                                  <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
+                                    📅 Today
+                                  </h3>
+                                  <div className="space-y-3">
+                                    {todayGoals.map(task => (
+                                      <GoalCard
+                                        key={task.id}
+                                        goal={task}
+                                        onStart={setSelectedTaskForStart}
+                                        onViewDetails={setSelectedTaskForDetails}
+                                      />
+                                    ))}
                                   </div>
-                                ))}
-                            </div>
-                          )}
+                                </div>
+                              )}
+
+                              {tomorrowGoals.length > 0 && (
+                                <div>
+                                  <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
+                                    🌅 Tomorrow
+                                  </h3>
+                                  <div className="space-y-3">
+                                    {tomorrowGoals.map(task => (
+                                      <GoalCard
+                                        key={task.id}
+                                        goal={task}
+                                        onStart={setSelectedTaskForStart}
+                                        onViewDetails={setSelectedTaskForDetails}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+
+                              {otherGoals.length > 0 && (
+                                <div>
+                                  <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
+                                    📆 Later
+                                  </h3>
+                                  <div className="space-y-3">
+                                    {otherGoals.map(task => (
+                                      <GoalCard
+                                        key={task.id}
+                                        goal={task}
+                                        onStart={setSelectedTaskForStart}
+                                        onViewDetails={setSelectedTaskForDetails}
+                                      />
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
+
+                      {/* Completed Section */}
+                      {!loading && goals.filter(t => t.status === "done").length > 0 && (
+                        <div className="pt-6 border-t border-stone-200 dark:border-stone-700">
+                          <h4 className="text-stone-400 font-bold mb-4 text-xs uppercase tracking-wider flex items-center gap-2">
+                            <CheckCircle size={14} weight="fill" /> Completed
+                          </h4>
+                          {goals
+                            .filter(t => t.status === "done")
+                            .map(task => (
+                              <div
+                                key={task.id}
+                                className="p-4 bg-white dark:bg-stone-800 rounded-2xl opacity-60 mb-3 flex items-center gap-3 border border-stone-100 dark:border-stone-700 shadow-sm grayscale transition-all hover:grayscale-0 hover:opacity-100"
+                              >
+                                <CheckCircle size={20} className="text-green-500 flex-shrink-0" weight="fill" />
+                                <div>
+                                  <p className="font-bold text-stone-600 dark:text-stone-300 line-through decoration-stone-400 decoration-2">
+                                    {task.title}
+                                  </p>
+                                  <p className="text-xs text-stone-400 font-bold mt-0.5">Completed</p>
+                                </div>
+                              </div>
+                            ))}
                         </div>
                       )}
                     </div>

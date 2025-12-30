@@ -202,7 +202,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
 
   const modalClasses = `
     bg-[#FDFBF7] dark:bg-stone-900 w-full max-w-md rounded-[28px] p-5 soft-shadow
-    max-h-[90vh] overflow-y-auto overflow-x-hidden
+    max-h-[80vh] overflow-y-auto overflow-x-hidden
     transition-all duration-200 ease-out will-change-transform
     ${shake ? "animate-shake" : ""}
     ${animationState === "entered" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}
@@ -326,8 +326,8 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
   return (
     <div className={backdropClasses} style={transitionStyle} onMouseUp={handleDragEnd} onTouchEnd={handleDragEnd}>
       <div className={modalClasses} style={transitionStyle} onMouseMove={handleDragMove} onTouchMove={handleDragMove}>
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-bold text-stone-800 dark:text-stone-100">New Goal</h3>
+        {/* Close Button */}
+        <div className="flex justify-end mb-2">
           <button
             onClick={handleClose}
             className="p-1.5 bg-stone-100 dark:bg-stone-800 rounded-full hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-500 dark:text-stone-400"
