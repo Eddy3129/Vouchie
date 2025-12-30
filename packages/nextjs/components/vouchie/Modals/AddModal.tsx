@@ -153,10 +153,14 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
         return;
       }
 
+      // Random cute animal for fallback
+      const animals = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯"];
+      const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
+
       // Add to vouchies
       const newVouchie: Vouchie = {
         name: user.display_name || user.username,
-        avatar: user.pfp_url || "",
+        avatar: user.pfp_url || randomAnimal, // Use animal emoji if no PFP
         fid: user.fid,
         username: user.username,
         address: user.verified_addresses?.eth_addresses?.[0] || user.custody_address || "",
@@ -487,7 +491,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                   className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden border-b-2 transition-all relative bg-amber-100 dark:bg-orange-900/30 border-[#8B5A2B] dark:border-[#FFA726] ring-2 ring-[#8B5A2B] dark:ring-[#FFA726]"
                   title={`@${vouchie.username} (click to remove)`}
                 >
-                  {vouchie.avatar ? (
+                  {vouchie.avatar && vouchie.avatar.startsWith("http") ? (
                     <Image
                       src={vouchie.avatar}
                       alt={vouchie.name}
@@ -496,7 +500,9 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="text-lg">👤</span>
+                    <span className="text-xl flex items-center justify-center w-full h-full bg-stone-100 dark:bg-stone-700">
+                      {vouchie.avatar || "👤"}
+                    </span>
                   )}
                   <div className="absolute -bottom-1 -right-1 bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 rounded-full p-0.5 border border-[#FDFBF7] dark:border-stone-900">
                     <Check size={6} weight="bold" />
@@ -637,7 +643,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                         key={vouchie.fid || vouchie.name}
                         className="flex items-center gap-1.5 bg-white dark:bg-stone-800 px-2 py-1 rounded-lg"
                       >
-                        {vouchie.avatar ? (
+                        {vouchie.avatar && vouchie.avatar.startsWith("http") ? (
                           <Image
                             src={vouchie.avatar}
                             alt={vouchie.name}
@@ -646,7 +652,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                             className="w-5 h-5 rounded-full object-cover"
                           />
                         ) : (
-                          <span className="text-base">👤</span>
+                          <span className="text-base">{vouchie.avatar || "👤"}</span>
                         )}
                         <span className="text-xs font-bold text-stone-600 dark:text-stone-300">
                           {vouchie.username ? `@${vouchie.username}` : vouchie.name}
