@@ -51,16 +51,18 @@ const TimelineView = ({ goals, onStart, onViewDetails }: TimelineViewProps) => {
 
     // Get actual start and end times
     const actualStart = new Date(goal.startTime || goal.createdAt || Date.now());
-    const actualEnd = goal.deadline ? new Date(goal.deadline) : new Date(actualStart.getTime() + 60 * 60 * 1000); // Default 1 hour
+    const actualEnd = goal.deadline ? new Date(goal.deadline) : new Date(actualStart.getTime() + 60 * 60 * 1000);
 
-    // Clamp to today's bounds
-    const clampedStart = new Date(Math.max(todayStart.getTime(), Math.min(actualStart.getTime(), todayEnd.getTime())));
-    const clampedEnd = new Date(Math.max(todayStart.getTime(), Math.min(actualEnd.getTime(), todayEnd.getTime())));
-
-    // If the task doesn't overlap with today at all, hide it (or show at top with min height)
+    // If the task doesn't overlap with today at all, hide it
     if (actualEnd.getTime() < todayStart.getTime() || actualStart.getTime() > todayEnd.getTime()) {
-      return { top: "0px", height: "0px", display: "none" }; // Hide tasks not relevant to today
+      return { top: "0px", height: "0px", display: "none" };
     }
+
+    // Clamp start: if task started before today, use today's start (00:00)
+    const clampedStart = actualStart.getTime() < todayStart.getTime() ? todayStart : actualStart;
+
+    // Clamp end: if task ends after today, use today's end (23:59)
+    const clampedEnd = actualEnd.getTime() > todayEnd.getTime() ? todayEnd : actualEnd;
 
     const startMinutes = clampedStart.getHours() * 60 + clampedStart.getMinutes();
     const endMinutes = clampedEnd.getHours() * 60 + clampedEnd.getMinutes();

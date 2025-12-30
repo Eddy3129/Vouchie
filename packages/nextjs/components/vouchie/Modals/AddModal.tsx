@@ -340,7 +340,6 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
         <div className="space-y-4">
           {/* Title */}
           <input
-            autoFocus
             placeholder="What's the goal?"
             className="w-full bg-transparent border-b-2 border-stone-200 dark:border-stone-700 py-2 text-2xl font-bold text-stone-800 dark:text-stone-100 placeholder:text-stone-400 dark:placeholder:text-stone-500 outline-none focus:border-[#A67B5B] dark:focus:border-[#FFA726] transition-colors"
             value={formData.title}
@@ -439,7 +438,6 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                     onChange={e => setUsernameSearch(e.target.value)}
                     onKeyDown={e => e.key === "Enter" && lookupUsername()}
                     className="flex-1 bg-transparent text-sm outline-none text-stone-800 dark:text-stone-100 placeholder:text-stone-400"
-                    autoFocus
                   />
                   {searchLoading ? (
                     <Spinner size={16} className="animate-spin text-stone-400" />
