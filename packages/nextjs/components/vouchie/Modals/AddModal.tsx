@@ -363,6 +363,11 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                 <div className="text-lg font-bold text-stone-800 dark:text-stone-100">
                   {isNow ? "Now" : formatTime(formData.startTime)}
                 </div>
+                <div className="text-[9px] font-bold text-stone-500 dark:text-stone-400">
+                  {formData.startTime.toDateString() === new Date().toDateString()
+                    ? "Today"
+                    : formData.startTime.toLocaleDateString([], { month: "short", day: "numeric" })}
+                </div>
                 <input
                   type="datetime-local"
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"

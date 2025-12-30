@@ -26,7 +26,6 @@ import CalendarView from "~~/components/vouchie/CalendarView";
 import FriendActivityView from "~~/components/vouchie/FriendActivityView";
 import GoalCard from "~~/components/vouchie/GoalCard";
 import FontStyles from "~~/components/vouchie/Helper/FontStyles";
-import LoadingState from "~~/components/vouchie/LoadingState";
 import AddModal from "~~/components/vouchie/Modals/AddModal";
 import GiveUpModal from "~~/components/vouchie/Modals/GiveUpModal";
 import StartTaskModal from "~~/components/vouchie/Modals/StartTaskModal";
@@ -34,7 +33,7 @@ import TaskDetailModal from "~~/components/vouchie/Modals/TaskDetailModal";
 import VerifyModal from "~~/components/vouchie/Modals/VerifyModal";
 import ProfileView from "~~/components/vouchie/ProfileView";
 import SplashScreen from "~~/components/vouchie/SplashScreen";
-import Timeline from "~~/components/vouchie/Timeline";
+import TimelineView from "~~/components/vouchie/TimelineGrid";
 import VouchieView from "~~/components/vouchie/VouchieView";
 import {
   useDeployedContractInfo,
@@ -449,7 +448,8 @@ const VouchieApp = () => {
                 {activeTab === "dashboard" && (
                   <div className="space-y-6 animate-in fade-in duration-500">
                     {/* Hero Quote Section */}
-                    <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-stone-900 via-stone-800 to-stone-900">
+                    {/* Hero Quote Section */}
+                    <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-[#FAF7F2] via-white to-[#F5EFE6] dark:from-stone-900 dark:via-stone-800 dark:to-stone-900 shadow-sm border border-stone-200 dark:border-stone-800">
                       {/* Subtle warm gradient overlay */}
                       <div className="absolute inset-0 bg-gradient-to-r from-[#8B5A2B]/10 via-transparent to-[#8B5A2B]/5" />
 
@@ -469,18 +469,22 @@ const VouchieApp = () => {
                       {/* Content */}
                       <div className="relative p-4 pr-16">
                         {/* Quote mark */}
-                        <Quotes className="absolute top-3 left-3 text-[#FFA726]/20" size={24} weight="fill" />
+                        <Quotes
+                          className="absolute top-3 left-3 text-[#FFA726]/40 dark:text-[#FFA726]/20"
+                          size={24}
+                          weight="fill"
+                        />
 
                         {/* Quote text */}
                         <p
-                          className="text-white/90 text-sm leading-relaxed pl-5 italic"
+                          className="text-stone-800 dark:text-white/90 text-sm leading-relaxed pl-5 italic"
                           style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
                         >
                           {dailyQuote.text}
                         </p>
 
                         {/* Author */}
-                        <p className="text-[#FFA726]/80 text-[10px] mt-2 font-bold tracking-widest uppercase pl-5">
+                        <p className="text-[#8B5A2B] dark:text-[#FFA726]/80 text-[10px] mt-2 font-bold tracking-widest uppercase pl-5">
                           — {dailyQuote.author}
                         </p>
                       </div>
@@ -488,10 +492,12 @@ const VouchieApp = () => {
 
                     {/* Connect Wallet CTA (if not connected) */}
                     {!address && (
-                      <div className="absolute inset-x-0 top-1/2 -translate-y-1/2 z-10 px-6">
-                        <div className="absolute inset-0 bg-stone-900/60 backdrop-blur-sm -z-10 rounded-3xl" />
-                        <div className="bg-white dark:bg-stone-800 rounded-3xl p-8 shadow-2xl border border-stone-100 dark:border-stone-700 animate-in fade-in zoom-in-95 duration-500 mx-auto max-w-sm relative">
-                          <div className="flex flex-col items-center justify-center text-center">
+                      <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-[#FAF7F2]/80 dark:bg-stone-900/80 backdrop-blur-md transition-all duration-500">
+                        <div className="bg-white dark:bg-stone-800 rounded-[32px] p-8 shadow-2xl border border-stone-100 dark:border-stone-700 animate-in fade-in zoom-in-95 duration-500 max-w-sm w-full relative overflow-hidden">
+                          {/* Decorative gradient blob */}
+                          <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-orange-50/50 dark:from-orange-900/10 to-transparent pointer-events-none" />
+
+                          <div className="relative flex flex-col items-center justify-center text-center">
                             <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#8B5A2B] to-[#FFA726] flex items-center justify-center mb-6 shadow-xl ring-8 ring-orange-50 dark:ring-orange-900/20">
                               <Wallet size={40} weight="fill" className="text-white" />
                             </div>
@@ -499,7 +505,7 @@ const VouchieApp = () => {
                               Start Your Journey
                             </h2>
                             <p className="text-stone-500 dark:text-stone-400 mb-8 leading-relaxed">
-                              Connect your wallet to set goals, stake USDC, and start changing your life today!
+                              Connect your wallet to set goals, stake USDC, and make your life more productive today!
                             </p>
                             <ConnectButton.Custom>
                               {({ openConnectModal, mounted }) => {
@@ -521,91 +527,110 @@ const VouchieApp = () => {
                       </div>
                     )}
 
-                    {/* Section Header */}
-                    <div className="flex justify-between items-center">
-                      <button
-                        onClick={() => setIsTimelineView(!isTimelineView)}
-                        className="p-1.5 rounded-lg bg-white/50 dark:bg-stone-800/50 text-stone-400 hover:bg-white dark:hover:bg-stone-700 hover:text-[#8B5A2B] dark:hover:text-[#FFA726] transition-colors sm:hidden"
-                      >
-                        {isTimelineView ? <List size={18} /> : <Clock size={18} />}
-                      </button>
+                    {/* View Toggle */}
+                    <div className="flex justify-between items-center mb-4">
+                      <div className="flex bg-stone-100 dark:bg-stone-800 p-1 rounded-xl">
+                        <button
+                          onClick={() => setIsTimelineView(false)}
+                          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${!isTimelineView ? "bg-white dark:bg-stone-700 shadow-sm text-stone-800 dark:text-stone-100" : "text-stone-500 dark:text-stone-400"}`}
+                        >
+                          <List size={16} weight="bold" /> List
+                        </button>
+                        <button
+                          onClick={() => setIsTimelineView(true)}
+                          className={`px-4 py-2 rounded-lg text-sm font-bold transition-all flex items-center gap-1.5 ${isTimelineView ? "bg-white dark:bg-stone-700 shadow-sm text-stone-800 dark:text-stone-100" : "text-stone-500 dark:text-stone-400"}`}
+                        >
+                          <Clock size={16} weight="bold" /> Timeline
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Timeline + Task List */}
-                    <div className="flex gap-4">
-                      {/* Vertical Timeline - Visible if toggled or on Desktop */}
-                      <div className={`${isTimelineView ? "block" : "hidden"} sm:block flex-shrink-0`}>
-                        <Timeline />
-                      </div>
-
-                      {/* Task List */}
-                      <div className="flex-1 space-y-3 min-w-0">
-                        {loading && <LoadingState variant="full" text="Loading goals..." />}
-
-                        {/* Verification Requests */}
-                        {!loading && verificationGoals.length > 0 && (
-                          <div className="mb-6">
-                            <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 flex items-center gap-2 uppercase tracking-wider">
-                              <ShieldCheck size={16} className="text-blue-500" weight="fill" />
-                              Pending Verifications
-                            </h3>
-                            <div className="space-y-3">
-                              {verificationGoals.map(task => (
-                                <GoalCard
-                                  key={task.id}
-                                  goal={task}
-                                  onStart={() => {}}
-                                  onViewDetails={() => {
-                                    setSelectedVerificationGoal(task);
-                                    setIsVerifyModalOpen(true);
-                                  }}
-                                  isTimelineMode={isTimelineView}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        {!loading &&
-                          address &&
-                          goals.filter(t => t.status !== "done" && t.status !== "failed").length === 0 && (
-                            <div className="p-8 text-center text-stone-400 font-bold border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
-                              Woohoo! No pending tasks! <span className="text-xs ml-1">🎉</span>
+                    {/* Content Area */}
+                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                      {isTimelineView ? (
+                        /* New Timeline Grid View */
+                        <TimelineView
+                          goals={goals.filter(t => t.status !== "done" && t.status !== "failed")}
+                          onStart={setSelectedTaskForStart}
+                          onViewDetails={setSelectedTaskForDetails}
+                        />
+                      ) : (
+                        /* Standard List View */
+                        <div className="space-y-4">
+                          {/* Verification Requests */}
+                          {!loading && verificationGoals.length > 0 && (
+                            <div className="mb-6">
+                              <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                                <ShieldCheck size={16} className="text-blue-500" weight="fill" />
+                                Pending Verifications
+                              </h3>
+                              <div className="space-y-3">
+                                {verificationGoals.map(task => (
+                                  <GoalCard
+                                    key={task.id}
+                                    goal={task}
+                                    onStart={() => {}}
+                                    onViewDetails={() => {
+                                      setSelectedVerificationGoal(task);
+                                      setIsVerifyModalOpen(true);
+                                    }}
+                                  />
+                                ))}
+                              </div>
                             </div>
                           )}
 
-                        {!loading &&
-                          goals
-                            .filter(t => t.status !== "done" && t.status !== "failed")
-                            .map(task => (
-                              <GoalCard
-                                key={task.id}
-                                goal={task}
-                                onStart={setSelectedTaskForStart}
-                                onViewDetails={setSelectedTaskForDetails}
-                                isTimelineMode={isTimelineView}
-                              />
-                            ))}
+                          {/* Empty State */}
+                          {!loading &&
+                            address &&
+                            goals.filter(t => t.status !== "done" && t.status !== "failed").length === 0 && (
+                              <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
+                                <p className="text-stone-400 font-bold text-lg mb-2">
+                                  Woohoo! No pending tasks! <span className="text-2xl ml-1">🎉</span>
+                                </p>
+                                <p className="text-stone-400 text-sm">Use the + button to create a new goal.</p>
+                              </div>
+                            )}
 
-                        {!loading && goals.filter(t => t.status === "done").length > 0 && (
-                          <div className="pt-4 border-t border-stone-200 dark:border-stone-700">
-                            <h4 className="text-stone-400 font-bold mb-2 text-sm">Completed</h4>
-                            {goals
-                              .filter(t => t.status === "done")
+                          {/* Active Goals List */}
+                          {!loading &&
+                            goals
+                              .filter(t => t.status !== "done" && t.status !== "failed")
                               .map(task => (
-                                <div
+                                <GoalCard
                                   key={task.id}
-                                  className="p-4 bg-white dark:bg-stone-800 rounded-2xl opacity-60 mb-2 flex items-center gap-2 border border-stone-100 dark:border-stone-700 shadow-sm"
-                                >
-                                  <CheckCircle size={16} className="text-green-500" />
-                                  <span className="font-bold text-stone-500 dark:text-stone-400 line-through decoration-2 decoration-stone-400">
-                                    {task.title}
-                                  </span>
-                                </div>
+                                  goal={task}
+                                  onStart={setSelectedTaskForStart}
+                                  onViewDetails={setSelectedTaskForDetails}
+                                />
                               ))}
-                          </div>
-                        )}
-                      </div>
+
+                          {/* Completed Section */}
+                          {!loading && goals.filter(t => t.status === "done").length > 0 && (
+                            <div className="pt-8 border-t border-stone-200 dark:border-stone-700 mt-8">
+                              <h4 className="text-stone-400 font-bold mb-4 text-xs uppercase tracking-wider flex items-center gap-2">
+                                <CheckCircle size={14} weight="fill" /> Completed Today
+                              </h4>
+                              {goals
+                                .filter(t => t.status === "done")
+                                .map(task => (
+                                  <div
+                                    key={task.id}
+                                    className="p-4 bg-white dark:bg-stone-800 rounded-2xl opacity-60 mb-3 flex items-center gap-3 border border-stone-100 dark:border-stone-700 shadow-sm grayscale transition-all hover:grayscale-0 hover:opacity-100"
+                                  >
+                                    <CheckCircle size={20} className="text-green-500 flex-shrink-0" weight="fill" />
+                                    <div>
+                                      <p className="font-bold text-stone-600 dark:text-stone-300 line-through decoration-stone-400 decoration-2">
+                                        {task.title}
+                                      </p>
+                                      <p className="text-xs text-stone-400 font-bold mt-0.5">Completed</p>
+                                    </div>
+                                  </div>
+                                ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -624,8 +649,8 @@ const VouchieApp = () => {
                 className="relative w-16 h-16 rounded-2xl overflow-hidden hover:scale-110 transition-all duration-300 shadow-[0_0_15px_rgba(255,167,38,0.3)] group"
               >
                 <div className="absolute inset-[-100%] bg-[conic-gradient(from_90deg_at_50%_50%,#1F1F1F_0%,#FFA726_50%,#1F1F1F_100%)] animate-[spin_2s_linear_infinite]" />
-                <div className="absolute inset-[2px] bg-[#1F1F1F] rounded-[14px] flex items-center justify-center z-10">
-                  <Plus size={32} weight="bold" className="text-[#FFA726]" />
+                <div className="absolute inset-[2px] bg-white dark:bg-[#1F1F1F] rounded-[14px] flex items-center justify-center z-10">
+                  <Plus size={32} weight="bold" className="text-[#8B5A2B] dark:text-[#FFA726]" />
                 </div>
               </button>
             </div>
@@ -650,8 +675,8 @@ const VouchieApp = () => {
                 className="relative w-14 h-14 rounded-xl overflow-hidden hover:scale-105 transition-all duration-300 shadow-[0_0_15px_rgba(255,167,38,0.3)] -mt-4 group"
               >
                 <div className="absolute inset-[-100%] bg-[conic-gradient(from_90deg_at_50%_50%,#1F1F1F_0%,#FFA726_50%,#1F1F1F_100%)] animate-[spin_2s_linear_infinite]" />
-                <div className="absolute inset-[2px] bg-[#1F1F1F] rounded-[10px] flex items-center justify-center z-10">
-                  <Plus size={28} weight="bold" className="text-[#FFA726]" />
+                <div className="absolute inset-[2px] bg-white dark:bg-[#1F1F1F] rounded-[10px] flex items-center justify-center z-10">
+                  <Plus size={28} weight="bold" className="text-[#8B5A2B] dark:text-[#FFA726]" />
                 </div>
               </button>
               <button

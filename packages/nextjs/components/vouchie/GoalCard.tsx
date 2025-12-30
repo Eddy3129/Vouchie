@@ -2,7 +2,7 @@ import React from "react";
 import { Goal } from "../../types/vouchie";
 import Avatar from "./Avatar";
 import Card from "./Helper/Card";
-import { Clock, Eye, Play } from "@phosphor-icons/react";
+import { CheckCircle, Clock, Eye, Play } from "@phosphor-icons/react";
 import toast from "react-hot-toast";
 
 interface GoalCardProps {
@@ -10,6 +10,7 @@ interface GoalCardProps {
   onStart: (goal: Goal) => void;
   onViewDetails: (goal: Goal) => void;
   isTimelineMode?: boolean;
+  variant?: "default" | "timeline";
 }
 
 const MOCK_PROFILES = [
@@ -78,7 +79,7 @@ const getTimeRemainingPercent = (deadline: number, createdAt?: number) => {
   return Math.min(100, Math.max(0, remaining));
 };
 
-const GoalCard = ({ goal, onStart, onViewDetails, isTimelineMode = false }: GoalCardProps) => {
+const GoalCard = ({ goal, onStart, onViewDetails, isTimelineMode = false, variant = "default" }: GoalCardProps) => {
   const timeRemaining = formatTimeRemaining(goal.deadline);
   const timePercent = getTimeRemainingPercent(goal.deadline, goal.createdAt);
   const isUrgent = goal.deadline - Date.now() < 1000 * 60 * 60 * 4; // < 4 hours
@@ -87,6 +88,41 @@ const GoalCard = ({ goal, onStart, onViewDetails, isTimelineMode = false }: Goal
   const isPending = goal.status === "pending";
   const isFailed = goal.status === "failed";
   const latestComment = goal.comments.length > 0 ? goal.comments[0] : null;
+
+  if (variant === "timeline") {
+    return (
+      <div
+        className={`relative h-full transition-all duration-300 cursor-pointer overflow-hidden rounded-lg group ${
+          isDone
+            ? "bg-green-100 dark:bg-green-900/20 border-l-4 border-green-500"
+            : isFailed
+              ? "bg-red-100 dark:bg-red-900/20 border-l-4 border-red-500"
+              : isUrgent
+                ? "bg-orange-50 dark:bg-orange-900/20 border-l-4 border-orange-500"
+                : "bg-white dark:bg-stone-800 border-l-4 border-stone-300 dark:border-stone-600 shadow-sm"
+        }`}
+        onClick={() => onViewDetails(goal)}
+      >
+        <div className="p-2 h-full flex flex-col justify-between">
+          <div className="min-h-0">
+            <div className="flex justify-between items-start gap-1">
+              <h3
+                className={`font-bold text-xs truncate leading-snug w-full ${isDone ? "line-through opacity-70" : "text-stone-800 dark:text-stone-200"}`}
+              >
+                {goal.title}
+              </h3>
+            </div>
+            <div className="text-[10px] font-bold text-stone-500 dark:text-stone-400 mt-0.5 whitespace-nowrap overflow-hidden">
+              {formatTimeRemaining(goal.deadline).text}
+            </div>
+          </div>
+
+          {/* Status Icon for very small heights */}
+          {isDone && <CheckCircle size={14} weight="fill" className="text-green-600 absolute bottom-1.5 right-1.5" />}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -115,8 +115,9 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
     <div className="space-y-6 animate-in fade-in duration-500">
       <header className="flex justify-between items-center mb-4">
         <div>
-          <h2 className="text-2xl font-bold text-stone-800 dark:text-stone-100">{monthName}</h2>
-          <p className="text-sm text-stone-400 font-semibold">{year}</p>
+          <h2 className="text-2xl font-bold text-stone-800 dark:text-stone-100 flex items-baseline gap-2">
+            {monthName} <span className="text-lg text-stone-400 font-semibold">{year}</span>
+          </h2>
         </div>
         <div className="flex gap-2">
           <button
