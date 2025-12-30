@@ -20,6 +20,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@master
+        with:
+          submodules: recursive
 
       - name: Setup node env
         uses: actions/setup-node@v3
@@ -34,6 +36,10 @@ jobs:
         uses: foundry-rs/foundry-toolchain@v1
         with:
           version: nightly
+
+      - name: Install Foundry dependencies
+        working-directory: packages/foundry
+        run: forge install
 
       - name: Run foundry node, deploy contracts (& generate contracts typescript output)
         env:
