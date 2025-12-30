@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useAccount, useReadContracts } from "wagmi";
+import { useMiniapp } from "~~/components/MiniappProvider";
 import deployedContracts from "~~/contracts/deployedContracts";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
@@ -21,10 +22,14 @@ const getStatus = (goal: any): "pending" | "in_progress" | "verifying" | "done" 
 };
 
 export const useVouchieData = () => {
-  useAccount();
+  const { address: walletAddress } = useAccount();
+  const { context } = useMiniapp();
   const { targetNetwork } = useTargetNetwork();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Get the user's address - prefer Farcaster primary address, fallback to wallet
+  const userAddress = context.user?.primaryAddress || walletAddress;
 
   // 1. Get total goal count
   const { data: goalCountData, refetch: refetchCount } = useScaffoldReadContract({
@@ -100,13 +105,19 @@ export const useVouchieData = () => {
         const v: any = vouchiesResult.result; // Address array
 
         // g is [id, creator, stakeAmount, deadline, createdAt, description, resolved, successful, votesValid, votesInvalid]
-        // Note: createdAt was added to the struct
+        const creator = g[1] as string;
         const stake = Number(g[2]);
         const deadline = Number(g[3]);
         const createdAt = Number(g[4]);
         const description = g[5];
         const resolved = g[6];
         const successful = g[7];
+
+        // Filter: only show goals created by the current user
+        // If no user is authenticated, show nothing (they need to connect)
+        if (!userAddress || creator.toLowerCase() !== userAddress.toLowerCase()) {
+          continue;
+        }
 
         const vouchieAddresses = v as string[];
         const mode = vouchieAddresses.length === 0 ? "Solo" : "Squad";
@@ -121,8 +132,8 @@ export const useVouchieData = () => {
         parsedGoals.push({
           id: goalId,
           title: description,
-          stake: Number(stake) / 1e18, // Assuming 18 decimals
-          currency: "USDC", // Mock
+          stake: Number(stake) / 1e6, // USDC has 6 decimals
+          currency: "USDC",
           deadline: deadline * 1000, // JS timestamp
           createdAt: createdAt * 1000, // JS timestamp
           mode,
@@ -140,7 +151,7 @@ export const useVouchieData = () => {
     }
     setGoals(parsedGoals);
     setLoading(false);
-  }, [multipleData, goalIndices, goalCount]);
+  }, [multipleData, goalIndices, goalCount, userAddress]);
 
   const refresh = () => {
     refetchCount();

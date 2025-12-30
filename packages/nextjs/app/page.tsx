@@ -3,11 +3,9 @@
 import React, { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import {
-  Bell,
   CalendarBlank,
   CheckCircle,
   Clock,
-  Coins,
   Compass,
   House,
   List,
@@ -16,7 +14,7 @@ import {
   User,
   Users,
 } from "@phosphor-icons/react";
-import { formatUnits, parseUnits } from "viem";
+import { parseUnits } from "viem";
 import { erc20Abi } from "viem";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
 import { useMiniapp } from "~~/components/MiniappProvider";
@@ -101,8 +99,8 @@ const VouchieApp = () => {
   // Silent approval (no notification) using wagmi directly
   const { writeContractAsync: silentApprove } = useWriteContract();
 
-  // Read user's USDC balance
-  const { data: usdcBalance, refetch: refetchBalance } = useReadContract({
+  // Read user's USDC balance (for refetching after transactions)
+  const { refetch: refetchBalance } = useReadContract({
     address: usdcInfo?.address,
     abi: erc20Abi,
     functionName: "balanceOf",
@@ -143,15 +141,18 @@ const VouchieApp = () => {
         const vouchies = formData.mode === "Vouchie" ? ["0x123..."] : [];
 
         // Step 1: Silent approve (no notification popup)
-        if (vaultInfo?.address && usdcInfo?.address) {
+        if (vaultInfo?.address && usdcInfo?.address && publicClient) {
           const approveTxHash = await silentApprove({
             address: usdcInfo.address,
             abi: erc20Abi,
             functionName: "approve",
             args: [vaultInfo.address, stakeAmount],
           });
-          // Wait for approval to be confirmed
-          await publicClient?.waitForTransactionReceipt({ hash: approveTxHash });
+          // Wait for approval to be confirmed before proceeding
+          await publicClient.waitForTransactionReceipt({ hash: approveTxHash });
+        } else if (!publicClient) {
+          console.error("Public client not available, cannot wait for approval");
+          return;
         }
 
         // Step 2: Create the goal (shows single success notification)
@@ -257,15 +258,18 @@ const VouchieApp = () => {
   const handleExtend = async (goalId: number) => {
     try {
       // Step 1: Silent approve extension fee (no notification popup)
-      if (vaultInfo?.address && usdcInfo?.address && extensionFee) {
+      if (vaultInfo?.address && usdcInfo?.address && extensionFee && publicClient) {
         const approveTxHash = await silentApprove({
           address: usdcInfo.address,
           abi: erc20Abi,
           functionName: "approve",
           args: [vaultInfo.address, extensionFee],
         });
-        // Wait for approval to be confirmed
-        await publicClient?.waitForTransactionReceipt({ hash: approveTxHash });
+        // Wait for approval to be confirmed before proceeding
+        await publicClient.waitForTransactionReceipt({ hash: approveTxHash });
+      } else if (!publicClient) {
+        console.error("Public client not available, cannot wait for approval");
+        return;
       }
 
       // Step 2: Call streakFreeze (shows single success notification)
@@ -363,29 +367,6 @@ const VouchieApp = () => {
 
           {/* Main Content */}
           <main className="flex-1 flex flex-col h-full relative overflow-hidden">
-            {/* Header */}
-            <div className="h-20 flex items-center justify-between px-6 pt-4 lg:pt-0 flex-shrink-0 z-10">
-              <div className="lg:hidden flex items-center gap-2">
-                <div className="w-8 h-8 flex items-center justify-center">
-                  <Image src="/logo.png" alt="Vouchie" width={32} height={32} priority />
-                </div>
-                <span className="text-xl font-bold text-[#8B5A2B] dark:text-[#FFA726]">Vouchie</span>
-              </div>
-              <div className="flex items-center gap-2 ml-auto">
-                {/* Balance & Faucet */}
-                <div className="flex items-center gap-1.5 bg-white dark:bg-stone-800 rounded-full px-3 py-1.5 shadow-sm">
-                  <Coins size={16} className="text-[#8B5A2B] dark:text-[#FFA726]" weight="fill" />
-                  <span className="text-xs font-bold text-stone-600 dark:text-stone-300">
-                    {usdcBalance ? Number(formatUnits(usdcBalance, usdcDecimals)).toFixed(0) : "0"}
-                  </span>
-                  <span className="text-[10px] text-stone-400">USDC</span>
-                </div>
-                <button className="w-10 h-10 rounded-full bg-white dark:bg-stone-800 shadow-sm flex items-center justify-center text-stone-400 hover:text-[#8B5A2B] dark:hover:text-[#FFA726]">
-                  <Bell size={20} />
-                </button>
-              </div>
-            </div>
-
             {/* Content Area */}
             <div className="flex-1 overflow-y-auto px-6 pb-24 lg:px-8 lg:pb-8">
               <div className="max-w-4xl mx-auto pt-6">

@@ -33,6 +33,8 @@ export type User = {
   pfpUrl?: string;
   bio?: string;
   location?: AccountLocation;
+  /** Primary verified Ethereum address for this user */
+  primaryAddress?: string;
 };
 
 export type MiniAppCast = {
@@ -229,9 +231,31 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         const sdkContext = await sdk.context;
         const inMiniApp = await sdk.isInMiniApp();
 
-        // Store full context
+        // Fetch primary address if user is authenticated
+        let primaryAddress: string | undefined;
+        if (sdkContext?.user?.fid) {
+          try {
+            const res = await fetch(
+              `https://api.farcaster.xyz/fc/primary-address?fid=${sdkContext.user.fid}&protocol=ethereum`,
+            );
+            if (res.ok) {
+              const data = await res.json();
+              primaryAddress = data?.result?.address?.address;
+              console.log("Primary address fetched:", primaryAddress);
+            }
+          } catch (err) {
+            console.warn("Failed to fetch primary address:", err);
+          }
+        }
+
+        // Store full context with primary address
         const fullContext: FullMiniAppContext = {
-          user: sdkContext?.user ?? null,
+          user: sdkContext?.user
+            ? {
+                ...sdkContext.user,
+                primaryAddress,
+              }
+            : null,
           location: sdkContext?.location,
           client: sdkContext?.client,
           features: sdkContext?.features,
