@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight, Clock } from "lucide-react";
+import { CaretLeft, CaretRight, Clock } from "@phosphor-icons/react";
 
 interface MobileTimePickerProps {
   startTime: Date;
@@ -150,7 +150,7 @@ const MobileTimePicker = ({ startTime, onChange, onClose }: MobileTimePickerProp
                   onClick={() => handleCustomTime("hours", Math.max(0, selectedDate.getHours() - 1))}
                   className="px-3 py-4 hover:bg-stone-100 transition-colors active:scale-95"
                 >
-                  <ChevronLeft size={20} />
+                  <CaretLeft size={20} />
                 </button>
                 <span className="flex-1 text-center text-2xl font-bold text-stone-800">
                   {selectedDate.getHours().toString().padStart(2, "0")}
@@ -159,7 +159,7 @@ const MobileTimePicker = ({ startTime, onChange, onClose }: MobileTimePickerProp
                   onClick={() => handleCustomTime("hours", Math.min(23, selectedDate.getHours() + 1))}
                   className="px-3 py-4 hover:bg-stone-100 transition-colors active:scale-95"
                 >
-                  <ChevronRight size={20} />
+                  <CaretRight size={20} />
                 </button>
               </div>
             </div>
@@ -173,7 +173,7 @@ const MobileTimePicker = ({ startTime, onChange, onClose }: MobileTimePickerProp
                   onClick={() => handleCustomTime("minutes", Math.max(0, selectedDate.getMinutes() - 15))}
                   className="px-3 py-4 hover:bg-stone-100 transition-colors active:scale-95"
                 >
-                  <ChevronLeft size={20} />
+                  <CaretLeft size={20} />
                 </button>
                 <span className="flex-1 text-center text-2xl font-bold text-stone-800">
                   {(() => {
@@ -185,7 +185,7 @@ const MobileTimePicker = ({ startTime, onChange, onClose }: MobileTimePickerProp
                   onClick={() => handleCustomTime("minutes", Math.min(45, selectedDate.getMinutes() + 15))}
                   className="px-3 py-4 hover:bg-stone-100 transition-colors active:scale-95"
                 >
-                  <ChevronRight size={20} />
+                  <CaretRight size={20} />
                 </button>
               </div>
             </div>

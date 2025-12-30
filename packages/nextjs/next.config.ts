@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { BundleAnalyzerPlugin } from "webpack-bundle-analyzer";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
@@ -10,9 +11,21 @@ const nextConfig: NextConfig = {
   eslint: {
     ignoreDuringBuilds: process.env.NEXT_PUBLIC_IGNORE_BUILD_ERROR === "true",
   },
-  webpack: config => {
+  webpack: (config, { isServer }) => {
     config.resolve.fallback = { fs: false, net: false, tls: false };
     config.externals.push("pino-pretty", "lokijs", "encoding");
+
+    // Bundle analyzer - run with ANALYZE=true yarn build
+    if (process.env.ANALYZE === "true" && !isServer) {
+      config.plugins.push(
+        new BundleAnalyzerPlugin({
+          analyzerMode: "static",
+          reportFilename: "../analyze/client.html",
+          openAnalyzer: true,
+        }),
+      );
+    }
+
     return config;
   },
   images: {
