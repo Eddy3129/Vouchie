@@ -13,7 +13,6 @@ import {
   List,
   Plus,
   Quotes,
-  Star,
   User,
   Users,
 } from "@phosphor-icons/react";
@@ -337,8 +336,8 @@ const VouchieApp = () => {
           {/* Desktop Sidebar */}
           <div className="hidden lg:flex w-64 bg-white/50 backdrop-blur-xl border-r border-stone-100 dark:border-stone-800 flex-col p-6 h-full sticky top-0 dark:bg-stone-800/50">
             <div className="flex items-center gap-3 mb-10">
-              <div className="w-10 h-10 rounded-2xl bg-[#8B5A2B] flex items-center justify-center text-white shadow-lg hover-lift">
-                <Star size={24} weight="fill" />
+              <div className="w-10 h-10 flex items-center justify-center hover-lift">
+                <Image src="/logo.png" alt="Vouchie" width={40} height={40} priority />
               </div>
               <span className="text-2xl font-bold text-[#8B5A2B] dark:text-[#FFA726]">Vouchie</span>
             </div>
@@ -367,8 +366,8 @@ const VouchieApp = () => {
             {/* Header */}
             <div className="h-20 flex items-center justify-between px-6 pt-4 lg:pt-0 flex-shrink-0 z-10">
               <div className="lg:hidden flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-[#8B5A2B] text-white flex items-center justify-center">
-                  <Star size={18} weight="fill" />
+                <div className="w-8 h-8 flex items-center justify-center">
+                  <Image src="/logo.png" alt="Vouchie" width={32} height={32} priority />
                 </div>
                 <span className="text-xl font-bold text-[#8B5A2B] dark:text-[#FFA726]">Vouchie</span>
               </div>

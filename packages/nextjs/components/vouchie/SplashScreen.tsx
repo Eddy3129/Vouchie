@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Star } from "@phosphor-icons/react";
+import Image from "next/image";
 
 interface SplashScreenProps {
   onComplete: () => void;
@@ -39,8 +39,8 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
         {/* Logo */}
         <div className="relative">
           <div className="absolute inset-0 bg-gradient-to-r from-[#8B5A2B] to-[#A67B5B] dark:from-[#FFA726] dark:to-[#FF9800] rounded-3xl blur-xl opacity-20 animate-pulse" />
-          <div className="relative w-24 h-24 bg-gradient-to-br from-[#8B5A2B] to-[#A67B5B] dark:from-[#FFA726] dark:to-[#FF9800] rounded-3xl flex items-center justify-center shadow-2xl">
-            <Star size={48} className="text-white dark:text-stone-900" weight="fill" />
+          <div className="relative w-24 h-24 flex items-center justify-center">
+            <Image src="/logo.png" alt="Vouchie" width={96} height={96} priority />
           </div>
         </div>
 
