@@ -12,37 +12,12 @@ const formatAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
-// Helper to format relative time
-const formatRelativeTime = (timestamp: string) => {
-  const now = Date.now();
-  const eventTime = Number(timestamp) * 1000;
-  const diff = now - eventTime;
-
-  const seconds = Math.floor(diff / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  if (minutes > 0) return `${minutes}m ago`;
-  return "just now";
-};
-
-// Helper to format deadline
-const formatDeadline = (deadline: string) => {
-  const deadlineTime = Number(deadline) * 1000;
-  const now = Date.now();
-  const diff = deadlineTime - now;
-
-  if (diff <= 0) return "expired";
-
-  const hours = Math.floor(diff / (1000 * 60 * 60));
-  const days = Math.floor(hours / 24);
-
-  if (days > 0) return `${days}d`;
-  if (hours > 0) return `${hours}h`;
-  return "< 1h";
+// Precise date formatter (e.g. "14:00, 30 Dec")
+const formatPreciseDate = (timestamp: string | number) => {
+  const date = new Date(Number(timestamp) * 1000);
+  const timeStr = date.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", hour12: false });
+  const dateStr = date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  return `${timeStr}, ${dateStr}`;
 };
 
 // Get activity icon and style based on type
@@ -53,7 +28,7 @@ const getActivityStyle = (activity: Activity) => {
         icon: <Plus size={14} weight="bold" className="text-white" />,
         iconBg: "bg-blue-500",
         accent: "text-blue-600 dark:text-blue-400",
-        action: "created",
+        action: "created & staked",
       };
     case "goal_resolved":
       if (activity.successful) {
@@ -120,39 +95,6 @@ const getAvatarUrl = (address: string) => {
   return `https://api.dicebear.com/7.x/avataaars/svg?seed=${address}`;
 };
 
-// Get the subtitle/detail text
-const getDetailText = (activity: Activity, decimals: number) => {
-  const stakeFormatted = activity.stakeAmount
-    ? Number(formatUnits(BigInt(activity.stakeAmount), decimals)).toFixed(0)
-    : "0";
-  const claimFormatted = activity.claimAmount
-    ? Number(formatUnits(BigInt(activity.claimAmount), decimals)).toFixed(0)
-    : "0";
-
-  switch (activity.type) {
-    case "goal_created":
-      const deadline = activity.deadline ? formatDeadline(activity.deadline) : "soon";
-      return { text: `$${stakeFormatted} staked`, subtext: `Due in ${deadline}` };
-    case "goal_resolved":
-      return activity.successful
-        ? { text: `+$${stakeFormatted} saved`, subtext: null, isPositive: true }
-        : { text: `-$${stakeFormatted} lost`, subtext: null, isNegative: true };
-    case "vote_cast":
-      return { text: activity.isValid ? "Approved" : "Rejected", subtext: null };
-    case "funds_claimed":
-      return { text: `+$${claimFormatted} received`, subtext: null, isPositive: true };
-    case "streak_frozen":
-      return { text: "+12 hours", subtext: null };
-    case "badge_claimed":
-      return { text: "Achievement unlocked!", subtext: null };
-    case "goal_canceled":
-      return { text: `+$${claimFormatted} refunded`, subtext: null };
-    default:
-      return { text: "", subtext: null };
-  }
-};
-
-// Truncate goal title if too long
 const truncateTitle = (title: string | null, maxLength: number = 40) => {
   if (!title) return "Unnamed Goal";
   if (title.length <= maxLength) return title;
@@ -181,7 +123,7 @@ const FriendActivityView = () => {
     return (
       <div className="space-y-6 animate-in fade-in duration-500 pb-20">
         <header className="mb-4">
-          <h2 className="text-3xl font-bold text-stone-800 dark:text-stone-100">Activity</h2>
+          <h2 className="text-2xl font-bold text-stone-800 dark:text-stone-100">Activity</h2>
         </header>
         <div className="flex flex-col items-center justify-center py-12 text-stone-400">
           <Spinner size={32} className="animate-spin mb-3" />
@@ -195,7 +137,7 @@ const FriendActivityView = () => {
     return (
       <div className="space-y-6 animate-in fade-in duration-500 pb-20">
         <header className="mb-4">
-          <h2 className="text-3xl font-bold text-stone-800 dark:text-stone-100">Activity</h2>
+          <h2 className="text-2xl font-bold text-stone-800 dark:text-stone-100">Activity</h2>
         </header>
         <div className="flex flex-col items-center justify-center py-12 text-stone-400">
           <p className="font-medium text-red-500">Failed to load activities</p>
@@ -205,11 +147,14 @@ const FriendActivityView = () => {
     );
   }
 
-  if (!activities || activities.length === 0) {
+  // Filter out unwanted activity types (like funds_claimed)
+  const filteredActivities = activities?.filter(a => a.type !== "funds_claimed") || [];
+
+  if (filteredActivities.length === 0) {
     return (
       <div className="space-y-6 animate-in fade-in duration-500 pb-20">
         <header className="mb-4">
-          <h2 className="text-3xl font-bold text-stone-800 dark:text-stone-100">Activity</h2>
+          <h2 className="text-xl font-bold text-stone-800 dark:text-stone-100">Activity</h2>
         </header>
         <div className="p-8 text-center text-stone-400 font-bold border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
           No activities yet. Create a goal to get started!
@@ -221,115 +166,103 @@ const FriendActivityView = () => {
   return (
     <div className="space-y-4 animate-in fade-in duration-500 pb-20">
       <header className="mb-2">
-        <h2 className="text-3xl font-bold text-stone-800 dark:text-stone-100">Activity</h2>
+        <h2 className="text-2xl font-bold text-stone-800 dark:text-stone-100">Activity</h2>
       </header>
 
       <div className="space-y-3">
-        {activities.map(activity => {
+        {filteredActivities.map(activity => {
           const style = getActivityStyle(activity);
-          const detail = getDetailText(activity, decimals);
           const goalTitle = truncateTitle(activity.goalTitle);
-          const isCompact = activity.type === "goal_resolved";
 
           // Get Farcaster user data if available
           const fcUser = farcasterUsers.get(activity.user.toLowerCase());
           const displayName = fcUser?.displayName || fcUser?.username || formatAddress(activity.user);
           const avatarUrl = fcUser?.pfpUrl || getAvatarUrl(activity.user);
 
+          // Amount Formatting
+          const rawAmount = Number(formatUnits(BigInt(activity.stakeAmount || 0), decimals)).toFixed(0);
+          let amountDisplay = "";
+          let amountClass = "";
+
+          if (activity.type === "goal_created") {
+            amountDisplay = `-$${rawAmount}`;
+            amountClass = "text-red-600 bg-red-50 dark:bg-red-900/20";
+          } else if (activity.type === "goal_resolved") {
+            if (activity.successful) {
+              amountDisplay = `+$${rawAmount}`;
+              amountClass = "text-green-600 bg-green-50 dark:bg-green-900/20";
+            } else {
+              amountDisplay = `-$${rawAmount}`;
+              amountClass = "text-red-600 bg-red-50 dark:bg-red-900/20";
+            }
+          }
+
           return (
             <div
               key={activity.id}
-              className="bg-white dark:bg-stone-800 rounded-2xl p-4 shadow-sm border border-stone-100 dark:border-stone-700 transition-all hover:shadow-md"
+              className="bg-white dark:bg-stone-800 rounded-xl p-3 shadow-sm border border-stone-100 dark:border-stone-700 transition-all"
             >
-              <div className="flex items-start gap-3">
-                {/* Avatar with action icon - Clickable if FID available */}
+              <div className="flex gap-3">
+                {/* Avatar */}
                 <div
-                  className={`relative flex-shrink-0 ${fcUser?.fid ? "cursor-pointer" : ""}`}
+                  className={`relative flex-shrink-0 w-10 h-10 ${fcUser?.fid ? "cursor-pointer" : ""}`}
                   onClick={() => fcUser?.fid && openProfile({ fid: fcUser.fid })}
                 >
-                  <div className="w-11 h-11 rounded-full overflow-hidden bg-stone-100 dark:bg-stone-700 ring-2 ring-white dark:ring-stone-800">
+                  <div className="w-10 h-10 rounded-full overflow-hidden bg-stone-100 dark:bg-stone-700 ring-2 ring-white dark:ring-stone-800">
                     <Image
                       src={avatarUrl}
                       alt={displayName}
-                      width={44}
-                      height={44}
-                      sizes="44px"
+                      width={40}
+                      height={40}
                       className="w-full h-full object-cover"
-                      loading="lazy"
                     />
                   </div>
+                  {/* Small Action Icon Overlay */}
                   <div
-                    className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ${style.iconBg} ring-2 ring-white dark:ring-stone-800`}
+                    className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center ${style.iconBg} ring-2 ring-white dark:ring-stone-800`}
                   >
-                    {style.icon}
+                    {React.cloneElement(style.icon as React.ReactElement, { size: 10 } as any)}
                   </div>
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 min-w-0">
-                  {/* Header row: user + action + time */}
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                  {/* Top Row: Name + Action + Date */}
+                  <div className="flex justify-between items-baseline mb-0.5">
+                    <div className="flex items-center gap-1.5 overflow-hidden text-xs">
                       <span
-                        className={`font-bold text-stone-800 dark:text-stone-100 text-sm ${fcUser?.fid ? "cursor-pointer hover:underline" : ""}`}
+                        className={`font-bold text-stone-900 dark:text-stone-100 truncate ${fcUser?.fid ? "cursor-pointer hover:underline" : ""}`}
                         onClick={() => fcUser?.fid && openProfile({ fid: fcUser.fid })}
                       >
                         {displayName}
                       </span>
-                      <span className={`text-sm font-medium ${style.accent}`}>{style.action}</span>
-                      {isCompact && detail.text && (
-                        <span
-                          className={`text-sm font-medium ${
-                            (detail as any).isPositive
-                              ? "text-green-600 dark:text-green-400"
-                              : (detail as any).isNegative
-                                ? "text-red-600 dark:text-red-400"
-                                : "text-stone-600 dark:text-stone-400"
-                          }`}
-                        >
-                          {activity.successful ? "and saved" : "and lost"}{" "}
-                          {detail.text.split(" ")[0].replace(/[+-]/g, "")}
-                        </span>
-                      )}
+                      <span className="text-stone-500 dark:text-stone-400 flex-shrink-0">{style.action}</span>
                     </div>
-                    <span className="text-xs text-stone-400 whitespace-nowrap flex-shrink-0">
-                      {formatRelativeTime(activity.timestamp)}
+                    {/* Timestamp of the event itself (not deadline) */}
+                    <span className="text-[10px] text-stone-400 font-medium whitespace-nowrap ml-2">
+                      {formatPreciseDate(activity.timestamp)}
                     </span>
                   </div>
 
-                  {/* Goal title */}
-                  <div className="mt-1 flex items-center gap-2">
-                    <p className="text-sm font-semibold text-stone-700 dark:text-stone-200 line-clamp-1">{goalTitle}</p>
-                    {activity.isSolo !== null && (
-                      <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold flex-shrink-0 ${
-                          activity.isSolo
-                            ? "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
-                            : "bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
-                        }`}
-                      >
-                        {activity.isSolo ? "Solo" : "Squad"}
+                  {/* Goal Title */}
+                  <div className="text-sm font-bold text-stone-800 dark:text-stone-100 leading-tight mb-1.5 line-clamp-1">
+                    {goalTitle}
+                  </div>
+
+                  {/* Metadata Row: Amount + Deadline (if applicable) */}
+                  <div className="flex items-center gap-2">
+                    {amountDisplay && (
+                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${amountClass}`}>
+                        {amountDisplay}
+                      </span>
+                    )}
+
+                    {activity.deadline && Number(activity.deadline) > 0 && (
+                      <span className="text-[10px] text-stone-400 font-medium flex items-center gap-1">
+                        Due {formatPreciseDate(activity.deadline)}
                       </span>
                     )}
                   </div>
-
-                  {/* Detail/amount row - Only show if not compact */}
-                  {detail.text && !isCompact && (
-                    <div className="mt-2 flex items-center gap-2 text-xs">
-                      <span
-                        className={`font-bold px-2 py-1 rounded-lg ${
-                          (detail as any).isPositive
-                            ? "bg-green-50 text-green-600 dark:bg-green-900/20 dark:text-green-400"
-                            : (detail as any).isNegative
-                              ? "bg-red-50 text-red-600 dark:bg-red-900/20 dark:text-red-400"
-                              : "bg-stone-100 text-stone-600 dark:bg-stone-700 dark:text-stone-300"
-                        }`}
-                      >
-                        {detail.text}
-                      </span>
-                      {detail.subtext && <span className="text-stone-400">{detail.subtext}</span>}
-                    </div>
-                  )}
                 </div>
               </div>
             </div>

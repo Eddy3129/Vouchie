@@ -14,7 +14,9 @@ import {
   ShieldCheck,
   User,
   Users,
+  Wallet,
 } from "@phosphor-icons/react";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { toast } from "react-hot-toast";
 import { parseUnits } from "viem";
 import { erc20Abi } from "viem";
@@ -484,6 +486,38 @@ const VouchieApp = () => {
                       </div>
                     </div>
 
+                    {/* Connect Wallet CTA (if not connected) */}
+                    {!address && (
+                      <div className="bg-white dark:bg-stone-800 rounded-2xl p-6 shadow-sm border border-stone-100 dark:border-stone-700 animate-in fade-in slide-in-from-bottom-4 duration-700">
+                        <div className="flex flex-col items-center justify-center py-4 text-center">
+                          <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#8B5A2B] to-[#FFA726] flex items-center justify-center mb-4 shadow-lg ring-4 ring-orange-50 dark:ring-orange-900/20">
+                            <Wallet size={32} weight="fill" className="text-white" />
+                          </div>
+                          <h2 className="text-xl font-bold text-stone-800 dark:text-stone-100 mb-2">
+                            Start Your Journey
+                          </h2>
+                          <p className="text-sm text-stone-500 dark:text-stone-400 mb-6 max-w-xs leading-relaxed">
+                            Connect your wallet to set goals, stake USDC, and start changing your life today!
+                          </p>
+                          <ConnectButton.Custom>
+                            {({ openConnectModal, mounted }) => {
+                              const ready = mounted;
+                              return (
+                                <button
+                                  onClick={openConnectModal}
+                                  disabled={!ready}
+                                  className="w-full max-w-xs py-3.5 px-6 bg-[#8B5A2B] hover:bg-[#7A4A1B] text-white font-bold text-base rounded-xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2.5 active:scale-[0.98]"
+                                >
+                                  <Wallet size={20} weight="fill" />
+                                  Connect Wallet
+                                </button>
+                              );
+                            }}
+                          </ConnectButton.Custom>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Section Header */}
                     <div className="flex justify-between items-center">
                       <button
@@ -529,11 +563,13 @@ const VouchieApp = () => {
                           </div>
                         )}
 
-                        {!loading && goals.filter(t => t.status !== "done" && t.status !== "failed").length === 0 && (
-                          <div className="p-8 text-center text-stone-400 font-bold border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
-                            Woohoo! No pending tasks! <span className="text-xs ml-1">🎉</span>
-                          </div>
-                        )}
+                        {!loading &&
+                          address &&
+                          goals.filter(t => t.status !== "done" && t.status !== "failed").length === 0 && (
+                            <div className="p-8 text-center text-stone-400 font-bold border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
+                              Woohoo! No pending tasks! <span className="text-xs ml-1">🎉</span>
+                            </div>
+                          )}
 
                         {!loading &&
                           goals
