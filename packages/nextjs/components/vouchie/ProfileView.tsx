@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Avatar from "./Avatar";
 import { CaretDown, CaretUp, Fire, Spinner, Wallet } from "@phosphor-icons/react";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { formatEther } from "viem";
 import { useAccount } from "wagmi";
+import { useMiniapp } from "~~/components/MiniappProvider";
+import { FarcasterUser, useFarcasterUser } from "~~/hooks/vouchie/useFarcasterUser";
 import { UserStats, useLeaderboard, useUserStats } from "~~/hooks/vouchie/usePonderData";
 
 // Helper to format address
@@ -18,14 +20,27 @@ const getAvatarUrl = (address: string) => {
 
 const ProfileView = () => {
   const { address } = useAccount();
+  const { openProfile, context } = useMiniapp();
+  const { lookupBatch } = useFarcasterUser();
   const [showAllLeaderboard, setShowAllLeaderboard] = useState(false);
   const [sortBy, setSortBy] = useState<"streak" | "saved">("streak");
+  const [farcasterUsers, setFarcasterUsers] = useState<Map<string, FarcasterUser | null>>(new Map());
 
   // Fetch user stats from Ponder
   const { data: userStats, isLoading: statsLoading } = useUserStats(address);
 
   // Fetch leaderboard from Ponder
   const { data: leaderboard, isLoading: leaderboardLoading } = useLeaderboard(sortBy, 10);
+
+  // Lookup Farcaster users for leaderboard addresses
+  useEffect(() => {
+    if (!leaderboard || leaderboard.length === 0) return;
+
+    const addresses = leaderboard.map((u: UserStats) => u.id);
+    lookupBatch(addresses).then(results => {
+      setFarcasterUsers(results);
+    });
+  }, [leaderboard, lookupBatch]);
 
   // Compute display stats
   const stats = {
@@ -35,27 +50,33 @@ const ProfileView = () => {
     active: (userStats?.goalsCreated ?? 0) - (userStats?.goalsCompleted ?? 0) - (userStats?.goalsFailed ?? 0),
   };
 
-  // Build leaderboard entries with current user
+  // Build leaderboard entries with current user and Farcaster data
   const leaderboardEntries = React.useMemo(() => {
     if (!leaderboard) return [];
 
-    // Map leaderboard to display format
-    const entries = leaderboard.map((user: UserStats) => ({
-      id: user.id,
-      address: user.id,
-      name: user.id === address?.toLowerCase() ? "You" : formatAddress(user.id),
-      avatar: getAvatarUrl(user.id),
-      streak: user.currentStreak,
-      saved: Number(formatEther(BigInt(user.totalSaved))),
-      isCurrentUser: user.id === address?.toLowerCase(),
-    }));
+    // Map leaderboard to display format with Farcaster data
+    const entries = leaderboard.map((user: UserStats) => {
+      const fcUser = farcasterUsers.get(user.id.toLowerCase());
+      const isCurrentUser = user.id === address?.toLowerCase();
+
+      return {
+        id: user.id,
+        address: user.id,
+        name: isCurrentUser ? "You" : fcUser?.displayName || fcUser?.username || formatAddress(user.id),
+        avatar: fcUser?.pfpUrl || getAvatarUrl(user.id),
+        streak: user.currentStreak,
+        saved: Number(formatEther(BigInt(user.totalSaved))),
+        isCurrentUser,
+        fid: fcUser?.fid || (isCurrentUser ? context?.user?.fid : undefined),
+      };
+    });
 
     // Sort based on current sort mode
     return entries.sort((a, b) => {
       if (sortBy === "streak") return b.streak - a.streak;
       return b.saved - a.saved;
     });
-  }, [leaderboard, address, sortBy]);
+  }, [leaderboard, address, sortBy, farcasterUsers, context?.user?.fid]);
 
   const displayedLeaderboard = showAllLeaderboard ? leaderboardEntries : leaderboardEntries.slice(0, 3);
 
@@ -270,15 +291,16 @@ const ProfileView = () => {
                   {index + 1}
                 </div>
 
-                {/* Avatar */}
-                <Avatar src={friend.avatar} name={friend.name} size="sm" />
-
-                {/* Name */}
-                <div className="flex-1 min-w-0">
+                {/* Avatar + Name - Clickable if FID available */}
+                <div
+                  className={`flex items-center gap-2 flex-1 min-w-0 ${friend.fid ? "cursor-pointer" : ""}`}
+                  onClick={() => friend.fid && openProfile({ fid: friend.fid })}
+                >
+                  <Avatar src={friend.avatar} name={friend.name} size="sm" />
                   <p
                     className={`font-bold text-xs truncate ${
                       friend.isCurrentUser ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-700 dark:text-stone-200"
-                    }`}
+                    } ${friend.fid ? "hover:underline" : ""}`}
                   >
                     {friend.name}
                   </p>

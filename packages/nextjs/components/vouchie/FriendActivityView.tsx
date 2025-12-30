@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { ArrowRight, Check, Clock, Coins, Fire, Medal, Plus, Spinner, Trophy, X } from "@phosphor-icons/react";
 import { formatUnits } from "viem";
+import { useMiniapp } from "~~/components/MiniappProvider";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
+import { FarcasterUser, useFarcasterUser } from "~~/hooks/vouchie/useFarcasterUser";
 import { Activity, useActivities } from "~~/hooks/vouchie/usePonderData";
 
 // Helper to format address
@@ -160,7 +162,20 @@ const truncateTitle = (title: string | null, maxLength: number = 40) => {
 const FriendActivityView = () => {
   const { data: activities, isLoading, error } = useActivities(20);
   const { targetNetwork } = useTargetNetwork();
+  const { openProfile } = useMiniapp();
+  const { lookupBatch } = useFarcasterUser();
+  const [farcasterUsers, setFarcasterUsers] = useState<Map<string, FarcasterUser | null>>(new Map());
   const decimals = targetNetwork.id === 31337 ? 18 : 6;
+
+  // Lookup Farcaster users for activity addresses
+  useEffect(() => {
+    if (!activities || activities.length === 0) return;
+
+    const addresses = [...new Set(activities.map((a: Activity) => a.user))];
+    lookupBatch(addresses).then(results => {
+      setFarcasterUsers(results);
+    });
+  }, [activities, lookupBatch]);
 
   if (isLoading) {
     return (
@@ -216,18 +231,26 @@ const FriendActivityView = () => {
           const goalTitle = truncateTitle(activity.goalTitle);
           const isCompact = activity.type === "goal_resolved";
 
+          // Get Farcaster user data if available
+          const fcUser = farcasterUsers.get(activity.user.toLowerCase());
+          const displayName = fcUser?.displayName || fcUser?.username || formatAddress(activity.user);
+          const avatarUrl = fcUser?.pfpUrl || getAvatarUrl(activity.user);
+
           return (
             <div
               key={activity.id}
               className="bg-white dark:bg-stone-800 rounded-2xl p-4 shadow-sm border border-stone-100 dark:border-stone-700 transition-all hover:shadow-md"
             >
               <div className="flex items-start gap-3">
-                {/* Avatar with action icon */}
-                <div className="relative flex-shrink-0">
+                {/* Avatar with action icon - Clickable if FID available */}
+                <div
+                  className={`relative flex-shrink-0 ${fcUser?.fid ? "cursor-pointer" : ""}`}
+                  onClick={() => fcUser?.fid && openProfile({ fid: fcUser.fid })}
+                >
                   <div className="w-11 h-11 rounded-full overflow-hidden bg-stone-100 dark:bg-stone-700 ring-2 ring-white dark:ring-stone-800">
                     <Image
-                      src={getAvatarUrl(activity.user)}
-                      alt={formatAddress(activity.user)}
+                      src={avatarUrl}
+                      alt={displayName}
                       width={44}
                       height={44}
                       sizes="44px"
@@ -247,8 +270,11 @@ const FriendActivityView = () => {
                   {/* Header row: user + action + time */}
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-bold text-stone-800 dark:text-stone-100 text-sm">
-                        {formatAddress(activity.user)}
+                      <span
+                        className={`font-bold text-stone-800 dark:text-stone-100 text-sm ${fcUser?.fid ? "cursor-pointer hover:underline" : ""}`}
+                        onClick={() => fcUser?.fid && openProfile({ fid: fcUser.fid })}
+                      >
+                        {displayName}
                       </span>
                       <span className={`text-sm font-medium ${style.accent}`}>{style.action}</span>
                       {isCompact && detail.text && (

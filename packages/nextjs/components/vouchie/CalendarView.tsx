@@ -1,7 +1,9 @@
 import React, { useState } from "react";
 import { Goal } from "../../types/vouchie";
 import Card from "./Helper/Card";
-import { CalendarPlus, CaretLeft, CaretRight, CheckCircle, Clock, XCircle } from "@phosphor-icons/react";
+import { CalendarPlus, CaretLeft, CaretRight, CheckCircle, Clock, HandCoins, XCircle } from "@phosphor-icons/react";
+import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
+import { useVouchieData } from "~~/hooks/vouchie/useVouchieData";
 
 interface CalendarViewProps {
   tasks: Goal[];
@@ -10,6 +12,21 @@ interface CalendarViewProps {
 const CalendarView = ({ tasks }: CalendarViewProps) => {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
   const [currentDate, setCurrentDate] = useState(new Date());
+
+  const { refresh } = useVouchieData();
+  const { writeContractAsync: claimGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
+
+  const handleClaim = async (goalId: number) => {
+    try {
+      await claimGoal({
+        functionName: "claim",
+        args: [BigInt(goalId), BigInt(0)],
+      });
+      refresh();
+    } catch (e) {
+      console.error("Error claiming goal:", e);
+    }
+  };
 
   // Get month details
   const year = currentDate.getFullYear();
@@ -243,7 +260,7 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
                   )}
                 </p>
               </div>
-              <div className="flex-shrink-0">
+              <div className="flex-shrink-0 flex items-center gap-2">
                 <span
                   className={`text-sm font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 ${
                     task.status === "failed"
@@ -253,6 +270,16 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
                 >
                   {task.status === "failed" && <span>💸</span>}${task.stake}
                 </span>
+
+                {task.status === "done" && task.stake > 0 && (
+                  <button
+                    onClick={() => handleClaim(task.id)}
+                    className="bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-2 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
+                  >
+                    <HandCoins size={14} weight="bold" />
+                    Claim
+                  </button>
+                )}
               </div>
             </div>
           ))

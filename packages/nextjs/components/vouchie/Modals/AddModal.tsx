@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { ArrowRight, Check, CheckCircle, Plus, Users, Wallet, X } from "@phosphor-icons/react";
+import Image from "next/image";
+import { ArrowRight, Check, CheckCircle, Plus, Spinner, Users, Wallet, X } from "@phosphor-icons/react";
 import { toast } from "react-hot-toast";
+import { useMiniapp } from "~~/components/MiniappProvider";
+import { FarcasterFriend, useFarcasterFriends } from "~~/hooks/vouchie/useFarcasterFriends";
+import { Vouchie } from "~~/types/vouchie";
 
 // Animation states for smooth transitions
 type AnimationState = "entering" | "entered" | "exiting" | "exited";
@@ -15,6 +19,10 @@ const ANIMATION_DURATION_IN = 400; // ms for smooth slow slide in
 const ANIMATION_DURATION_OUT = 100; // ms for quick slide out
 
 const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
+  // Farcaster context and friends
+  const { context } = useMiniapp();
+  const { friends, loading: friendsLoading } = useFarcasterFriends(context?.user?.fid);
+
   // Default deadline is now + 1 hour
   const getDefaultDeadline = () => {
     const d = new Date();
@@ -27,7 +35,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
     stake: 10,
     mode: "Solo",
     type: "task",
-    vouchies: [] as string[],
+    vouchies: [] as Vouchie[],
     startTime: new Date(),
     deadline: getDefaultDeadline(),
   });
@@ -206,18 +214,32 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
     onClose();
   };
 
-  const MOCK_VOUCHIES = [
-    { id: "v1", name: "Pudding", avatar: "🐶", isFav: true },
-    { id: "v2", name: "Bunny", avatar: "🐰", isFav: true },
-    { id: "v3", name: "Cat", avatar: "🐱", isFav: false },
-    { id: "v4", name: "Bear", avatar: "🐻", isFav: false },
-  ];
+  // Get top 5 friends to display
+  const displayFriends = friends.slice(0, 5);
 
-  const toggleVouchie = (id: string) => {
-    setFormData(prev => ({
-      ...prev,
-      vouchies: prev.vouchies.includes(id) ? prev.vouchies.filter(v => v !== id) : [...prev.vouchies, id],
-    }));
+  // Toggle vouchie selection using FID
+  const toggleVouchie = (friend: FarcasterFriend) => {
+    setFormData(prev => {
+      const isSelected = prev.vouchies.some(v => v.fid === friend.fid);
+      if (isSelected) {
+        return {
+          ...prev,
+          vouchies: prev.vouchies.filter(v => v.fid !== friend.fid),
+        };
+      } else {
+        const newVouchie: Vouchie = {
+          name: friend.displayName || friend.username,
+          avatar: friend.pfpUrl,
+          fid: friend.fid,
+          username: friend.username,
+          address: friend.verifiedAddresses[0] || friend.custodyAddress,
+        };
+        return {
+          ...prev,
+          vouchies: [...prev.vouchies, newVouchie],
+        };
+      }
+    });
   };
 
   // Format Date for Input
@@ -345,31 +367,45 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
           <div>
             <div className="flex items-center gap-1.5 mb-2">
               <Users size={14} weight="fill" className="text-stone-400" />
-              <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Vouchie</span>
+              <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Vouchies</span>
+              {friendsLoading && <Spinner size={12} className="animate-spin text-stone-400" />}
             </div>
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               <button className="flex-shrink-0 w-10 h-10 rounded-xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center border-2 border-dashed border-stone-200 dark:border-stone-700 text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors">
                 <Plus size={16} weight="bold" />
               </button>
-              {MOCK_VOUCHIES.map(v => (
+              {displayFriends.map(friend => (
                 <button
-                  key={v.id}
-                  onClick={() => toggleVouchie(v.id)}
-                  className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-2xl border-b-3 transition-all relative ${
-                    formData.vouchies.includes(v.id)
-                      ? "bg-amber-100 dark:bg-orange-900/30 border-[#8B5A2B] dark:border-[#FFA726] translate-y-[1px] border-b-2"
+                  key={friend.fid}
+                  onClick={() => toggleVouchie(friend)}
+                  className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden border-b-3 transition-all relative ${
+                    formData.vouchies.some(v => v.fid === friend.fid)
+                      ? "bg-amber-100 dark:bg-orange-900/30 border-[#8B5A2B] dark:border-[#FFA726] translate-y-[1px] border-b-2 ring-2 ring-[#8B5A2B] dark:ring-[#FFA726]"
                       : "bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700"
                   }`}
+                  title={friend.displayName || friend.username}
                 >
-                  {v.avatar}
-                  {v.isFav && <div className="absolute -top-1 -right-1 text-[8px]">⭐</div>}
-                  {formData.vouchies.includes(v.id) && (
+                  {friend.pfpUrl ? (
+                    <Image
+                      src={friend.pfpUrl}
+                      alt={friend.displayName || friend.username}
+                      width={40}
+                      height={40}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-lg">👤</span>
+                  )}
+                  {formData.vouchies.some(v => v.fid === friend.fid) && (
                     <div className="absolute -bottom-1 -right-1 bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 rounded-full p-0.5 border border-[#FDFBF7] dark:border-stone-900">
                       <Check size={6} weight="bold" />
                     </div>
                   )}
                 </button>
               ))}
+              {!friendsLoading && displayFriends.length === 0 && (
+                <span className="text-xs text-stone-400 py-2">No mutuals found</span>
+              )}
             </div>
           </div>
 
@@ -495,19 +531,27 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                     ${formData.stake} USDC will be split among:
                   </p>
                   <div className="flex items-center gap-2 flex-wrap">
-                    {formData.vouchies.map(vId => {
-                      const vouchie = MOCK_VOUCHIES.find(v => v.id === vId);
-                      if (!vouchie) return null;
-                      return (
-                        <div
-                          key={vId}
-                          className="flex items-center gap-1.5 bg-white dark:bg-stone-800 px-2 py-1 rounded-lg"
-                        >
-                          <span className="text-base">{vouchie.avatar}</span>
-                          <span className="text-xs font-bold text-stone-600 dark:text-stone-300">{vouchie.name}</span>
-                        </div>
-                      );
-                    })}
+                    {formData.vouchies.map(vouchie => (
+                      <div
+                        key={vouchie.fid || vouchie.name}
+                        className="flex items-center gap-1.5 bg-white dark:bg-stone-800 px-2 py-1 rounded-lg"
+                      >
+                        {vouchie.avatar ? (
+                          <Image
+                            src={vouchie.avatar}
+                            alt={vouchie.name}
+                            width={20}
+                            height={20}
+                            className="w-5 h-5 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-base">👤</span>
+                        )}
+                        <span className="text-xs font-bold text-stone-600 dark:text-stone-300">
+                          {vouchie.username ? `@${vouchie.username}` : vouchie.name}
+                        </span>
+                      </div>
+                    ))}
                     <span className="text-xs font-bold text-red-500">
                       (${(formData.stake / formData.vouchies.length).toFixed(2)} each)
                     </span>

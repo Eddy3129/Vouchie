@@ -58,7 +58,7 @@ const MOCK_LONG_TERM: LongTermGoal[] = [
 
 const VouchieApp = () => {
   const { address } = useAccount();
-  const { context } = useMiniapp();
+  const { context, composeCast } = useMiniapp();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isTimelineView, setIsTimelineView] = useState(false);
@@ -163,6 +163,21 @@ const VouchieApp = () => {
         });
         refresh();
         refetchBalance();
+
+        // Step 3: Prompt user to share on Farcaster
+        const deadlineDate = new Date(Date.now() + durationSeconds * 1000);
+        const deadlineStr = deadlineDate.toLocaleString([], {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const appUrl = typeof window !== "undefined" ? window.location.origin : "https://vouchie.app";
+
+        composeCast({
+          text: `🎯 Just committed $${formData.stake} USDC to "${formData.title}" by ${deadlineStr}! Hold me accountable 💪`,
+          embeds: [appUrl],
+        });
       } catch (e) {
         console.error("Error creating goal:", e);
       }
@@ -562,6 +577,7 @@ const VouchieApp = () => {
               onSubmit={handleSubmitProof}
               onGiveUp={handleGiveUp}
               onExtend={handleExtend}
+              onComposeCast={composeCast}
             />
 
             <GiveUpModal

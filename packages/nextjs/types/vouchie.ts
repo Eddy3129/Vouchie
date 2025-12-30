@@ -26,6 +26,8 @@ export interface Vouchie {
   avatarColor?: string;
   status?: string;
   address?: string;
+  fid?: number; // Farcaster ID for viewProfile and mentions
+  username?: string; // Farcaster @username for cast mentions
 }
 
 export interface Comment {

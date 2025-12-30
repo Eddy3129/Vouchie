@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Goal } from "../../../types/vouchie";
-import { Camera, CheckCircle, SmileySad, X } from "@phosphor-icons/react";
+import { Camera, CheckCircle, PaperPlaneTilt, SmileySad, X } from "@phosphor-icons/react";
 
 interface TaskDetailModalProps {
   isOpen: boolean;
@@ -9,9 +9,10 @@ interface TaskDetailModalProps {
   onSubmit: (goalId: number, proof: string) => void;
   onGiveUp: (goalId: number) => void;
   onExtend: (goalId: number) => void;
+  onComposeCast?: (params: { text: string; embeds?: string[] }) => void;
 }
 
-const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp }: TaskDetailModalProps) => {
+const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onComposeCast }: TaskDetailModalProps) => {
   const [proofText, setProofText] = useState("");
   const [now, setNow] = useState(Date.now());
 
@@ -62,6 +63,38 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp }: TaskDeta
       : timeData.urgency === "warning"
         ? "shadow-[0_0_60px_rgba(245,158,11,0.2)]"
         : "";
+
+  // Handle submit - different flows for Solo vs Squad
+  const handleSubmit = () => {
+    if (isSolo) {
+      // Solo: immediate on-chain verify
+      onSubmit(goal.id, proofText);
+    } else {
+      // Squad: Cast proof first for vouchies to verify
+      if (onComposeCast) {
+        const appUrl = typeof window !== "undefined" ? window.location.origin : "https://vouchie.app";
+        const goalUrl = `${appUrl}?goal=${goal.id}`;
+
+        // Build @mention list from vouchies with usernames
+        const vouchieUsernames = goal.vouchies
+          .filter(v => v.username)
+          .slice(0, 3)
+          .map(v => `@${v.username}`)
+          .join(" ");
+
+        const castText = proofText
+          ? `✅ Completed "${goal.title}" - ${proofText}\n\n${vouchieUsernames ? `Hey ${vouchieUsernames}, ` : ""}verify my proof! 🙏`
+          : `✅ Completed "${goal.title}"!\n\n${vouchieUsernames ? `Hey ${vouchieUsernames}, ` : ""}verify my proof! 🙏`;
+
+        onComposeCast({
+          text: castText,
+          embeds: [goalUrl],
+        });
+      }
+      // Then call onSubmit to update status to verifying
+      onSubmit(goal.id, proofText);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
@@ -162,18 +195,31 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp }: TaskDeta
           {!isSolo && (
             <textarea
               rows={2}
-              placeholder="Tell your vouchie you did it..."
+              placeholder="Tell your vouchies you did it..."
               className="w-full bg-stone-700/50 p-3 rounded-xl outline-none font-semibold text-sm text-stone-200 resize-none mb-3 placeholder:text-stone-500 border border-stone-600 focus:border-stone-500"
               value={proofText}
               onChange={e => setProofText(e.target.value)}
             />
           )}
           <button
-            onClick={() => onSubmit(goal.id, proofText)}
-            className="w-full py-3.5 bg-green-500 text-white rounded-xl font-bold hover:bg-green-600 transition-colors flex items-center justify-center gap-2 text-sm"
+            onClick={handleSubmit}
+            className={`w-full py-3.5 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 text-sm ${
+              isSolo ? "bg-green-500 hover:bg-green-600" : "bg-purple-500 hover:bg-purple-600"
+            }`}
           >
-            <CheckCircle size={18} weight="bold" /> Mark as Done
+            {isSolo ? (
+              <>
+                <CheckCircle size={18} weight="bold" /> Mark as Done
+              </>
+            ) : (
+              <>
+                <PaperPlaneTilt size={18} weight="bold" /> Cast Proof to Vouchies
+              </>
+            )}
           </button>
+          {!isSolo && (
+            <p className="text-stone-500 text-xs text-center mt-2">Your vouchies will verify via the cast embed</p>
+          )}
         </div>
 
         {/* Give Up Button - Opens GiveUpModal */}
