@@ -1,9 +1,17 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { ArrowRight, Check, CheckCircle, Plus, Spinner, Users, Wallet, X } from "@phosphor-icons/react";
+import {
+  ArrowRight,
+  Check,
+  CheckCircle,
+  MagnifyingGlass,
+  Plus,
+  Spinner,
+  Users,
+  Wallet,
+  X,
+} from "@phosphor-icons/react";
 import { toast } from "react-hot-toast";
-import { useMiniapp } from "~~/components/MiniappProvider";
-import { FarcasterFriend, useFarcasterFriends } from "~~/hooks/vouchie/useFarcasterFriends";
 import { Vouchie } from "~~/types/vouchie";
 
 // Animation states for smooth transitions
@@ -19,10 +27,6 @@ const ANIMATION_DURATION_IN = 400; // ms for smooth slow slide in
 const ANIMATION_DURATION_OUT = 100; // ms for quick slide out
 
 const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
-  // Farcaster context and friends
-  const { context } = useMiniapp();
-  const { friends, loading: friendsLoading } = useFarcasterFriends(context?.user?.fid);
-
   // Default deadline is now + 1 hour
   const getDefaultDeadline = () => {
     const d = new Date();
@@ -30,11 +34,15 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
     return d;
   };
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    title: string;
+    stake: number;
+    deadline: Date;
+    startTime: Date;
+    vouchies: Vouchie[];
+  }>({
     title: "",
     stake: 10,
-    mode: "Solo",
-    type: "task",
     vouchies: [] as Vouchie[],
     startTime: new Date(),
     deadline: getDefaultDeadline(),
@@ -48,6 +56,12 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
 
   // Track active chip for highlighting
   const [activeChip, setActiveChip] = useState<string | null>("+1h");
+
+  // Username search state
+  const [showUsernameInput, setShowUsernameInput] = useState(false);
+  const [usernameSearch, setUsernameSearch] = useState("");
+  const [searchLoading, setSearchLoading] = useState(false);
+  const usernameInputRef = useRef<HTMLInputElement>(null);
 
   // Animation state management
   const [animationState, setAnimationState] = useState<AnimationState>("exited");
@@ -97,6 +111,72 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
       onClose();
     }, ANIMATION_DURATION_OUT);
   };
+
+  // Lookup user by username using free Neynar API
+  const lookupUsername = useCallback(async () => {
+    const query = usernameSearch.trim().toLowerCase().replace("@", "");
+    if (!query) return;
+
+    setSearchLoading(true);
+    try {
+      const apiKey = process.env.NEXT_PUBLIC_NEYNAR_API_KEY;
+      if (!apiKey) {
+        toast.error("API key not configured");
+        return;
+      }
+
+      // Use free /v2/farcaster/user/by_username endpoint
+      const res = await fetch(`https://api.neynar.com/v2/farcaster/user/by_username?username=${query}`, {
+        headers: { accept: "application/json", "x-api-key": apiKey },
+      });
+
+      if (!res.ok) {
+        if (res.status === 404) {
+          toast.error(`User @${query} not found`);
+        } else {
+          toast.error("Failed to lookup user");
+        }
+        return;
+      }
+
+      const data = await res.json();
+      const user = data.user;
+
+      if (!user) {
+        toast.error(`User @${query} not found`);
+        return;
+      }
+
+      // Check if already added
+      if (formData.vouchies.some(v => v.fid === user.fid)) {
+        toast.error(`@${user.username} already added`);
+        return;
+      }
+
+      // Add to vouchies
+      const newVouchie: Vouchie = {
+        name: user.display_name || user.username,
+        avatar: user.pfp_url || "",
+        fid: user.fid,
+        username: user.username,
+        address: user.verified_addresses?.eth_addresses?.[0] || user.custody_address || "",
+      };
+
+      setFormData(prev => ({
+        ...prev,
+        vouchies: [...prev.vouchies, newVouchie],
+      }));
+
+      toast.success(`Added @${user.username}`);
+      setUsernameSearch("");
+      setShowUsernameInput(false);
+    } catch (err) {
+      console.error("Username lookup error:", err);
+      toast.error("Failed to lookup user");
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [usernameSearch, formData.vouchies]);
 
   if (!shouldRender) return null;
 
@@ -212,34 +292,6 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
       deadlineDisplay: formData.deadline.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
     });
     onClose();
-  };
-
-  // Get top 5 friends to display
-  const displayFriends = friends.slice(0, 5);
-
-  // Toggle vouchie selection using FID
-  const toggleVouchie = (friend: FarcasterFriend) => {
-    setFormData(prev => {
-      const isSelected = prev.vouchies.some(v => v.fid === friend.fid);
-      if (isSelected) {
-        return {
-          ...prev,
-          vouchies: prev.vouchies.filter(v => v.fid !== friend.fid),
-        };
-      } else {
-        const newVouchie: Vouchie = {
-          name: friend.displayName || friend.username,
-          avatar: friend.pfpUrl,
-          fid: friend.fid,
-          username: friend.username,
-          address: friend.verifiedAddresses[0] || friend.custodyAddress,
-        };
-        return {
-          ...prev,
-          vouchies: [...prev.vouchies, newVouchie],
-        };
-      }
-    });
   };
 
   // Format Date for Input
@@ -368,27 +420,77 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
             <div className="flex items-center gap-1.5 mb-2">
               <Users size={14} weight="fill" className="text-stone-400" />
               <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Vouchies</span>
-              {friendsLoading && <Spinner size={12} className="animate-spin text-stone-400" />}
+              {searchLoading && <Spinner size={12} className="animate-spin text-stone-400" />}
             </div>
+
+            {/* Username search input */}
+            {showUsernameInput ? (
+              <div className="flex gap-2 mb-2">
+                <div className="flex-1 flex items-center gap-2 bg-white dark:bg-stone-800 rounded-xl px-3 py-2 border border-stone-200 dark:border-stone-700">
+                  <MagnifyingGlass size={16} className="text-stone-400 flex-shrink-0" />
+                  <input
+                    ref={usernameInputRef}
+                    type="text"
+                    placeholder="@username"
+                    value={usernameSearch}
+                    onChange={e => setUsernameSearch(e.target.value)}
+                    onKeyDown={e => e.key === "Enter" && lookupUsername()}
+                    className="flex-1 bg-transparent text-sm outline-none text-stone-800 dark:text-stone-100 placeholder:text-stone-400"
+                    autoFocus
+                  />
+                  {searchLoading ? (
+                    <Spinner size={16} className="animate-spin text-stone-400" />
+                  ) : (
+                    <button
+                      onClick={lookupUsername}
+                      disabled={!usernameSearch.trim()}
+                      className="text-[#8B5A2B] dark:text-[#FFA726] font-bold text-xs disabled:opacity-50"
+                    >
+                      Add
+                    </button>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    setShowUsernameInput(false);
+                    setUsernameSearch("");
+                  }}
+                  className="p-2 rounded-xl bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-400"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ) : null}
+
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              <button className="flex-shrink-0 w-10 h-10 rounded-xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center border-2 border-dashed border-stone-200 dark:border-stone-700 text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors">
+              {/* Add button */}
+              <button
+                onClick={() => {
+                  setShowUsernameInput(true);
+                  setTimeout(() => usernameInputRef.current?.focus(), 100);
+                }}
+                className="flex-shrink-0 w-10 h-10 rounded-xl bg-stone-100 dark:bg-stone-800 flex items-center justify-center border-2 border-dashed border-stone-200 dark:border-stone-700 text-stone-400 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors"
+              >
                 <Plus size={16} weight="bold" />
               </button>
-              {displayFriends.map(friend => (
+
+              {/* Selected vouchies */}
+              {formData.vouchies.map(vouchie => (
                 <button
-                  key={friend.fid}
-                  onClick={() => toggleVouchie(friend)}
-                  className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden border-b-3 transition-all relative ${
-                    formData.vouchies.some(v => v.fid === friend.fid)
-                      ? "bg-amber-100 dark:bg-orange-900/30 border-[#8B5A2B] dark:border-[#FFA726] translate-y-[1px] border-b-2 ring-2 ring-[#8B5A2B] dark:ring-[#FFA726]"
-                      : "bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700"
-                  }`}
-                  title={friend.displayName || friend.username}
+                  key={vouchie.fid}
+                  onClick={() =>
+                    setFormData(prev => ({
+                      ...prev,
+                      vouchies: prev.vouchies.filter(v => v.fid !== vouchie.fid),
+                    }))
+                  }
+                  className="flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden border-b-2 transition-all relative bg-amber-100 dark:bg-orange-900/30 border-[#8B5A2B] dark:border-[#FFA726] ring-2 ring-[#8B5A2B] dark:ring-[#FFA726]"
+                  title={`@${vouchie.username} (click to remove)`}
                 >
-                  {friend.pfpUrl ? (
+                  {vouchie.avatar ? (
                     <Image
-                      src={friend.pfpUrl}
-                      alt={friend.displayName || friend.username}
+                      src={vouchie.avatar}
+                      alt={vouchie.name}
                       width={40}
                       height={40}
                       className="w-full h-full object-cover"
@@ -396,15 +498,14 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                   ) : (
                     <span className="text-lg">👤</span>
                   )}
-                  {formData.vouchies.some(v => v.fid === friend.fid) && (
-                    <div className="absolute -bottom-1 -right-1 bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 rounded-full p-0.5 border border-[#FDFBF7] dark:border-stone-900">
-                      <Check size={6} weight="bold" />
-                    </div>
-                  )}
+                  <div className="absolute -bottom-1 -right-1 bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 rounded-full p-0.5 border border-[#FDFBF7] dark:border-stone-900">
+                    <Check size={6} weight="bold" />
+                  </div>
                 </button>
               ))}
-              {!friendsLoading && displayFriends.length === 0 && (
-                <span className="text-xs text-stone-400 py-2">No mutuals found</span>
+
+              {formData.vouchies.length === 0 && !showUsernameInput && (
+                <span className="text-xs text-stone-400 py-2">Tap + to add by @username</span>
               )}
             </div>
           </div>

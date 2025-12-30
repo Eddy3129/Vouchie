@@ -266,12 +266,41 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         console.log("Full context:", fullContext);
         console.log("Is MiniApp:", inMiniApp);
 
+        // DEV MODE: If not in mini-app and DEV_FID is set, use test user
+        if (!inMiniApp && !fullContext.user && process.env.NEXT_PUBLIC_DEV_FID) {
+          const devFid = parseInt(process.env.NEXT_PUBLIC_DEV_FID, 10);
+          if (!isNaN(devFid)) {
+            console.log("[DEV MODE] Using test FID:", devFid);
+            fullContext.user = {
+              fid: devFid,
+              username: "dev_user",
+              displayName: "Dev User",
+            };
+          }
+        }
+
         // Update state
         setContext(fullContext);
         setIsMiniApp(inMiniApp);
         setIsReady(true);
       } catch (error) {
         console.error("MiniApp SDK initialization error:", error);
+
+        // DEV MODE: Even on error, if DEV_FID is set, use it
+        if (process.env.NEXT_PUBLIC_DEV_FID) {
+          const devFid = parseInt(process.env.NEXT_PUBLIC_DEV_FID, 10);
+          if (!isNaN(devFid)) {
+            console.log("[DEV MODE] SDK failed, using test FID:", devFid);
+            setContext({
+              user: {
+                fid: devFid,
+                username: "dev_user",
+                displayName: "Dev User",
+              },
+            });
+          }
+        }
+
         // Still mark as ready even on error to prevent infinite loading
         setIsReady(true);
       }
