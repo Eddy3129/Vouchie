@@ -11,9 +11,11 @@ import {
   List,
   Plus,
   Quotes,
+  ShieldCheck,
   User,
   Users,
 } from "@phosphor-icons/react";
+import { toast } from "react-hot-toast";
 import { parseUnits } from "viem";
 import { erc20Abi } from "viem";
 import { useAccount, usePublicClient, useReadContract, useWriteContract } from "wagmi";
@@ -27,6 +29,7 @@ import AddModal from "~~/components/vouchie/Modals/AddModal";
 import GiveUpModal from "~~/components/vouchie/Modals/GiveUpModal";
 import StartTaskModal from "~~/components/vouchie/Modals/StartTaskModal";
 import TaskDetailModal from "~~/components/vouchie/Modals/TaskDetailModal";
+import VerifyModal from "~~/components/vouchie/Modals/VerifyModal";
 import ProfileView from "~~/components/vouchie/ProfileView";
 import SplashScreen from "~~/components/vouchie/SplashScreen";
 import Timeline from "~~/components/vouchie/Timeline";
@@ -68,9 +71,11 @@ const VouchieApp = () => {
   const [selectedTaskForDetails, setSelectedTaskForDetails] = useState<Goal | null>(null);
   const [selectedTaskForStart, setSelectedTaskForStart] = useState<Goal | null>(null);
   const [selectedTaskForGiveUp, setSelectedTaskForGiveUp] = useState<Goal | null>(null);
+  const [selectedVerificationGoal, setSelectedVerificationGoal] = useState<Goal | null>(null);
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
 
   // Data Hook
-  const { goals, loading, refresh, updateGoal } = useVouchieData();
+  const { goals, verificationGoals, loading, refresh, updateGoal } = useVouchieData();
   const [longTermGoals, setLongTermGoals] = useState<LongTermGoal[]>(MOCK_LONG_TERM);
 
   // Quotes
@@ -96,6 +101,7 @@ const VouchieApp = () => {
   const { writeContractAsync: cancelGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
   const { writeContractAsync: batchResolveGoals } = useScaffoldWriteContract({ contractName: "VouchieVault" });
   const { writeContractAsync: claimGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: vote } = useScaffoldWriteContract({ contractName: "VouchieVault" });
 
   // Silent approval (no notification) using wagmi directly
   const { writeContractAsync: silentApprove } = useWriteContract();
@@ -322,6 +328,38 @@ const VouchieApp = () => {
     }
   };
 
+  // Handle Voting
+  const handleVote = async (goalId: number, isValid: boolean) => {
+    const goal = verificationGoals.find(g => g.id === goalId);
+    if (!goal) return;
+
+    const userAddress = context?.user?.primaryAddress || address;
+    if (!userAddress) {
+      toast.error("Please connect wallet or log in");
+      return;
+    }
+
+    const vouchieIndex = goal.vouchies.findIndex(v => v.address?.toLowerCase() === userAddress.toLowerCase());
+
+    if (vouchieIndex === -1) {
+      toast.error("You are not a vouchie for this goal");
+      return;
+    }
+
+    try {
+      await vote({
+        functionName: "vote",
+        args: [BigInt(goalId), isValid, BigInt(vouchieIndex)],
+      });
+      toast.success(isValid ? "Vote cast: Verified!" : "Vote cast: Denied");
+      refresh();
+      setIsVerifyModalOpen(false);
+    } catch (e) {
+      console.error("Error voting:", e);
+      toast.error("Failed to cast vote");
+    }
+  };
+
   // Auto-resolve goals that are past deadline (triggers on-chain liquidation)
   const autoResolveExpiredGoals = useCallback(async () => {
     const now = Date.now();
@@ -467,6 +505,30 @@ const VouchieApp = () => {
                       <div className="flex-1 space-y-3 min-w-0">
                         {loading && <LoadingState variant="full" text="Loading goals..." />}
 
+                        {/* Verification Requests */}
+                        {!loading && verificationGoals.length > 0 && (
+                          <div className="mb-6">
+                            <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 flex items-center gap-2 uppercase tracking-wider">
+                              <ShieldCheck size={16} className="text-blue-500" weight="fill" />
+                              Pending Verifications
+                            </h3>
+                            <div className="space-y-3">
+                              {verificationGoals.map(task => (
+                                <GoalCard
+                                  key={task.id}
+                                  goal={task}
+                                  onStart={() => {}}
+                                  onViewDetails={() => {
+                                    setSelectedVerificationGoal(task);
+                                    setIsVerifyModalOpen(true);
+                                  }}
+                                  isTimelineMode={isTimelineView}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
                         {!loading && goals.filter(t => t.status !== "done" && t.status !== "failed").length === 0 && (
                           <div className="p-8 text-center text-stone-400 font-bold border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
                             Woohoo! No pending tasks! <span className="text-xs ml-1">🎉</span>
@@ -593,6 +655,16 @@ const VouchieApp = () => {
               goal={selectedTaskForStart}
               onClose={() => setSelectedTaskForStart(null)}
               onStart={handleStartTask}
+            />
+
+            <VerifyModal
+              isOpen={isVerifyModalOpen}
+              goal={selectedVerificationGoal}
+              onClose={() => {
+                setIsVerifyModalOpen(false);
+                setSelectedVerificationGoal(null);
+              }}
+              onVote={handleVote}
             />
 
             {/* Background Blobs */}

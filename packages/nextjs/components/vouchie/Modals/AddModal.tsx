@@ -12,6 +12,7 @@ import {
   X,
 } from "@phosphor-icons/react";
 import { toast } from "react-hot-toast";
+import { useMiniapp } from "~~/components/MiniappProvider";
 import { Vouchie } from "~~/types/vouchie";
 
 // Animation states for smooth transitions
@@ -27,6 +28,7 @@ const ANIMATION_DURATION_IN = 400; // ms for smooth slow slide in
 const ANIMATION_DURATION_OUT = 100; // ms for quick slide out
 
 const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
+  const { context } = useMiniapp();
   // Default deadline is now + 1 hour
   const getDefaultDeadline = () => {
     const d = new Date();
@@ -153,6 +155,12 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
         return;
       }
 
+      // Check if user is adding themselves
+      if (context?.user?.fid === user.fid) {
+        toast.error("You cannot vouch for yourself");
+        return;
+      }
+
       // Random cute animal for fallback
       const animals = ["🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼", "🐨", "🐯"];
       const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
@@ -180,7 +188,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
     } finally {
       setSearchLoading(false);
     }
-  }, [usernameSearch, formData.vouchies]);
+  }, [usernameSearch, formData.vouchies, context?.user?.fid]);
 
   if (!shouldRender) return null;
 
@@ -623,58 +631,66 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
               </div>
             </div>
 
-            {/* What happens if you fail */}
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl p-4 mb-4">
-              <p className="text-xs font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-2">
-                If you fail...
-              </p>
-              {isSolo ? (
-                <p className="text-sm font-semibold text-red-700 dark:text-red-300">
-                  You lose your ${formData.stake} USDC stake to the treasury.
+            {/* Verification Squad */}
+            {!isSolo && (
+              <div className="mb-4">
+                <p className="text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-wider mb-2">
+                  Your task will be verified by...
                 </p>
-              ) : (
-                <div className="space-y-2">
-                  <p className="text-sm font-semibold text-red-700 dark:text-red-300">
-                    ${formData.stake} USDC will be split among:
-                  </p>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    {formData.vouchies.map(vouchie => (
-                      <div
-                        key={vouchie.fid || vouchie.name}
-                        className="flex items-center gap-1.5 bg-white dark:bg-stone-800 px-2 py-1 rounded-lg"
-                      >
-                        {vouchie.avatar && vouchie.avatar.startsWith("http") ? (
-                          <Image
-                            src={vouchie.avatar}
-                            alt={vouchie.name}
-                            width={20}
-                            height={20}
-                            className="w-5 h-5 rounded-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-base">{vouchie.avatar || "👤"}</span>
-                        )}
-                        <span className="text-xs font-bold text-stone-600 dark:text-stone-300">
-                          {vouchie.username ? `@${vouchie.username}` : vouchie.name}
-                        </span>
-                      </div>
-                    ))}
-                    <span className="text-xs font-bold text-red-500">
-                      (${(formData.stake / formData.vouchies.length).toFixed(2)} each)
-                    </span>
-                  </div>
+                <div className="flex flex-wrap gap-2">
+                  {formData.vouchies.map(vouchie => (
+                    <div
+                      key={vouchie.fid || vouchie.name}
+                      className="flex items-center gap-1.5 bg-white dark:bg-stone-800 px-2 py-1.5 rounded-lg border border-stone-200 dark:border-stone-700 shadow-sm"
+                    >
+                      {vouchie.avatar && vouchie.avatar.startsWith("http") ? (
+                        <Image
+                          src={vouchie.avatar}
+                          alt={vouchie.name}
+                          width={20}
+                          height={20}
+                          className="w-5 h-5 rounded-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-base">{vouchie.avatar || "👤"}</span>
+                      )}
+                      <span className="text-xs font-bold text-stone-700 dark:text-stone-200">
+                        {vouchie.username ? `@${vouchie.username}` : vouchie.name}
+                      </span>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
 
-            {/* Success message */}
-            <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-xl p-3 mb-4">
-              <p className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">
-                If you succeed...
-              </p>
-              <p className="text-sm font-semibold text-green-700 dark:text-green-300">
-                You get your ${formData.stake} USDC back!
-              </p>
+            {/* Outcomes Grid */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
+              {/* If they verify (Success) */}
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-xl p-3">
+                <p className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">
+                  If Success
+                </p>
+                <p className="text-xs font-bold text-green-700 dark:text-green-300 leading-tight">
+                  You get your ${formData.stake} back
+                </p>
+              </div>
+
+              {/* If they deny (Fail) */}
+              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl p-3">
+                <p className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-1">
+                  If Denied
+                </p>
+                <div className="text-xs font-bold text-red-700 dark:text-red-300 leading-tight">
+                  {isSolo ? (
+                    "Lost to Treasury"
+                  ) : (
+                    <>
+                      They split your stake of $
+                      {formData.vouchies.length > 0 ? (formData.stake / formData.vouchies.length).toFixed(2) : 0} each!
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
 
             {/* Buttons */}

@@ -26,6 +26,7 @@ export const useVouchieData = () => {
   const { context } = useMiniapp();
   const { targetNetwork } = useTargetNetwork();
   const [goals, setGoals] = useState<Goal[]>([]);
+  const [verificationGoals, setVerificationGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Get the user's address - prefer Farcaster primary address, fallback to wallet
@@ -92,7 +93,8 @@ export const useVouchieData = () => {
       return;
     }
 
-    const parsedGoals: Goal[] = [];
+    const parsedMyGoals: Goal[] = [];
+    const parsedVerificationGoals: Goal[] = [];
 
     // Each goal has 2 calls (goals, getVouchies)
     for (let i = 0; i < goalIndices.length; i++) {
@@ -113,23 +115,27 @@ export const useVouchieData = () => {
         const resolved = g[6];
         const successful = g[7];
 
-        // Filter: only show goals created by the current user
-        // If no user is authenticated, show nothing (they need to connect)
-        if (!userAddress || creator.toLowerCase() !== userAddress.toLowerCase()) {
-          continue;
-        }
-
         const vouchieAddresses = v as string[];
+
+        const isCreator = userAddress && creator.toLowerCase() === userAddress.toLowerCase();
+        const isVouchie =
+          userAddress && vouchieAddresses.some((addr: string) => addr.toLowerCase() === userAddress.toLowerCase());
+
+        // Skip if neither creator nor vouchie
+        if (!isCreator && !isVouchie) continue;
+
         const mode = vouchieAddresses.length === 0 ? "Solo" : "Squad";
 
-        const vouchieList: Vouchie[] = vouchieAddresses.map(addr => ({
+        if (isVouchie && mode === "Solo") continue; // Vouchies only exist in Squad/Vouchie mode
+
+        const vouchieList: Vouchie[] = vouchieAddresses.map((addr: string) => ({
           name: addr.slice(0, 6) + "...", // Placeholder name
           avatar: "👤",
           address: addr,
           status: "pending", // TODO: check hasVoted
         }));
 
-        parsedGoals.push({
+        const goalObj: Goal = {
           id: goalId,
           title: description,
           stake: Number(stake) / 1e6, // USDC has 6 decimals
@@ -146,10 +152,14 @@ export const useVouchieData = () => {
           color: "bg-white", // Use white for all modes - Card handles dark mode
           accent: mode === "Solo" ? "text-orange-600 dark:text-orange-400" : "text-indigo-600 dark:text-indigo-400",
           barColor: mode === "Solo" ? "bg-orange-400" : "bg-indigo-400",
-        });
+        };
+
+        if (isCreator) parsedMyGoals.push(goalObj);
+        if (isVouchie) parsedVerificationGoals.push(goalObj);
       }
     }
-    setGoals(parsedGoals);
+    setGoals(parsedMyGoals);
+    setVerificationGoals(parsedVerificationGoals);
     setLoading(false);
   }, [multipleData, goalIndices, goalCount, userAddress]);
 
@@ -162,5 +172,5 @@ export const useVouchieData = () => {
     setGoals(prevGoals => prevGoals.map(g => (g.id === goalId ? { ...g, ...updates } : g)));
   };
 
-  return { goals, loading: loading || isFetchingGoals, refresh, goalCount, updateGoal };
+  return { goals, verificationGoals, loading: loading || isFetchingGoals, refresh, goalCount, updateGoal };
 };
