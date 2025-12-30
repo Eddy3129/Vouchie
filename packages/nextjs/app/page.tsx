@@ -70,7 +70,7 @@ const VouchieApp = () => {
   const [selectedTaskForGiveUp, setSelectedTaskForGiveUp] = useState<Goal | null>(null);
 
   // Data Hook
-  const { goals, loading, refresh } = useVouchieData();
+  const { goals, loading, refresh, updateGoal } = useVouchieData();
   const [longTermGoals, setLongTermGoals] = useState<LongTermGoal[]>(MOCK_LONG_TERM);
 
   // Quotes
@@ -95,6 +95,7 @@ const VouchieApp = () => {
   const { writeContractAsync: forfeitGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
   const { writeContractAsync: cancelGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
   const { writeContractAsync: batchResolveGoals } = useScaffoldWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: claimGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
 
   // Silent approval (no notification) using wagmi directly
   const { writeContractAsync: silentApprove } = useWriteContract();
@@ -185,6 +186,22 @@ const VouchieApp = () => {
           functionName: "verifySolo",
           args: [BigInt(goalId)],
         });
+
+        // Claim funds immediately after verification
+        try {
+          await claimGoal({
+            functionName: "claim",
+            args: [BigInt(goalId), BigInt(0)], // 0 index is ignored for creator
+          });
+          refetchBalance();
+        } catch (claimError) {
+          console.error("User rejected claim or claim failed:", claimError);
+          // We don't block the UI update because the goal IS verified.
+          // The user can claim later if we add a claim button.
+        }
+
+        // Optimistic update for Solo mode (immediate success)
+        updateGoal(goalId, { status: "done" });
       } else {
         alert("Proof submitted to Vouchie! Waiting for votes.");
       }
@@ -246,6 +263,10 @@ const VouchieApp = () => {
           args: [BigInt(goalId)],
         });
       }
+
+      // Optimistic update
+      updateGoal(goalId, { status: "failed" });
+
       refresh();
       refetchBalance();
       setSelectedTaskForDetails(null);

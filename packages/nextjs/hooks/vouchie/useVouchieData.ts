@@ -158,5 +158,9 @@ export const useVouchieData = () => {
     refetchGoals();
   };
 
-  return { goals, loading: loading || isFetchingGoals, refresh, goalCount };
+  const updateGoal = (goalId: number, updates: Partial<Goal>) => {
+    setGoals(prevGoals => prevGoals.map(g => (g.id === goalId ? { ...g, ...updates } : g)));
+  };
+
+  return { goals, loading: loading || isFetchingGoals, refresh, goalCount, updateGoal };
 };
