@@ -15,6 +15,9 @@ export interface Goal {
   color: string;
   accent: string;
   barColor: string;
+  creator?: string; // Creator wallet address
+  creatorUsername?: string; // Creator Farcaster username
+  creatorAvatar?: string; // Creator avatar URL
 }
 
 // Grace period constant (10 minutes in ms) - must match contract

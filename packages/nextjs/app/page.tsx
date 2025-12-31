@@ -62,8 +62,10 @@ const VouchieApp = () => {
   const { address } = useAccount();
   const { context, composeCast } = useMiniapp();
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [dashboardTab, setDashboardTab] = useState<"tasks" | "verify">("tasks");
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [showSplash, setShowSplash] = useState(true);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Reset scroll position when changing tabs
@@ -88,6 +90,22 @@ const VouchieApp = () => {
       // localStorage might not be available in some contexts
       console.warn("Could not access localStorage for theme:", e);
     }
+  }, []);
+
+  // Detect virtual keyboard open/close to hide bottom nav
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof visualViewport === "undefined") return;
+
+    const handleResize = () => {
+      // If viewport height is significantly less than window height, keyboard is likely open
+      const viewportHeight = visualViewport?.height || window.innerHeight;
+      const windowHeight = window.innerHeight;
+      const threshold = windowHeight * 0.75; // Keyboard typically takes 25%+ of screen
+      setIsKeyboardOpen(viewportHeight < threshold);
+    };
+
+    visualViewport?.addEventListener("resize", handleResize);
+    return () => visualViewport?.removeEventListener("resize", handleResize);
   }, []);
 
   // Selection States
@@ -208,6 +226,7 @@ const VouchieApp = () => {
           deadline: deadlineTimestamp,
           username: context?.user?.username || "",
           mode: formData.vouchies?.length > 0 ? "Squad" : "Solo",
+          vouchieUsernames: formData.vouchies?.map((v: { username?: string }) => v.username).filter(Boolean) || [],
         });
 
         composeCast(castContent);
@@ -356,7 +375,7 @@ const VouchieApp = () => {
   };
 
   // Handle Voting
-  const handleVote = async (goalId: number, isValid: boolean) => {
+  const handleVote = async (goalId: number, isValid: boolean, denyReason?: string) => {
     const goal = verificationGoals.find(g => g.id === goalId);
     if (!goal) return;
 
@@ -373,12 +392,17 @@ const VouchieApp = () => {
       return;
     }
 
+    // Log deny reason for now (could be stored on-chain or in a database later)
+    if (!isValid && denyReason) {
+      console.log(`Deny reason for goal ${goalId}:`, denyReason);
+    }
+
     try {
       await vote({
         functionName: "vote",
         args: [BigInt(goalId), isValid, BigInt(vouchieIndex)],
       });
-      toast.success(isValid ? "Vote cast: Verified!" : "Vote cast: Denied");
+      toast.success(isValid ? "Vote cast: Verified! 🎉" : "Vote cast: Denied");
       refresh();
       setIsVerifyModalOpen(false);
     } catch (e) {
@@ -553,151 +577,239 @@ const VouchieApp = () => {
                       </div>
                     )}
 
-                    {/* Task List - Grouped by Day */}
-                    <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-                      {/* Verification Requests */}
-                      {!loading && verificationGoals.length > 0 && (
-                        <div>
-                          <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 flex items-center gap-2 uppercase tracking-wider">
-                            <ShieldCheck size={16} className="text-blue-500" weight="fill" />
-                            Pending Verifications
-                          </h3>
-                          <div className="space-y-3">
-                            {verificationGoals.map(task => (
-                              <GoalCard
-                                key={task.id}
-                                goal={task}
-                                onStart={() => {}}
-                                onViewDetails={() => {
-                                  setSelectedVerificationGoal(task);
-                                  setIsVerifyModalOpen(true);
-                                }}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                    {/* Dashboard Tabs */}
+                    <div className="flex gap-2 mb-6">
+                      <button
+                        onClick={() => setDashboardTab("tasks")}
+                        className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                          dashboardTab === "tasks"
+                            ? "bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 shadow-lg"
+                            : "bg-white dark:bg-stone-800 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700"
+                        }`}
+                      >
+                        📋 My Tasks
+                        {goals.filter(t => t.status !== "done" && t.status !== "failed").length > 0 && (
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs ${
+                              dashboardTab === "tasks"
+                                ? "bg-white/20 text-white dark:text-stone-900"
+                                : "bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300"
+                            }`}
+                          >
+                            {goals.filter(t => t.status !== "done" && t.status !== "failed").length}
+                          </span>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => setDashboardTab("verify")}
+                        className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                          dashboardTab === "verify"
+                            ? "bg-blue-500 text-white shadow-lg"
+                            : "bg-white dark:bg-stone-800 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700"
+                        }`}
+                      >
+                        🛡️ Verify
+                        {verificationGoals.length > 0 && (
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-xs ${
+                              dashboardTab === "verify"
+                                ? "bg-white/20 text-white"
+                                : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                            }`}
+                          >
+                            {verificationGoals.length}
+                          </span>
+                        )}
+                      </button>
+                    </div>
 
-                      {/* Empty State */}
-                      {!loading &&
-                        address &&
-                        goals.filter(t => t.status !== "done" && t.status !== "failed").length === 0 && (
+                    {/* Task List Tab */}
+                    {dashboardTab === "tasks" && (
+                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                        {/* Empty State */}
+                        {!loading &&
+                          address &&
+                          goals.filter(t => t.status !== "done" && t.status !== "failed").length === 0 && (
+                            <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
+                              <p className="text-stone-400 font-bold text-lg mb-2">
+                                Woohoo! No pending tasks! <span className="text-2xl ml-1">🎉</span>
+                              </p>
+                              <p className="text-stone-400 text-sm">Use the + button to create a new goal.</p>
+                            </div>
+                          )}
+
+                        {/* Today's Tasks */}
+                        {!loading &&
+                          (() => {
+                            const today = new Date();
+                            today.setHours(0, 0, 0, 0);
+                            const tomorrow = new Date(today);
+                            tomorrow.setDate(tomorrow.getDate() + 1);
+                            const dayAfter = new Date(tomorrow);
+                            dayAfter.setDate(dayAfter.getDate() + 1);
+
+                            const activeGoals = goals.filter(t => t.status !== "done" && t.status !== "failed");
+                            const todayGoals = activeGoals.filter(t => {
+                              const deadline = new Date(t.deadline);
+                              return deadline >= today && deadline < tomorrow;
+                            });
+                            const tomorrowGoals = activeGoals.filter(t => {
+                              const deadline = new Date(t.deadline);
+                              return deadline >= tomorrow && deadline < dayAfter;
+                            });
+                            const otherGoals = activeGoals.filter(t => {
+                              const deadline = new Date(t.deadline);
+                              return deadline >= dayAfter;
+                            });
+
+                            return (
+                              <>
+                                {todayGoals.length > 0 && (
+                                  <div>
+                                    <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
+                                      📅 Today
+                                    </h3>
+                                    <div className="space-y-3">
+                                      {todayGoals.map(task => (
+                                        <GoalCard
+                                          key={task.id}
+                                          goal={task}
+                                          onStart={setSelectedTaskForStart}
+                                          onViewDetails={setSelectedTaskForDetails}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {tomorrowGoals.length > 0 && (
+                                  <div>
+                                    <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
+                                      🌅 Tomorrow
+                                    </h3>
+                                    <div className="space-y-3">
+                                      {tomorrowGoals.map(task => (
+                                        <GoalCard
+                                          key={task.id}
+                                          goal={task}
+                                          onStart={setSelectedTaskForStart}
+                                          onViewDetails={setSelectedTaskForDetails}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {otherGoals.length > 0 && (
+                                  <div>
+                                    <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
+                                      📆 Later
+                                    </h3>
+                                    <div className="space-y-3">
+                                      {otherGoals.map(task => (
+                                        <GoalCard
+                                          key={task.id}
+                                          goal={task}
+                                          onStart={setSelectedTaskForStart}
+                                          onViewDetails={setSelectedTaskForDetails}
+                                        />
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            );
+                          })()}
+
+                        {/* Completed Section */}
+                        {!loading && goals.filter(t => t.status === "done").length > 0 && (
+                          <div className="pt-6 border-t border-stone-200 dark:border-stone-700">
+                            <h4 className="text-stone-400 font-bold mb-4 text-xs uppercase tracking-wider flex items-center gap-2">
+                              <CheckCircle size={14} weight="fill" /> Completed
+                            </h4>
+                            {goals
+                              .filter(t => t.status === "done")
+                              .map(task => (
+                                <div
+                                  key={task.id}
+                                  className="p-4 bg-white dark:bg-stone-800 rounded-2xl opacity-60 mb-3 flex items-center gap-3 border border-stone-100 dark:border-stone-700 shadow-sm grayscale transition-all hover:grayscale-0 hover:opacity-100"
+                                >
+                                  <CheckCircle size={20} className="text-green-500 flex-shrink-0" weight="fill" />
+                                  <div>
+                                    <p className="font-bold text-stone-600 dark:text-stone-300 line-through decoration-stone-400 decoration-2">
+                                      {task.title}
+                                    </p>
+                                    <p className="text-xs text-stone-400 font-bold mt-0.5">Completed</p>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Verify Tab */}
+                    {dashboardTab === "verify" && (
+                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
+                        {/* Empty State */}
+                        {!loading && verificationGoals.length === 0 && (
                           <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
-                            <p className="text-stone-400 font-bold text-lg mb-2">
-                              Woohoo! No pending tasks! <span className="text-2xl ml-1">🎉</span>
+                            <div className="text-4xl mb-4">🛡️</div>
+                            <p className="text-stone-400 font-bold text-lg mb-2">No verifications pending</p>
+                            <p className="text-stone-400 text-sm">
+                              When someone adds you as a vouchie, their goals will appear here for you to verify.
                             </p>
-                            <p className="text-stone-400 text-sm">Use the + button to create a new goal.</p>
                           </div>
                         )}
 
-                      {/* Today's Tasks */}
-                      {!loading &&
-                        (() => {
-                          const today = new Date();
-                          today.setHours(0, 0, 0, 0);
-                          const tomorrow = new Date(today);
-                          tomorrow.setDate(tomorrow.getDate() + 1);
-                          const dayAfter = new Date(tomorrow);
-                          dayAfter.setDate(dayAfter.getDate() + 1);
-
-                          const activeGoals = goals.filter(t => t.status !== "done" && t.status !== "failed");
-                          const todayGoals = activeGoals.filter(t => {
-                            const deadline = new Date(t.deadline);
-                            return deadline >= today && deadline < tomorrow;
-                          });
-                          const tomorrowGoals = activeGoals.filter(t => {
-                            const deadline = new Date(t.deadline);
-                            return deadline >= tomorrow && deadline < dayAfter;
-                          });
-                          const otherGoals = activeGoals.filter(t => {
-                            const deadline = new Date(t.deadline);
-                            return deadline >= dayAfter;
-                          });
-
-                          return (
-                            <>
-                              {todayGoals.length > 0 && (
-                                <div>
-                                  <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
-                                    📅 Today
-                                  </h3>
-                                  <div className="space-y-3">
-                                    {todayGoals.map(task => (
-                                      <GoalCard
-                                        key={task.id}
-                                        goal={task}
-                                        onStart={setSelectedTaskForStart}
-                                        onViewDetails={setSelectedTaskForDetails}
-                                      />
-                                    ))}
+                        {/* Verification Cards */}
+                        {!loading &&
+                          verificationGoals.map(task => (
+                            <div
+                              key={task.id}
+                              className="bg-white dark:bg-stone-800 rounded-2xl p-4 border border-stone-200 dark:border-stone-700 shadow-sm"
+                            >
+                              {/* Header */}
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                                      Pending Verification
+                                    </span>
                                   </div>
-                                </div>
-                              )}
-
-                              {tomorrowGoals.length > 0 && (
-                                <div>
-                                  <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
-                                    🌅 Tomorrow
-                                  </h3>
-                                  <div className="space-y-3">
-                                    {tomorrowGoals.map(task => (
-                                      <GoalCard
-                                        key={task.id}
-                                        goal={task}
-                                        onStart={setSelectedTaskForStart}
-                                        onViewDetails={setSelectedTaskForDetails}
-                                      />
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-
-                              {otherGoals.length > 0 && (
-                                <div>
-                                  <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
-                                    📆 Later
-                                  </h3>
-                                  <div className="space-y-3">
-                                    {otherGoals.map(task => (
-                                      <GoalCard
-                                        key={task.id}
-                                        goal={task}
-                                        onStart={setSelectedTaskForStart}
-                                        onViewDetails={setSelectedTaskForDetails}
-                                      />
-                                    ))}
-                                  </div>
-                                </div>
-                              )}
-                            </>
-                          );
-                        })()}
-
-                      {/* Completed Section */}
-                      {!loading && goals.filter(t => t.status === "done").length > 0 && (
-                        <div className="pt-6 border-t border-stone-200 dark:border-stone-700">
-                          <h4 className="text-stone-400 font-bold mb-4 text-xs uppercase tracking-wider flex items-center gap-2">
-                            <CheckCircle size={14} weight="fill" /> Completed
-                          </h4>
-                          {goals
-                            .filter(t => t.status === "done")
-                            .map(task => (
-                              <div
-                                key={task.id}
-                                className="p-4 bg-white dark:bg-stone-800 rounded-2xl opacity-60 mb-3 flex items-center gap-3 border border-stone-100 dark:border-stone-700 shadow-sm grayscale transition-all hover:grayscale-0 hover:opacity-100"
-                              >
-                                <CheckCircle size={20} className="text-green-500 flex-shrink-0" weight="fill" />
-                                <div>
-                                  <p className="font-bold text-stone-600 dark:text-stone-300 line-through decoration-stone-400 decoration-2">
+                                  <h4 className="font-bold text-stone-800 dark:text-white text-lg leading-tight">
                                     {task.title}
-                                  </p>
-                                  <p className="text-xs text-stone-400 font-bold mt-0.5">Completed</p>
+                                  </h4>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-bold text-green-600 dark:text-green-400">${task.stake}</p>
+                                  <p className="text-[10px] text-stone-400 uppercase">USDC</p>
                                 </div>
                               </div>
-                            ))}
-                        </div>
-                      )}
-                    </div>
+
+                              {/* Creator Info */}
+                              <div className="flex items-center gap-2 mb-4 text-sm text-stone-500 dark:text-stone-400">
+                                <span>Created by</span>
+                                <span className="font-bold text-stone-700 dark:text-stone-300">
+                                  @{task.creatorUsername || task.creator?.slice(0, 8) || "unknown"}
+                                </span>
+                              </div>
+
+                              {/* Action Button */}
+                              <button
+                                onClick={() => {
+                                  setSelectedVerificationGoal(task);
+                                  setIsVerifyModalOpen(true);
+                                }}
+                                className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md"
+                              >
+                                <ShieldCheck size={18} weight="fill" />
+                                Review & Verify
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -721,8 +833,10 @@ const VouchieApp = () => {
               </button>
             </div>
 
-            {/* Bottom Nav (Mobile) - FAB integrated in center */}
-            <div className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-stone-900/95 backdrop-blur-lg border-t border-stone-100 dark:border-stone-800 flex items-center justify-around px-4 z-40">
+            {/* Bottom Nav (Mobile) - FAB integrated in center, hidden when keyboard is open */}
+            <div
+              className={`lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-stone-900/95 backdrop-blur-lg border-t border-stone-100 dark:border-stone-800 flex items-center justify-around px-4 z-40 transition-transform duration-200 ${isKeyboardOpen ? "translate-y-full" : "translate-y-0"}`}
+            >
               <button
                 onClick={() => setActiveTab("dashboard")}
                 className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "dashboard" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}

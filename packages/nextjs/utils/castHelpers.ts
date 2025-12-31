@@ -15,6 +15,28 @@ export interface GoalCastParams {
 }
 
 /**
+ * Format duration in a human-readable relative way (timezone agnostic)
+ */
+function formatRelativeDeadline(deadlineMs: number): string {
+  const now = Date.now();
+  const diffMs = deadlineMs - now;
+
+  if (diffMs <= 0) return "now";
+
+  const minutes = Math.floor(diffMs / (1000 * 60));
+  const hours = Math.floor(diffMs / (1000 * 60 * 60));
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (days > 0) {
+    return days === 1 ? "1 day" : `${days} days`;
+  } else if (hours > 0) {
+    return hours === 1 ? "1 hour" : `${hours} hours`;
+  } else {
+    return minutes <= 1 ? "1 min" : `${minutes} mins`;
+  }
+}
+
+/**
  * Build the OG image URL with all necessary parameters
  */
 export function buildOgImageUrl(
@@ -61,19 +83,38 @@ export function buildGoalCreatedCast(
   text: string;
   embeds: string[];
 } {
-  const deadlineDate = new Date(params.deadline);
-  const deadlineStr = deadlineDate.toLocaleString([], {
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const isSquad = params.mode === "Squad";
+  const relativeTime = formatRelativeDeadline(params.deadline);
 
-  const modeEmoji = params.mode === "Squad" ? "👥" : "🧍";
-  const text =
-    `🎯 Just locked $${params.stake} USDC on "${params.title}"!\n\n` +
-    `${modeEmoji} ${params.mode} Mode | ⏰ Due: ${deadlineStr}\n\n` +
-    `Hold me accountable! 💪`;
+  // Build @mention list for Squad mode
+  const mentions =
+    isSquad && params.vouchieUsernames?.length
+      ? params.vouchieUsernames
+          .slice(0, 3)
+          .map(u => `@${u}`)
+          .join(" ")
+      : "";
+
+  let text: string;
+
+  if (isSquad && mentions) {
+    // Squad mode with vouchies
+    text =
+      `🎲 Betting $${params.stake} USDC that I'll finish "${params.title}" in ${relativeTime}!\n\n` +
+      `${mentions} vouch for me! 🤝\n\n` +
+      `If I fail, you get my stake 💸`;
+  } else if (isSquad) {
+    // Squad mode but no vouchies yet
+    text =
+      `🎲 Betting $${params.stake} USDC that I'll finish "${params.title}" in ${relativeTime}!\n\n` +
+      `Who wants to be my vouchie? 🤝\n\n` +
+      `If I fail, you get my stake 💸`;
+  } else {
+    // Solo mode
+    text =
+      `🎲 Betting $${params.stake} USDC that I'll finish "${params.title}" in ${relativeTime}!\n\n` +
+      `Vouch for me fam! 💪`;
+  }
 
   // Use the app URL with goal param as embed (Farcaster will fetch OG from our API)
   const embedUrl = buildGoalShareUrl(baseUrl, params.goalId);
@@ -107,17 +148,22 @@ export function buildProofSubmittedCast(
 
   let text: string;
 
-  if (isSquad) {
+  if (isSquad && mentions) {
     // Squad mode: Ask vouchies to verify
     text = params.proofText
-      ? `✅ Done! "${params.title}"\n\n${params.proofText}\n\n${mentions ? `${mentions} - ` : ""}Verify my proof! 👆`
-      : `✅ Completed "${params.title}"!\n\n${mentions ? `${mentions} - ` : ""}Verify my proof! 👆`;
+      ? `✅ Done! "${params.title}"\n\n${params.proofText}\n\n${mentions} verify me! 👆`
+      : `✅ Shipped it! "${params.title}"\n\n${mentions} verify me and I get my $${params.stake} back! 🙏`;
+  } else if (isSquad) {
+    // Squad mode but no mentions
+    text = params.proofText
+      ? `✅ Done! "${params.title}"\n\n${params.proofText}\n\nWaiting for my vouchies to verify! 🙏`
+      : `✅ Shipped it! "${params.title}"\n\nWaiting for verification to get my $${params.stake} back! 🔥`;
   } else {
     // Solo mode: Celebration announcement
     text =
-      `✅ Crushed it! "${params.title}"\n\n` +
-      `💰 Got my $${params.stake} USDC back!\n\n` +
-      `Set goals → Stake money → Get it done 🔥`;
+      `✅ LFG! Crushed "${params.title}"!\n\n` +
+      `💰 $${params.stake} USDC secured.\n\n` +
+      `Stake your goals → Actually do them → Win 🏆`;
   }
 
   // Use the share URL with goal context
