@@ -186,7 +186,10 @@ const VouchieApp = () => {
         const durationSeconds =
           formData.durationSeconds ||
           (formData.deadline === "1h" ? 3600 : formData.deadline === "24h" ? 86400 : 604800);
-        const vouchies = formData.mode === "Vouchie" ? ["0x123..."] : [];
+        const vouchies =
+          formData.mode === "Vouchie"
+            ? formData.vouchies.map((v: any) => v.address).filter((addr: string) => addr && addr.startsWith("0x"))
+            : [];
 
         // Step 1: Silent approve (no notification popup)
         if (vaultInfo?.address && usdcInfo?.address && publicClient) {
@@ -270,7 +273,7 @@ const VouchieApp = () => {
         // Optimistic update for Solo mode (immediate success)
         updateGoal(goalId, { status: "done" });
       } else {
-        alert("Proof submitted to Vouchie! Waiting for votes.");
+        toast.success("Proof casted! Waiting for vouchies to verify.");
       }
       refresh();
       setSelectedTaskForDetails(null);
