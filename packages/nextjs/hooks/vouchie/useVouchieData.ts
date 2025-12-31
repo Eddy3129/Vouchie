@@ -31,6 +31,43 @@ export const useVouchieData = () => {
   const [verificationGoals, setVerificationGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
   const [farcasterUsers, setFarcasterUsers] = useState<Map<string, FarcasterUser | null>>(new Map());
+  const [userVerifiedAddresses, setUserVerifiedAddresses] = useState<string[]>([]);
+
+  // Fetch all verified addresses for current user's FID
+  useEffect(() => {
+    const fetchUserAddresses = async () => {
+      if (!context.user?.fid) return;
+
+      try {
+        const apiKey = process.env.NEXT_PUBLIC_NEYNAR_API_KEY;
+        if (!apiKey) {
+          console.warn("NEXT_PUBLIC_NEYNAR_API_KEY not set");
+          return;
+        }
+
+        const response = await fetch(`https://api.neynar.com/v2/farcaster/user/bulk?fids=${context.user.fid}`, {
+          headers: {
+            accept: "application/json",
+            "x-api-key": apiKey,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          const user = data.users?.[0];
+          if (user?.verified_addresses?.eth_addresses) {
+            const addresses = user.verified_addresses.eth_addresses.map((a: string) => a.toLowerCase());
+            console.log("User verified addresses:", addresses);
+            setUserVerifiedAddresses(addresses);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch user verified addresses:", err);
+      }
+    };
+
+    fetchUserAddresses();
+  }, [context.user?.fid]);
 
   // Get the user's address - prefer Farcaster primary address, fallback to wallet
   const userAddress = context.user?.primaryAddress || walletAddress;
@@ -121,9 +158,19 @@ export const useVouchieData = () => {
 
         const vouchieAddresses = v as string[];
 
-        const isCreator = userAddress && creator.toLowerCase() === userAddress.toLowerCase();
+        // Check if user is creator or vouchie - compare against ALL verified addresses from FID
+        const allUserAddresses: string[] = [...userVerifiedAddresses];
+        if (context.user?.primaryAddress && !allUserAddresses.includes(context.user.primaryAddress.toLowerCase())) {
+          allUserAddresses.push(context.user.primaryAddress.toLowerCase());
+        }
+        if (walletAddress && !allUserAddresses.includes(walletAddress.toLowerCase())) {
+          allUserAddresses.push(walletAddress.toLowerCase());
+        }
+
+        const isCreator = allUserAddresses.length > 0 && allUserAddresses.includes(creator.toLowerCase());
         const isVouchie =
-          userAddress && vouchieAddresses.some((addr: string) => addr.toLowerCase() === userAddress.toLowerCase());
+          allUserAddresses.length > 0 &&
+          vouchieAddresses.some((addr: string) => allUserAddresses.includes(addr.toLowerCase()));
 
         // Skip if neither creator nor vouchie
         if (!isCreator && !isVouchie) continue;
@@ -178,7 +225,16 @@ export const useVouchieData = () => {
     setGoals(parsedMyGoals);
     setVerificationGoals(parsedVerificationGoals);
     setLoading(false);
-  }, [multipleData, goalIndices, goalCount, userAddress, lookupBatch]);
+  }, [
+    multipleData,
+    goalIndices,
+    goalCount,
+    userAddress,
+    lookupBatch,
+    userVerifiedAddresses,
+    walletAddress,
+    context.user?.primaryAddress,
+  ]);
 
   // Update goals with Farcaster usernames when lookup completes
   useEffect(() => {
