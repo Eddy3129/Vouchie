@@ -4,6 +4,7 @@ import { useMiniapp } from "~~/components/MiniappProvider";
 import deployedContracts from "~~/contracts/deployedContracts";
 import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
+import { FarcasterUser, useFarcasterUser } from "~~/hooks/vouchie/useFarcasterUser";
 import { Goal, Vouchie } from "~~/types/vouchie";
 
 // Helper to determine status
@@ -25,9 +26,11 @@ export const useVouchieData = () => {
   const { address: walletAddress } = useAccount();
   const { context } = useMiniapp();
   const { targetNetwork } = useTargetNetwork();
+  const { lookupBatch } = useFarcasterUser();
   const [goals, setGoals] = useState<Goal[]>([]);
   const [verificationGoals, setVerificationGoals] = useState<Goal[]>([]);
   const [loading, setLoading] = useState(true);
+  const [farcasterUsers, setFarcasterUsers] = useState<Map<string, FarcasterUser | null>>(new Map());
 
   // Get the user's address - prefer Farcaster primary address, fallback to wallet
   const userAddress = context.user?.primaryAddress || walletAddress;
@@ -95,6 +98,7 @@ export const useVouchieData = () => {
 
     const parsedMyGoals: Goal[] = [];
     const parsedVerificationGoals: Goal[] = [];
+    const allAddresses: string[] = [];
 
     // Each goal has 2 calls (goals, getVouchies)
     for (let i = 0; i < goalIndices.length; i++) {
@@ -128,8 +132,12 @@ export const useVouchieData = () => {
 
         if (isVouchie && mode === "Solo") continue; // Vouchies only exist in Squad/Vouchie mode
 
+        // Collect addresses for Farcaster lookup
+        allAddresses.push(creator);
+        vouchieAddresses.forEach((addr: string) => allAddresses.push(addr));
+
         const vouchieList: Vouchie[] = vouchieAddresses.map((addr: string) => ({
-          name: addr.slice(0, 6) + "...", // Placeholder name
+          name: addr.slice(0, 6) + "...", // Placeholder name, will be updated after lookup
           avatar: "👤",
           address: addr,
           status: "pending", // TODO: check hasVoted
@@ -152,16 +160,62 @@ export const useVouchieData = () => {
           color: "bg-white", // Use white for all modes - Card handles dark mode
           accent: mode === "Solo" ? "text-orange-600 dark:text-orange-400" : "text-indigo-600 dark:text-indigo-400",
           barColor: mode === "Solo" ? "bg-orange-400" : "bg-indigo-400",
+          creator: creator, // Add creator address for display
         };
 
         if (isCreator) parsedMyGoals.push(goalObj);
         if (isVouchie) parsedVerificationGoals.push(goalObj);
       }
     }
+
+    // Lookup Farcaster users for all addresses
+    if (allAddresses.length > 0) {
+      lookupBatch([...new Set(allAddresses)]).then(results => {
+        setFarcasterUsers(results);
+      });
+    }
+
     setGoals(parsedMyGoals);
     setVerificationGoals(parsedVerificationGoals);
     setLoading(false);
-  }, [multipleData, goalIndices, goalCount, userAddress]);
+  }, [multipleData, goalIndices, goalCount, userAddress, lookupBatch]);
+
+  // Update goals with Farcaster usernames when lookup completes
+  useEffect(() => {
+    if (farcasterUsers.size === 0) return;
+
+    const updateGoalsWithUsernames = (goalList: Goal[]): Goal[] => {
+      return goalList.map(goal => {
+        // Update creator info
+        const creatorUser = goal.creator ? farcasterUsers.get(goal.creator.toLowerCase()) : null;
+
+        // Update vouchie usernames
+        const updatedVouchies = goal.vouchies.map(v => {
+          const fcUser = v.address ? farcasterUsers.get(v.address.toLowerCase()) : null;
+          if (fcUser) {
+            return {
+              ...v,
+              name: fcUser.displayName || fcUser.username || v.name,
+              username: fcUser.username,
+              fid: fcUser.fid,
+              avatar: fcUser.pfpUrl || v.avatar,
+            };
+          }
+          return v;
+        });
+
+        return {
+          ...goal,
+          creatorUsername: creatorUser?.username,
+          creatorAvatar: creatorUser?.pfpUrl,
+          vouchies: updatedVouchies,
+        };
+      });
+    };
+
+    setGoals(prev => updateGoalsWithUsernames(prev));
+    setVerificationGoals(prev => updateGoalsWithUsernames(prev));
+  }, [farcasterUsers]);
 
   const refresh = () => {
     refetchCount();

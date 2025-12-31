@@ -190,18 +190,45 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onComposeC
           <p className="text-stone-500 text-sm font-semibold">remaining</p>
         </div>
 
+        {/* Vouchies Section - Show who will verify (Squad mode only) */}
+        {!isSolo && goal.vouchies.length > 0 && (
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-2xl mb-4 border border-purple-200 dark:border-purple-800/50">
+            <h4 className="font-bold text-purple-700 dark:text-purple-300 mb-3 text-sm">
+              👥 Your Vouchies ({goal.vouchies.length})
+            </h4>
+            <div className="flex flex-wrap gap-2">
+              {goal.vouchies.map((vouchie, idx) => (
+                <div
+                  key={idx}
+                  className="flex items-center gap-2 bg-white dark:bg-stone-800 px-3 py-2 rounded-full border border-purple-200 dark:border-purple-700"
+                >
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
+                    {vouchie.username ? vouchie.username.charAt(0).toUpperCase() : vouchie.name.charAt(0).toUpperCase()}
+                  </div>
+                  <span className="text-sm font-semibold text-stone-700 dark:text-stone-300">
+                    {vouchie.username ? `@${vouchie.username}` : vouchie.name}
+                  </span>
+                </div>
+              ))}
+            </div>
+            <p className="text-purple-600 dark:text-purple-400 text-xs mt-3">
+              They will verify your proof via Farcaster
+            </p>
+          </div>
+        )}
+
         {/* Submit Proof Section */}
         <div className="bg-stone-50 dark:bg-stone-800 p-4 rounded-2xl mb-4 border border-stone-200 dark:border-stone-700">
           <h4 className="font-bold text-stone-800 dark:text-white mb-3 flex items-center gap-2 text-sm">
             <Camera size={16} weight="bold" className="text-stone-400" /> Submit Proof
           </h4>
-          <div className="bg-stone-100 dark:bg-stone-700/50 p-4 rounded-xl border-2 border-dashed border-stone-300 dark:border-stone-600 mb-3 flex items-center justify-center text-stone-400 cursor-pointer hover:bg-stone-200 dark:hover:bg-stone-700 hover:border-stone-400 dark:hover:border-stone-500 transition-all">
-            <span className="text-sm font-semibold">Tap to upload photo</span>
-          </div>
+          <p className="text-stone-500 dark:text-stone-400 text-xs mb-3">
+            Your proof will be shared via Farcaster cast. Add a message below!
+          </p>
           <textarea
             rows={2}
             placeholder={
-              isSolo ? "Add a message to your celebration post (optional)..." : "Tell your vouchies you did it..."
+              isSolo ? "Add a message to your celebration post..." : "Tell your vouchies what you accomplished..."
             }
             className="w-full bg-stone-100 dark:bg-stone-700/50 p-3 rounded-xl outline-none font-semibold text-sm text-stone-800 dark:text-stone-200 resize-none mb-3 placeholder:text-stone-400 dark:placeholder:text-stone-500 border border-stone-200 dark:border-stone-600 focus:border-stone-400 dark:focus:border-stone-500"
             value={proofText}
