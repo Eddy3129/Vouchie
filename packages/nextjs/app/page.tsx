@@ -41,6 +41,7 @@ import {
 import { useFamousQuotes } from "~~/hooks/vouchie/useFamousQuotes";
 import { useVouchieData } from "~~/hooks/vouchie/useVouchieData";
 import { CANCEL_GRACE_PERIOD_MS, Goal, LongTermGoal } from "~~/types/vouchie";
+import { buildGoalCreatedCast } from "~~/utils/castHelpers";
 
 const MOCK_LONG_TERM: LongTermGoal[] = [
   {
@@ -192,20 +193,24 @@ const VouchieApp = () => {
         refresh();
         refetchBalance();
 
-        // Step 3: Prompt user to share on Farcaster
-        const deadlineDate = new Date(Date.now() + durationSeconds * 1000);
-        const deadlineStr = deadlineDate.toLocaleString([], {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
+        // Step 3: Prompt user to share on Farcaster with dynamic OG embed
         const appUrl = typeof window !== "undefined" ? window.location.origin : "https://vouchie.app";
+        const deadlineTimestamp = Date.now() + durationSeconds * 1000;
 
-        composeCast({
-          text: `🎯 Just committed $${formData.stake} USDC to "${formData.title}" by ${deadlineStr}! Hold me accountable 💪`,
-          embeds: [appUrl],
+        // Get the next goal ID (we just created it, so it should be the latest)
+        // For now, use timestamp as a temporary ID since we don't have the real one yet
+        const tempGoalId = Date.now();
+
+        const castContent = buildGoalCreatedCast(appUrl, {
+          goalId: tempGoalId,
+          title: formData.title,
+          stake: formData.stake,
+          deadline: deadlineTimestamp,
+          username: context?.user?.username || "",
+          mode: formData.vouchies?.length > 0 ? "Squad" : "Solo",
         });
+
+        composeCast(castContent);
       } catch (e) {
         console.error("Error creating goal:", e);
       }

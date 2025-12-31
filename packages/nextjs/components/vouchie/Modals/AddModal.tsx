@@ -202,7 +202,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
 
   const modalClasses = `
     bg-[#FDFBF7] dark:bg-stone-900 w-full max-w-md rounded-[28px] p-5 soft-shadow
-    max-h-[80vh] overflow-y-auto overflow-x-hidden
+    max-h-[100vh] overflow-y-auto overflow-x-hidden
     transition-all duration-200 ease-out will-change-transform
     ${shake ? "animate-shake" : ""}
     ${animationState === "entered" ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"}

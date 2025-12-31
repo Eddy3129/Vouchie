@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Goal } from "../../../types/vouchie";
-import { Camera, CheckCircle, PaperPlaneTilt, SmileySad, X } from "@phosphor-icons/react";
+import { Camera, PaperPlaneTilt, SmileySad, X } from "@phosphor-icons/react";
+import { buildProofSubmittedCast } from "~~/utils/castHelpers";
 
 interface TaskDetailModalProps {
   isOpen: boolean;
@@ -64,36 +65,33 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onComposeC
         ? "shadow-[0_0_60px_rgba(245,158,11,0.2)]"
         : "";
 
-  // Handle submit - different flows for Solo vs Squad
+  // Handle submit - now casts for BOTH Solo and Squad modes
   const handleSubmit = () => {
-    if (isSolo) {
-      // Solo: immediate on-chain verify
-      onSubmit(goal.id, proofText);
-    } else {
-      // Squad: Cast proof first for vouchies to verify
-      if (onComposeCast) {
-        const appUrl = typeof window !== "undefined" ? window.location.origin : "https://vouchie.app";
-        const goalUrl = `${appUrl}?goal=${goal.id}`;
+    // Always prompt to cast for both modes
+    if (onComposeCast) {
+      const appUrl = typeof window !== "undefined" ? window.location.origin : "https://vouchie.app";
 
-        // Build @mention list from vouchies with usernames
-        const vouchieUsernames = goal.vouchies
-          .filter(v => v.username)
-          .slice(0, 3)
-          .map(v => `@${v.username}`)
-          .join(" ");
+      // Get vouchie usernames for @mentions (Squad mode only)
+      const vouchieUsernames = goal.vouchies
+        .filter(v => v.username)
+        .slice(0, 3)
+        .map(v => v.username as string);
 
-        const castText = proofText
-          ? `✅ Completed "${goal.title}" - ${proofText}\n\n${vouchieUsernames ? `Hey ${vouchieUsernames}, ` : ""}verify my proof! 🙏`
-          : `✅ Completed "${goal.title}"!\n\n${vouchieUsernames ? `Hey ${vouchieUsernames}, ` : ""}verify my proof! 🙏`;
+      const castContent = buildProofSubmittedCast(appUrl, {
+        goalId: goal.id,
+        title: goal.title,
+        stake: goal.stake,
+        deadline: goal.deadline,
+        mode: goal.mode as "Solo" | "Squad",
+        vouchieUsernames: vouchieUsernames,
+        proofText: proofText,
+      });
 
-        onComposeCast({
-          text: castText,
-          embeds: [goalUrl],
-        });
-      }
-      // Then call onSubmit to update status to verifying
-      onSubmit(goal.id, proofText);
+      onComposeCast(castContent);
     }
+
+    // Call onSubmit to process the verification
+    onSubmit(goal.id, proofText);
   };
 
   return (
@@ -200,15 +198,15 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onComposeC
           <div className="bg-stone-100 dark:bg-stone-700/50 p-4 rounded-xl border-2 border-dashed border-stone-300 dark:border-stone-600 mb-3 flex items-center justify-center text-stone-400 cursor-pointer hover:bg-stone-200 dark:hover:bg-stone-700 hover:border-stone-400 dark:hover:border-stone-500 transition-all">
             <span className="text-sm font-semibold">Tap to upload photo</span>
           </div>
-          {!isSolo && (
-            <textarea
-              rows={2}
-              placeholder="Tell your vouchies you did it..."
-              className="w-full bg-stone-100 dark:bg-stone-700/50 p-3 rounded-xl outline-none font-semibold text-sm text-stone-800 dark:text-stone-200 resize-none mb-3 placeholder:text-stone-400 dark:placeholder:text-stone-500 border border-stone-200 dark:border-stone-600 focus:border-stone-400 dark:focus:border-stone-500"
-              value={proofText}
-              onChange={e => setProofText(e.target.value)}
-            />
-          )}
+          <textarea
+            rows={2}
+            placeholder={
+              isSolo ? "Add a message to your celebration post (optional)..." : "Tell your vouchies you did it..."
+            }
+            className="w-full bg-stone-100 dark:bg-stone-700/50 p-3 rounded-xl outline-none font-semibold text-sm text-stone-800 dark:text-stone-200 resize-none mb-3 placeholder:text-stone-400 dark:placeholder:text-stone-500 border border-stone-200 dark:border-stone-600 focus:border-stone-400 dark:focus:border-stone-500"
+            value={proofText}
+            onChange={e => setProofText(e.target.value)}
+          />
           <button
             onClick={handleSubmit}
             className={`w-full py-3.5 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 text-sm ${
@@ -217,7 +215,7 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onComposeC
           >
             {isSolo ? (
               <>
-                <CheckCircle size={18} weight="bold" /> Mark as Done
+                <PaperPlaneTilt size={18} weight="bold" /> Complete & Share
               </>
             ) : (
               <>
@@ -225,9 +223,9 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onComposeC
               </>
             )}
           </button>
-          {!isSolo && (
-            <p className="text-stone-500 text-xs text-center mt-2">Your vouchies will verify via the cast embed</p>
-          )}
+          <p className="text-stone-500 text-xs text-center mt-2">
+            {isSolo ? "Share your win with your followers! 🎉" : "Your vouchies will verify via the cast embed"}
+          </p>
         </div>
 
         {/* Give Up Button - Opens GiveUpModal */}
