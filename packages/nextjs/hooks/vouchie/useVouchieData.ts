@@ -230,7 +230,7 @@ export const useVouchieData = () => {
     goalIndices,
     goalCount,
     userAddress,
-    lookupBatch,
+    // lookupBatch is stable (useCallback with []), safe to omit
     userVerifiedAddresses,
     walletAddress,
     context.user?.primaryAddress,
