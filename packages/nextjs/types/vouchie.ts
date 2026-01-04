@@ -18,6 +18,10 @@ export interface Goal {
   creator?: string; // Creator wallet address
   creatorUsername?: string; // Creator Farcaster username
   creatorAvatar?: string; // Creator avatar URL
+  resolved: boolean;
+  successful: boolean;
+  userHasClaimed?: boolean;
+  currentUserVouchieIndex?: number;
 }
 
 // Grace period constant (10 minutes in ms) - must match contract

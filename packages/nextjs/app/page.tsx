@@ -3,8 +3,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
+  ArrowRight,
   CalendarBlank,
   CheckCircle,
+  Clock,
   Compass,
   House,
   Plus,
@@ -140,6 +142,8 @@ const VouchieApp = () => {
   const { writeContractAsync: cancelGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
   const { writeContractAsync: claimGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
   const { writeContractAsync: vote } = useScaffoldWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: resolveGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: claimFunds } = useScaffoldWriteContract({ contractName: "VouchieVault" });
 
   // Silent approval (no notification) using wagmi directly
   const { writeContractAsync: silentApprove } = useWriteContract();
@@ -411,6 +415,36 @@ const VouchieApp = () => {
     }
   };
 
+  // Manual Settle Flow
+  const handleSettle = async (goalId: number) => {
+    try {
+      await resolveGoal({
+        functionName: "resolve",
+        args: [BigInt(goalId)],
+      });
+      refresh();
+      toast.success("Goal settled on-chain!");
+    } catch (e: any) {
+      console.error("error settling:", e);
+      toast.error(e.message || "Failed to settle goal");
+    }
+  };
+
+  // Manual Claim Flow
+  const handleClaim = async (goalId: number, index: number) => {
+    try {
+      await claimFunds({
+        functionName: "claim",
+        args: [BigInt(goalId), BigInt(index)],
+      });
+      refresh();
+      toast.success("Rewards claimed!");
+    } catch (e: any) {
+      console.error("error claiming:", e);
+      toast.error(e.message || "Failed to claim rewards");
+    }
+  };
+
   return (
     <>
       {showSplash ? (
@@ -508,6 +542,95 @@ const VouchieApp = () => {
                         </p>
                       </div>
                     </div>
+
+                    {/* Action Required Section */}
+                    {!loading && (
+                      <div className="space-y-3">
+                        {/* 1. Settle Actions (for Creators or Vouchies) */}
+                        {goals
+                          .filter(g => !g.resolved && g.deadline < Date.now())
+                          .map(g => (
+                            <div
+                              key={`settle-${g.id}`}
+                              className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/40 rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-top-2 duration-300"
+                            >
+                              <div className="bg-orange-400 p-2 rounded-full text-white">
+                                <Clock size={20} weight="fill" />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-orange-900 dark:text-orange-200 font-bold text-sm">
+                                  Action Required: Settle Goal
+                                </h4>
+                                <p className="text-orange-800/70 dark:text-orange-300/60 text-xs mt-0.5 line-clamp-1">
+                                  &quot;{g.title}&quot; expired. Settle to finalize.
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => handleSettle(g.id)}
+                                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
+                              >
+                                Settle <ArrowRight size={14} weight="bold" />
+                              </button>
+                            </div>
+                          ))}
+
+                        {/* 2. Claim Payouts (for Vouchies on failed goals) */}
+                        {verificationGoals
+                          .filter(g => g.resolved && !g.successful && !g.userHasClaimed && g.stake > 0)
+                          .map(g => (
+                            <div
+                              key={`claim-${g.id}`}
+                              className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-top-2 duration-300"
+                            >
+                              <div className="bg-green-400 p-2 rounded-full text-white">
+                                <CheckCircle size={20} weight="fill" />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-green-900 dark:text-green-200 font-bold text-sm">
+                                  Action Required: Claim Pot
+                                </h4>
+                                <p className="text-green-800/70 dark:text-green-300/60 text-xs mt-0.5 line-clamp-1">
+                                  Goal failed! Claim your share of {g.stake} {g.currency}.
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => handleClaim(g.id, g.currentUserVouchieIndex || 0)}
+                                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
+                              >
+                                Claim <ArrowRight size={14} weight="bold" />
+                              </button>
+                            </div>
+                          ))}
+
+                        {/* 3. Claim Refunds (for Creators on successful goals) */}
+                        {goals
+                          .filter(g => g.resolved && g.successful && g.stake > 0)
+                          .map(g => (
+                            <div
+                              key={`refund-${g.id}`}
+                              className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-top-2 duration-300"
+                            >
+                              <div className="bg-blue-400 p-2 rounded-full text-white">
+                                <CheckCircle size={20} weight="fill" />
+                              </div>
+                              <div className="flex-1">
+                                <h4 className="text-blue-900 dark:text-blue-200 font-bold text-sm">
+                                  Action Required: Claim Refund
+                                </h4>
+                                <p className="text-blue-800/70 dark:text-blue-300/60 text-xs mt-0.5 line-clamp-1">
+                                  Goal successful! Claim your {g.stake} {g.currency} refund.
+                                </p>
+                              </div>
+                              <button
+                                onClick={() => handleClaim(g.id, 0)}
+                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
+                              >
+                                Claim <ArrowRight size={14} weight="bold" />
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    )}
 
                     {/* Dashboard Tabs */}
                     <div className="flex gap-2 mb-6">

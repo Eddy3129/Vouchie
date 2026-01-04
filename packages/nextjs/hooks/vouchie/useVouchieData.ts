@@ -96,7 +96,7 @@ export const useVouchieData = () => {
   const contractAddress = deployedContract?.address;
   const contractAbi = deployedContract?.abi;
 
-  // We need to fetch 'goals(id)' and 'getVouchies(id)' for each index
+  // We need to fetch 'goals(id)', 'getVouchies(id)', and 'vouchiesClaimed(id, userAddress)' for each index
   const contracts = [];
   for (const id of goalIndices) {
     contracts.push({
@@ -110,6 +110,12 @@ export const useVouchieData = () => {
       abi: contractAbi,
       functionName: "getVouchies",
       args: [BigInt(id)],
+    });
+    contracts.push({
+      address: contractAddress,
+      abi: contractAbi,
+      functionName: "vouchiesClaimed",
+      args: [BigInt(id), userAddress],
     });
   }
 
@@ -137,15 +143,17 @@ export const useVouchieData = () => {
     const parsedVerificationGoals: Goal[] = [];
     const allAddresses: string[] = [];
 
-    // Each goal has 2 calls (goals, getVouchies)
+    // Each goal has 3 calls (goals, getVouchies, vouchiesClaimed)
     for (let i = 0; i < goalIndices.length; i++) {
       const goalId = goalIndices[i];
-      const goalResult = multipleData[i * 2];
-      const vouchiesResult = multipleData[i * 2 + 1];
+      const goalResult = multipleData[i * 3];
+      const vouchiesResult = multipleData[i * 3 + 1];
+      const claimResult = multipleData[i * 3 + 2];
 
       if (goalResult.status === "success" && vouchiesResult.status === "success") {
         const g: any = goalResult.result; // Struct
         const v: any = vouchiesResult.result; // Address array
+        const userHasClaimed = claimResult?.status === "success" ? (claimResult.result as boolean) : false;
 
         // g is [id, creator, stakeAmount, deadline, createdAt, description, resolved, successful, votesValid, votesInvalid]
         const creator = g[1] as string;
@@ -171,6 +179,10 @@ export const useVouchieData = () => {
         const isVouchie =
           allUserAddresses.length > 0 &&
           vouchieAddresses.some((addr: string) => allUserAddresses.includes(addr.toLowerCase()));
+
+        const currentUserVouchieIndex = isVouchie
+          ? vouchieAddresses.findIndex((addr: string) => allUserAddresses.includes(addr.toLowerCase()))
+          : undefined;
 
         // Skip if neither creator nor vouchie
         if (!isCreator && !isVouchie) continue;
@@ -199,6 +211,10 @@ export const useVouchieData = () => {
           createdAt: createdAt * 1000, // JS timestamp
           mode,
           status: getStatus({ resolved, successful, deadline }),
+          resolved,
+          successful,
+          userHasClaimed,
+          currentUserVouchieIndex,
           startTime: null, // Contract doesn't track this
           startImage: null,
           vouchies: vouchieList,
@@ -225,6 +241,7 @@ export const useVouchieData = () => {
     setGoals(parsedMyGoals);
     setVerificationGoals(parsedVerificationGoals);
     setLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     multipleData,
     goalIndices,
