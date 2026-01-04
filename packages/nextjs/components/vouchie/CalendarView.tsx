@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Goal } from "../../types/vouchie";
 import Card from "./Helper/Card";
-import { CalendarPlus, CaretLeft, CaretRight, CheckCircle, Clock, HandCoins, XCircle } from "@phosphor-icons/react";
+import { Bank, CalendarPlus, CaretLeft, CaretRight, Clock, HandCoins } from "@phosphor-icons/react";
 import { useScaffoldWriteContract } from "~~/hooks/scaffold-eth";
 import { useVouchieData } from "~~/hooks/vouchie/useVouchieData";
 
@@ -17,7 +17,8 @@ const CalendarView = ({ tasks, onTaskClick }: CalendarViewProps) => {
   const { refresh } = useVouchieData();
   const { writeContractAsync: claimGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
 
-  const handleClaim = async (goalId: number) => {
+  const handleClaim = async (e: React.MouseEvent, goalId: number) => {
+    e.stopPropagation(); // Don't open details modal when claiming
     try {
       await claimGoal({
         functionName: "claim",
@@ -159,11 +160,18 @@ const CalendarView = ({ tasks, onTaskClick }: CalendarViewProps) => {
             return (
               <div
                 key={i}
+                onClick={() => {
+                  if (day && hasTasks) {
+                    const dayTasks = getTasksForDay(day);
+                    if (dayTasks.length > 0) onTaskClick?.(dayTasks[0]);
+                  }
+                }}
                 className={`
-                  aspect-square rounded-xl flex flex-col items-center justify-center relative
-                  ${!day ? "" : "hover:bg-stone-50 dark:hover:bg-stone-700 cursor-pointer"}
-                  ${isToday ? "bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900" : "text-stone-600 dark:text-stone-300"}
-                  ${hasTasks && !isToday ? "bg-orange-50 dark:bg-orange-900/20" : ""}
+                  aspect-square rounded-xl flex flex-col items-center justify-center relative transition-all duration-200
+                  ${!day ? "" : hasTasks ? "cursor-pointer hover:scale-105 active:scale-95" : "cursor-default"}
+                  ${isToday ? "bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 shadow-md z-10" : "text-stone-600 dark:text-stone-300"}
+                  ${hasTasks && !isToday ? "bg-orange-50 dark:bg-orange-900/20 border border-orange-100 dark:border-orange-800/30" : ""}
+                  ${day && !hasTasks && !isToday ? "hover:bg-stone-50 dark:hover:bg-stone-800/50" : ""}
                 `}
               >
                 <span className={`font-bold text-sm ${isToday ? "text-white dark:text-stone-900" : ""}`}>{day}</span>
@@ -223,69 +231,100 @@ const CalendarView = ({ tasks, onTaskClick }: CalendarViewProps) => {
             {activeTab === "upcoming" ? "No upcoming tasks!" : "No past tasks yet."}
           </div>
         ) : (
-          displayedTasks.map(task => (
-            <div
-              key={task.id}
-              onClick={() => onTaskClick?.(task)}
-              className="relative bg-white dark:bg-stone-800 py-1 pr-2 pl-4 rounded-lg flex items-center justify-between shadow-sm border border-stone-100 dark:border-stone-700 cursor-pointer hover:border-[#8B5A2B] dark:hover:border-[#FFA726] transition-all"
-            >
-              <div
-                className={`absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full ${
-                  task.status === "done"
-                    ? "bg-green-500"
-                    : task.status === "failed"
-                      ? "bg-red-500"
-                      : "bg-[#8B5A2B] dark:bg-[#FFA726]"
-                }`}
-              />
-              <div className="flex flex-col min-w-0 flex-1 mr-2 pl-2 justify-center">
-                <p className="font-bold text-sm text-stone-800 dark:text-stone-100 truncate leading-none mb-1">
-                  {task.title}
-                </p>
-                <p className="text-[10px] text-stone-400 font-bold flex items-center gap-1 leading-none">
-                  {activeTab === "upcoming" ? (
-                    <>
-                      <Clock size={10} weight="bold" />
-                      {getDurationLeft(task.deadline)}
-                    </>
-                  ) : (
-                    <>
-                      {task.status === "done" ? (
-                        <span className="text-green-500 flex items-center gap-1">
-                          <CheckCircle size={10} weight="fill" /> Completed at {formatDateTime(task.deadline)}
-                        </span>
-                      ) : (
-                        <span className="text-red-500 flex items-center gap-1">
-                          <XCircle size={10} weight="fill" /> Failed at {formatDateTime(task.deadline)}
-                        </span>
-                      )}
-                    </>
-                  )}
-                </p>
-              </div>
-              <div className="flex-shrink-0 flex items-center gap-2">
-                <span
-                  className={`text-sm font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 ${
-                    task.status === "failed"
-                      ? "bg-red-50 dark:bg-red-900/20 text-red-500"
-                      : "bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400"
-                  }`}
-                >
-                  {task.status === "failed" && <span>💸</span>}${task.stake}
-                </span>
+          displayedTasks.map(task => {
+            const isPast = activeTab === "past";
+            const isSolo = task.mode === "Solo";
 
-                {task.status === "done" && task.stake > 0 && (
-                  <button
-                    onClick={() => handleClaim(task.id)}
-                    className="bg-green-500 hover:bg-green-600 text-white text-xs font-bold px-2 py-1.5 rounded-lg flex items-center gap-1 transition-colors"
-                  >
-                    <HandCoins size={14} weight="bold" />
-                    Claim
-                  </button>
-                )}
+            if (isPast) {
+              return (
+                <div
+                  key={task.id}
+                  onClick={() => onTaskClick?.(task)}
+                  className="bg-white dark:bg-stone-800 rounded-2xl p-4 border border-stone-100 dark:border-stone-700 shadow-sm cursor-pointer hover:border-[#8B5A2B] dark:hover:border-[#FFA726] transition-all group active:scale-[0.98]"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <div className="flex items-center gap-2">
+                      <div
+                        className={`w-1.5 h-6 rounded-full ${task.status === "done" ? "bg-green-500" : "bg-red-500"}`}
+                      />
+                      <h4 className="font-bold text-stone-800 dark:text-stone-100 truncate">{task.title}</h4>
+                    </div>
+                    <span
+                      className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        task.status === "done"
+                          ? "bg-green-100 dark:bg-green-900/40 text-green-600"
+                          : "bg-red-100 dark:bg-red-900/40 text-red-600"
+                      }`}
+                    >
+                      {task.status === "done" ? "Success" : "Failed"}
+                    </span>
+                  </div>
+
+                  <div className="bg-stone-50 dark:bg-stone-900/40 rounded-xl p-3 border border-stone-100 dark:border-stone-700/50 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className={`p-2 rounded-lg ${task.status === "done" ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}`}
+                      >
+                        {task.status === "done" ? <HandCoins size={20} /> : <Bank size={20} />}
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-stone-800 dark:text-stone-200">
+                          ${task.stake} <span className="text-[10px] text-stone-400 font-normal">USDC</span>
+                        </span>
+                        <span className="text-[10px] text-stone-500">
+                          {task.status === "done" ? (
+                            <>Claimed by @{task.creatorUsername || "creator"}</>
+                          ) : isSolo ? (
+                            <>Sent to Treasury</>
+                          ) : (
+                            <>Squad Pot</>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    {task.status === "done" && task.stake > 0 && (
+                      <button
+                        onClick={e => handleClaim(e, task.id)}
+                        className="bg-green-500 hover:bg-green-600 active:bg-green-700 text-white text-[10px] font-black px-3 py-1.5 rounded-lg transition-all shadow-sm"
+                      >
+                        Claim
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="mt-3 flex items-center justify-between text-[10px] text-stone-400 font-bold">
+                    <span>{formatDateTime(task.deadline)}</span>
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity">View Details →</span>
+                  </div>
+                </div>
+              );
+            }
+
+            return (
+              <div
+                key={task.id}
+                onClick={() => onTaskClick?.(task)}
+                className="relative bg-white dark:bg-stone-800 py-1 pr-2 pl-4 rounded-lg flex items-center justify-between shadow-sm border border-stone-100 dark:border-stone-700 cursor-pointer hover:border-[#8B5A2B] dark:hover:border-[#FFA726] transition-all"
+              >
+                <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full bg-[#8B5A2B] dark:bg-[#FFA726]" />
+                <div className="flex flex-col min-w-0 flex-1 mr-2 pl-2 justify-center py-2">
+                  <p className="font-bold text-sm text-stone-800 dark:text-stone-100 truncate leading-none mb-1">
+                    {task.title}
+                  </p>
+                  <p className="text-[10px] text-stone-400 font-bold flex items-center gap-1 leading-none">
+                    <Clock size={10} weight="bold" />
+                    {getDurationLeft(task.deadline)}
+                  </p>
+                </div>
+                <div className="flex-shrink-0 flex items-center gap-2">
+                  <span className="text-sm font-bold px-1.5 py-0.5 rounded-md bg-stone-100 dark:bg-stone-700 text-stone-500 dark:text-stone-400">
+                    ${task.stake}
+                  </span>
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </div>
