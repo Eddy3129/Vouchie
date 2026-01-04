@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
   CalendarBlank,
@@ -138,7 +138,6 @@ const VouchieApp = () => {
   const { writeContractAsync: streakFreeze } = useScaffoldWriteContract({ contractName: "VouchieVault" });
   const { writeContractAsync: forfeitGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
   const { writeContractAsync: cancelGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
-  const { writeContractAsync: batchResolveGoals } = useScaffoldWriteContract({ contractName: "VouchieVault" });
   const { writeContractAsync: claimGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
   const { writeContractAsync: vote } = useScaffoldWriteContract({ contractName: "VouchieVault" });
 
@@ -411,37 +410,6 @@ const VouchieApp = () => {
       toast.error("Failed to cast vote");
     }
   };
-
-  // Auto-resolve goals that are past deadline (triggers on-chain liquidation)
-  const autoResolveExpiredGoals = useCallback(async () => {
-    const now = Date.now();
-    // Find goals past deadline that haven't been resolved yet (status="failed" with deadline < now)
-    const unresolvedExpired = goals.filter(g => g.status === "failed" && g.deadline < now);
-    if (unresolvedExpired.length === 0) return;
-
-    const expiredIds = unresolvedExpired.map(g => BigInt(g.id));
-
-    try {
-      await batchResolveGoals({
-        functionName: "batchResolve",
-        args: [expiredIds],
-      });
-      refresh();
-    } catch (e) {
-      // Likely already resolved on-chain, just refresh
-      console.error("Error batch resolving goals:", e);
-      refresh();
-    }
-  }, [goals, batchResolveGoals, refresh]);
-
-  // Auto-resolve expired goals when detected
-  useEffect(() => {
-    const now = Date.now();
-    const hasUnresolvedExpired = goals.some(g => g.status === "failed" && g.deadline < now);
-    if (hasUnresolvedExpired && !loading) {
-      autoResolveExpiredGoals();
-    }
-  }, [goals, loading, autoResolveExpiredGoals]);
 
   return (
     <>
