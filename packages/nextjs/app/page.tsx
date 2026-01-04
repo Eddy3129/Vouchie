@@ -543,8 +543,8 @@ const VouchieApp = () => {
                       </div>
                     </div>
 
-                    {/* Connect Wallet CTA (if not connected) */}
-                    {!address && (
+                    {/* Connect Wallet CTA (if not connected and no Farcaster auth) */}
+                    {!address && !context?.user?.primaryAddress && (
                       <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-[#FAF7F2]/80 dark:bg-stone-900/80 backdrop-blur-md transition-all duration-500">
                         <div className="bg-white dark:bg-stone-800 rounded-[32px] p-8 shadow-2xl border border-stone-100 dark:border-stone-700 animate-in fade-in zoom-in-95 duration-500 max-w-sm w-full relative overflow-hidden">
                           {/* Decorative gradient blob */}
