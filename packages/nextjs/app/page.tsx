@@ -30,7 +30,6 @@ import StartTaskModal from "~~/components/vouchie/Modals/StartTaskModal";
 import TaskDetailModal from "~~/components/vouchie/Modals/TaskDetailModal";
 import VerifyModal from "~~/components/vouchie/Modals/VerifyModal";
 import ProfileView from "~~/components/vouchie/ProfileView";
-import SplashScreen from "~~/components/vouchie/SplashScreen";
 import VouchieView from "~~/components/vouchie/VouchieView";
 import {
   useDeployedContractInfo,
@@ -64,7 +63,6 @@ const VouchieApp = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dashboardTab, setDashboardTab] = useState<"tasks" | "verify">("tasks");
   const [isAddModalOpen, setAddModalOpen] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -446,421 +444,348 @@ const VouchieApp = () => {
   };
 
   return (
-    <>
-      {showSplash ? (
-        <SplashScreen
-          onComplete={() => {
-            setShowSplash(false);
-          }}
-        />
-      ) : (
-        <div
-          className="flex h-screen w-full bg-[#FAF7F2] dark:bg-stone-900 text-stone-800 dark:text-stone-100 overflow-hidden"
-          style={{
-            paddingTop: context?.client?.safeAreaInsets?.top ?? 0,
-            paddingBottom: context?.client?.safeAreaInsets?.bottom ?? 0,
-            paddingLeft: context?.client?.safeAreaInsets?.left ?? 0,
-            paddingRight: context?.client?.safeAreaInsets?.right ?? 0,
-          }}
-        >
-          <FontStyles />
+    <div
+      className="flex h-screen w-full bg-[#FAF7F2] dark:bg-stone-900 text-stone-800 dark:text-stone-100 overflow-hidden"
+      style={{
+        paddingTop: context?.client?.safeAreaInsets?.top ?? 0,
+        paddingBottom: context?.client?.safeAreaInsets?.bottom ?? 0,
+        paddingLeft: context?.client?.safeAreaInsets?.left ?? 0,
+        paddingRight: context?.client?.safeAreaInsets?.right ?? 0,
+      }}
+    >
+      <FontStyles />
 
-          {/* Desktop Sidebar */}
-          <div className="hidden lg:flex w-64 bg-white/50 backdrop-blur-xl border-r border-stone-100 dark:border-stone-800 flex-col p-6 h-full sticky top-0 dark:bg-stone-800/50">
-            <div className="flex items-center gap-3 mb-10">
-              <div className="w-10 h-10 flex items-center justify-center hover-lift">
-                <Image src="/logo.png" alt="Vouchie" width={40} height={40} priority />
-              </div>
-              <span className="text-2xl font-bold text-[#8B5A2B] dark:text-[#FFA726]">Vouchie</span>
-            </div>
-            <nav className="space-y-2">
-              {[
-                { id: "dashboard", icon: House, label: "Home" },
-                { id: "calendar", icon: CalendarBlank, label: "Calendar" },
-                { id: "feed", icon: Compass, label: "Feed" },
-                { id: "squad", icon: Users, label: "Vouchie" },
-                { id: "profile", icon: User, label: "Profile" },
-              ].map(t => (
-                <button
-                  key={t.id}
-                  onClick={() => setActiveTab(t.id)}
-                  className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeTab === t.id ? "bg-white dark:bg-stone-700 shadow-md text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-500 dark:text-stone-400 hover:bg-white/60 dark:hover:bg-stone-800/60"}`}
-                >
-                  <t.icon size={24} weight={activeTab === t.id ? "fill" : "regular"} />
-                  <span className="font-bold text-lg">{t.label}</span>
-                </button>
-              ))}
-            </nav>
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:flex w-64 bg-white/50 backdrop-blur-xl border-r border-stone-100 dark:border-stone-800 flex-col p-6 h-full sticky top-0 dark:bg-stone-800/50">
+        <div className="flex items-center gap-3 mb-10">
+          <div className="w-10 h-10 flex items-center justify-center hover-lift">
+            <Image src="/logo.png" alt="Vouchie" width={40} height={40} priority />
           </div>
+          <span className="text-2xl font-bold text-[#8B5A2B] dark:text-[#FFA726]">Vouchie</span>
+        </div>
+        <nav className="space-y-2">
+          {[
+            { id: "dashboard", icon: House, label: "Home" },
+            { id: "calendar", icon: CalendarBlank, label: "Calendar" },
+            { id: "feed", icon: Compass, label: "Feed" },
+            { id: "squad", icon: Users, label: "Vouchie" },
+            { id: "profile", icon: User, label: "Profile" },
+          ].map(t => (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={`w-full flex items-center gap-4 p-3 rounded-xl transition-all ${activeTab === t.id ? "bg-white dark:bg-stone-700 shadow-md text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-500 dark:text-stone-400 hover:bg-white/60 dark:hover:bg-stone-800/60"}`}
+            >
+              <t.icon size={24} weight={activeTab === t.id ? "fill" : "regular"} />
+              <span className="font-bold text-lg">{t.label}</span>
+            </button>
+          ))}
+        </nav>
+      </div>
 
-          {/* Main Content */}
-          <main className="flex-1 flex flex-col h-full relative overflow-hidden">
-            {/* Content Area */}
-            <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-6 pb-24 lg:px-8 lg:pb-8">
-              <div className="max-w-4xl mx-auto pt-6">
-                {activeTab === "dashboard" && (
-                  <div className="space-y-6 animate-in fade-in duration-500">
-                    {/* Hero Quote Section */}
-                    {/* Hero Quote Section */}
-                    <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-[#FAF7F2] via-white to-[#F5EFE6] dark:from-stone-900 dark:via-stone-800 dark:to-stone-900 shadow-sm border border-stone-200 dark:border-stone-800">
-                      {/* Subtle warm gradient overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-r from-[#8B5A2B]/10 via-transparent to-[#8B5A2B]/5" />
+      {/* Main Content */}
+      <main className="flex-1 flex flex-col h-full relative overflow-hidden">
+        {/* Content Area */}
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-6 pb-24 lg:px-8 lg:pb-8">
+          <div className="max-w-4xl mx-auto pt-6">
+            {activeTab === "dashboard" && (
+              <div className="space-y-6 animate-in fade-in duration-500">
+                {/* Hero Quote Section */}
+                {/* Hero Quote Section */}
+                <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-[#FAF7F2] via-white to-[#F5EFE6] dark:from-stone-900 dark:via-stone-800 dark:to-stone-900 shadow-sm border border-stone-200 dark:border-stone-800">
+                  {/* Subtle warm gradient overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#8B5A2B]/10 via-transparent to-[#8B5A2B]/5" />
 
-                      {/* Ghost silhouette - faded, bleeds off edge */}
-                      <div className="absolute -right-6 bottom-0 w-40 h-full opacity-[0.12] pointer-events-none flex items-end justify-center">
-                        <Image
-                          src={dailyQuote.silhouette}
-                          alt=""
-                          width={160}
-                          height={160}
-                          className="max-w-full max-h-full object-contain object-bottom"
-                          priority
-                          sizes="160px"
-                        />
-                      </div>
+                  {/* Ghost silhouette - faded, bleeds off edge */}
+                  <div className="absolute -right-6 bottom-0 w-40 h-full opacity-[0.12] pointer-events-none flex items-end justify-center">
+                    <Image
+                      src={dailyQuote.silhouette}
+                      alt=""
+                      width={160}
+                      height={160}
+                      className="max-w-full max-h-full object-contain object-bottom"
+                      priority
+                      sizes="160px"
+                    />
+                  </div>
 
-                      {/* Content */}
-                      <div className="relative p-4 pr-16">
-                        {/* Quote mark */}
-                        <Quotes
-                          className="absolute top-3 left-3 text-[#FFA726]/40 dark:text-[#FFA726]/20"
-                          size={24}
-                          weight="fill"
-                        />
+                  {/* Content */}
+                  <div className="relative p-4 pr-16">
+                    {/* Quote mark */}
+                    <Quotes
+                      className="absolute top-3 left-3 text-[#FFA726]/40 dark:text-[#FFA726]/20"
+                      size={24}
+                      weight="fill"
+                    />
 
-                        {/* Quote text */}
-                        <p
-                          className="text-stone-800 dark:text-white/90 text-sm leading-relaxed pl-5 italic"
-                          style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                    {/* Quote text */}
+                    <p
+                      className="text-stone-800 dark:text-white/90 text-sm leading-relaxed pl-5 italic"
+                      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
+                    >
+                      {dailyQuote.text}
+                    </p>
+
+                    {/* Author */}
+                    <p className="text-[#8B5A2B] dark:text-[#FFA726]/80 text-[10px] mt-2 font-bold tracking-widest uppercase pl-5">
+                      — {dailyQuote.author}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Required Section */}
+                {!loading && (
+                  <div className="space-y-3">
+                    {/* 1. Settle Actions (for Creators or Vouchies) */}
+                    {goals
+                      .filter(g => !g.resolved && g.deadline < Date.now())
+                      .map(g => (
+                        <div
+                          key={`settle-${g.id}`}
+                          className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/40 rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-top-2 duration-300"
                         >
-                          {dailyQuote.text}
-                        </p>
-
-                        {/* Author */}
-                        <p className="text-[#8B5A2B] dark:text-[#FFA726]/80 text-[10px] mt-2 font-bold tracking-widest uppercase pl-5">
-                          — {dailyQuote.author}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Action Required Section */}
-                    {!loading && (
-                      <div className="space-y-3">
-                        {/* 1. Settle Actions (for Creators or Vouchies) */}
-                        {goals
-                          .filter(g => !g.resolved && g.deadline < Date.now())
-                          .map(g => (
-                            <div
-                              key={`settle-${g.id}`}
-                              className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/40 rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-top-2 duration-300"
-                            >
-                              <div className="bg-orange-400 p-2 rounded-full text-white">
-                                <Clock size={20} weight="fill" />
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="text-orange-900 dark:text-orange-200 font-bold text-sm">
-                                  Action Required: Settle Goal
-                                </h4>
-                                <p className="text-orange-800/70 dark:text-orange-300/60 text-xs mt-0.5 line-clamp-1">
-                                  &quot;{g.title}&quot; expired. Settle to finalize.
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => handleSettle(g.id)}
-                                className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
-                              >
-                                Settle <ArrowRight size={14} weight="bold" />
-                              </button>
-                            </div>
-                          ))}
-
-                        {/* 2. Claim Payouts (for Vouchies on failed goals) */}
-                        {verificationGoals
-                          .filter(g => g.resolved && !g.successful && !g.userHasClaimed && g.stake > 0)
-                          .map(g => (
-                            <div
-                              key={`claim-${g.id}`}
-                              className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-top-2 duration-300"
-                            >
-                              <div className="bg-green-400 p-2 rounded-full text-white">
-                                <CheckCircle size={20} weight="fill" />
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="text-green-900 dark:text-green-200 font-bold text-sm">
-                                  Action Required: Claim Pot
-                                </h4>
-                                <p className="text-green-800/70 dark:text-green-300/60 text-xs mt-0.5 line-clamp-1">
-                                  Goal failed! Claim your share of {g.stake} {g.currency}.
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => handleClaim(g.id, g.currentUserVouchieIndex || 0)}
-                                className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
-                              >
-                                Claim <ArrowRight size={14} weight="bold" />
-                              </button>
-                            </div>
-                          ))}
-
-                        {/* 3. Claim Refunds (for Creators on successful goals) */}
-                        {goals
-                          .filter(g => g.resolved && g.successful && g.stake > 0)
-                          .map(g => (
-                            <div
-                              key={`refund-${g.id}`}
-                              className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-top-2 duration-300"
-                            >
-                              <div className="bg-blue-400 p-2 rounded-full text-white">
-                                <CheckCircle size={20} weight="fill" />
-                              </div>
-                              <div className="flex-1">
-                                <h4 className="text-blue-900 dark:text-blue-200 font-bold text-sm">
-                                  Action Required: Claim Refund
-                                </h4>
-                                <p className="text-blue-800/70 dark:text-blue-300/60 text-xs mt-0.5 line-clamp-1">
-                                  Goal successful! Claim your {g.stake} {g.currency} refund.
-                                </p>
-                              </div>
-                              <button
-                                onClick={() => handleClaim(g.id, 0)}
-                                className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
-                              >
-                                Claim <ArrowRight size={14} weight="bold" />
-                              </button>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-
-                    {/* Dashboard Tabs */}
-                    <div className="flex gap-2 mb-6">
-                      <button
-                        onClick={() => setDashboardTab("tasks")}
-                        className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                          dashboardTab === "tasks"
-                            ? "bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 shadow-lg"
-                            : "bg-white dark:bg-stone-800 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700"
-                        }`}
-                      >
-                        📋 My Tasks
-                        {goals.filter(t => t.status !== "done" && t.status !== "failed").length > 0 && (
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-xs ${
-                              dashboardTab === "tasks"
-                                ? "bg-white/20 text-white dark:text-stone-900"
-                                : "bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300"
-                            }`}
-                          >
-                            {goals.filter(t => t.status !== "done" && t.status !== "failed").length}
-                          </span>
-                        )}
-                      </button>
-                      <button
-                        onClick={() => setDashboardTab("verify")}
-                        className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                          dashboardTab === "verify"
-                            ? "bg-blue-500 text-white shadow-lg"
-                            : "bg-white dark:bg-stone-800 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700"
-                        }`}
-                      >
-                        🛡️ Verify
-                        {verificationGoals.length > 0 && (
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-xs ${
-                              dashboardTab === "verify"
-                                ? "bg-white/20 text-white"
-                                : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-                            }`}
-                          >
-                            {verificationGoals.length}
-                          </span>
-                        )}
-                      </button>
-                    </div>
-
-                    {/* Task List Tab */}
-                    {dashboardTab === "tasks" && (
-                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-                        {/* Empty State */}
-                        {!loading &&
-                          address &&
-                          goals.filter(t => t.status !== "done" && t.status !== "failed").length === 0 && (
-                            <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
-                              <p className="text-stone-400 font-bold text-lg mb-2">
-                                Woohoo! No pending tasks! <span className="text-2xl ml-1">🎉</span>
-                              </p>
-                              <p className="text-stone-400 text-sm">Use the + button to create a new goal.</p>
-                            </div>
-                          )}
-
-                        {/* Today's Tasks */}
-                        {!loading &&
-                          (() => {
-                            const today = new Date();
-                            today.setHours(0, 0, 0, 0);
-                            const tomorrow = new Date(today);
-                            tomorrow.setDate(tomorrow.getDate() + 1);
-                            const dayAfter = new Date(tomorrow);
-                            dayAfter.setDate(dayAfter.getDate() + 1);
-
-                            const activeGoals = goals.filter(t => t.status !== "done" && t.status !== "failed");
-                            const todayGoals = activeGoals.filter(t => {
-                              const deadline = new Date(t.deadline);
-                              return deadline >= today && deadline < tomorrow;
-                            });
-                            const tomorrowGoals = activeGoals.filter(t => {
-                              const deadline = new Date(t.deadline);
-                              return deadline >= tomorrow && deadline < dayAfter;
-                            });
-                            const otherGoals = activeGoals.filter(t => {
-                              const deadline = new Date(t.deadline);
-                              return deadline >= dayAfter;
-                            });
-
-                            return (
-                              <>
-                                {todayGoals.length > 0 && (
-                                  <div>
-                                    <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
-                                      📅 Today
-                                    </h3>
-                                    <div className="space-y-3">
-                                      {todayGoals.map(task => (
-                                        <GoalCard
-                                          key={task.id}
-                                          goal={task}
-                                          onStart={setSelectedTaskForStart}
-                                          onViewDetails={setSelectedTaskForDetails}
-                                        />
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {tomorrowGoals.length > 0 && (
-                                  <div>
-                                    <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
-                                      🌅 Tomorrow
-                                    </h3>
-                                    <div className="space-y-3">
-                                      {tomorrowGoals.map(task => (
-                                        <GoalCard
-                                          key={task.id}
-                                          goal={task}
-                                          onStart={setSelectedTaskForStart}
-                                          onViewDetails={setSelectedTaskForDetails}
-                                        />
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-
-                                {otherGoals.length > 0 && (
-                                  <div>
-                                    <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
-                                      📆 Later
-                                    </h3>
-                                    <div className="space-y-3">
-                                      {otherGoals.map(task => (
-                                        <GoalCard
-                                          key={task.id}
-                                          goal={task}
-                                          onStart={setSelectedTaskForStart}
-                                          onViewDetails={setSelectedTaskForDetails}
-                                        />
-                                      ))}
-                                    </div>
-                                  </div>
-                                )}
-                              </>
-                            );
-                          })()}
-
-                        {/* Completed Section */}
-                        {!loading && goals.filter(t => t.status === "done").length > 0 && (
-                          <div className="pt-6 border-t border-stone-200 dark:border-stone-700">
-                            <h4 className="text-stone-400 font-bold mb-4 text-xs uppercase tracking-wider flex items-center gap-2">
-                              <CheckCircle size={14} weight="fill" /> Completed
-                            </h4>
-                            {goals
-                              .filter(t => t.status === "done")
-                              .map(task => (
-                                <div
-                                  key={task.id}
-                                  className="p-4 bg-white dark:bg-stone-800 rounded-2xl opacity-60 mb-3 flex items-center gap-3 border border-stone-100 dark:border-stone-700 shadow-sm grayscale transition-all hover:grayscale-0 hover:opacity-100"
-                                >
-                                  <CheckCircle size={20} className="text-green-500 flex-shrink-0" weight="fill" />
-                                  <div>
-                                    <p className="font-bold text-stone-600 dark:text-stone-300 line-through decoration-stone-400 decoration-2">
-                                      {task.title}
-                                    </p>
-                                    <p className="text-xs text-stone-400 font-bold mt-0.5">Completed</p>
-                                  </div>
-                                </div>
-                              ))}
+                          <div className="bg-orange-400 p-2 rounded-full text-white">
+                            <Clock size={20} weight="fill" />
                           </div>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Verify Tab */}
-                    {dashboardTab === "verify" && (
-                      <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
-                        {/* Empty State */}
-                        {!loading && verificationGoals.length === 0 && (
-                          <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
-                            <div className="text-4xl mb-4">🛡️</div>
-                            <p className="text-stone-400 font-bold text-lg mb-2">No verifications pending</p>
-                            <p className="text-stone-400 text-sm">
-                              When someone adds you as a vouchie, their goals will appear here for you to verify.
+                          <div className="flex-1">
+                            <h4 className="text-orange-900 dark:text-orange-200 font-bold text-sm">
+                              Action Required: Settle Goal
+                            </h4>
+                            <p className="text-orange-800/70 dark:text-orange-300/60 text-xs mt-0.5 line-clamp-1">
+                              &quot;{g.title}&quot; expired. Settle to finalize.
                             </p>
                           </div>
-                        )}
+                          <button
+                            onClick={() => handleSettle(g.id)}
+                            className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
+                          >
+                            Settle <ArrowRight size={14} weight="bold" />
+                          </button>
+                        </div>
+                      ))}
 
-                        {/* Verification Cards */}
-                        {!loading &&
-                          verificationGoals.map(task => (
+                    {/* 2. Claim Payouts (for Vouchies on failed goals) */}
+                    {verificationGoals
+                      .filter(g => g.resolved && !g.successful && !g.userHasClaimed && g.stake > 0)
+                      .map(g => (
+                        <div
+                          key={`claim-${g.id}`}
+                          className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-top-2 duration-300"
+                        >
+                          <div className="bg-green-400 p-2 rounded-full text-white">
+                            <CheckCircle size={20} weight="fill" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-green-900 dark:text-green-200 font-bold text-sm">
+                              Action Required: Claim Pot
+                            </h4>
+                            <p className="text-green-800/70 dark:text-green-300/60 text-xs mt-0.5 line-clamp-1">
+                              Goal failed! Claim your share of {g.stake} {g.currency}.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleClaim(g.id, g.currentUserVouchieIndex || 0)}
+                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
+                          >
+                            Claim <ArrowRight size={14} weight="bold" />
+                          </button>
+                        </div>
+                      ))}
+
+                    {/* 3. Claim Refunds (for Creators on successful goals) */}
+                    {goals
+                      .filter(g => g.resolved && g.successful && g.stake > 0)
+                      .map(g => (
+                        <div
+                          key={`refund-${g.id}`}
+                          className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-top-2 duration-300"
+                        >
+                          <div className="bg-blue-400 p-2 rounded-full text-white">
+                            <CheckCircle size={20} weight="fill" />
+                          </div>
+                          <div className="flex-1">
+                            <h4 className="text-blue-900 dark:text-blue-200 font-bold text-sm">
+                              Action Required: Claim Refund
+                            </h4>
+                            <p className="text-blue-800/70 dark:text-blue-300/60 text-xs mt-0.5 line-clamp-1">
+                              Goal successful! Claim your {g.stake} {g.currency} refund.
+                            </p>
+                          </div>
+                          <button
+                            onClick={() => handleClaim(g.id, 0)}
+                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
+                          >
+                            Claim <ArrowRight size={14} weight="bold" />
+                          </button>
+                        </div>
+                      ))}
+                  </div>
+                )}
+
+                {/* Dashboard Tabs */}
+                <div className="flex gap-2 mb-6">
+                  <button
+                    onClick={() => setDashboardTab("tasks")}
+                    className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                      dashboardTab === "tasks"
+                        ? "bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 shadow-lg"
+                        : "bg-white dark:bg-stone-800 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700"
+                    }`}
+                  >
+                    📋 My Tasks
+                    {goals.filter(t => t.status !== "done" && t.status !== "failed").length > 0 && (
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs ${
+                          dashboardTab === "tasks"
+                            ? "bg-white/20 text-white dark:text-stone-900"
+                            : "bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300"
+                        }`}
+                      >
+                        {goals.filter(t => t.status !== "done" && t.status !== "failed").length}
+                      </span>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setDashboardTab("verify")}
+                    className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
+                      dashboardTab === "verify"
+                        ? "bg-blue-500 text-white shadow-lg"
+                        : "bg-white dark:bg-stone-800 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700"
+                    }`}
+                  >
+                    🛡️ Verify
+                    {verificationGoals.length > 0 && (
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-xs ${
+                          dashboardTab === "verify"
+                            ? "bg-white/20 text-white"
+                            : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                        }`}
+                      >
+                        {verificationGoals.length}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {/* Task List Tab */}
+                {dashboardTab === "tasks" && (
+                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                    {/* Empty State */}
+                    {!loading &&
+                      address &&
+                      goals.filter(t => t.status !== "done" && t.status !== "failed").length === 0 && (
+                        <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
+                          <p className="text-stone-400 font-bold text-lg mb-2">
+                            Woohoo! No pending tasks! <span className="text-2xl ml-1">🎉</span>
+                          </p>
+                          <p className="text-stone-400 text-sm">Use the + button to create a new goal.</p>
+                        </div>
+                      )}
+
+                    {/* Today's Tasks */}
+                    {!loading &&
+                      (() => {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const tomorrow = new Date(today);
+                        tomorrow.setDate(tomorrow.getDate() + 1);
+                        const dayAfter = new Date(tomorrow);
+                        dayAfter.setDate(dayAfter.getDate() + 1);
+
+                        const activeGoals = goals.filter(t => t.status !== "done" && t.status !== "failed");
+                        const todayGoals = activeGoals.filter(t => {
+                          const deadline = new Date(t.deadline);
+                          return deadline >= today && deadline < tomorrow;
+                        });
+                        const tomorrowGoals = activeGoals.filter(t => {
+                          const deadline = new Date(t.deadline);
+                          return deadline >= tomorrow && deadline < dayAfter;
+                        });
+                        const otherGoals = activeGoals.filter(t => {
+                          const deadline = new Date(t.deadline);
+                          return deadline >= dayAfter;
+                        });
+
+                        return (
+                          <>
+                            {todayGoals.length > 0 && (
+                              <div>
+                                <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
+                                  📅 Today
+                                </h3>
+                                <div className="space-y-3">
+                                  {todayGoals.map(task => (
+                                    <GoalCard
+                                      key={task.id}
+                                      goal={task}
+                                      onStart={setSelectedTaskForStart}
+                                      onViewDetails={setSelectedTaskForDetails}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {tomorrowGoals.length > 0 && (
+                              <div>
+                                <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
+                                  🌅 Tomorrow
+                                </h3>
+                                <div className="space-y-3">
+                                  {tomorrowGoals.map(task => (
+                                    <GoalCard
+                                      key={task.id}
+                                      goal={task}
+                                      onStart={setSelectedTaskForStart}
+                                      onViewDetails={setSelectedTaskForDetails}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {otherGoals.length > 0 && (
+                              <div>
+                                <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
+                                  📆 Later
+                                </h3>
+                                <div className="space-y-3">
+                                  {otherGoals.map(task => (
+                                    <GoalCard
+                                      key={task.id}
+                                      goal={task}
+                                      onStart={setSelectedTaskForStart}
+                                      onViewDetails={setSelectedTaskForDetails}
+                                    />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+
+                    {/* Completed Section */}
+                    {!loading && goals.filter(t => t.status === "done").length > 0 && (
+                      <div className="pt-6 border-t border-stone-200 dark:border-stone-700">
+                        <h4 className="text-stone-400 font-bold mb-4 text-xs uppercase tracking-wider flex items-center gap-2">
+                          <CheckCircle size={14} weight="fill" /> Completed
+                        </h4>
+                        {goals
+                          .filter(t => t.status === "done")
+                          .map(task => (
                             <div
                               key={task.id}
-                              className="bg-white dark:bg-stone-800 rounded-2xl p-4 border border-stone-200 dark:border-stone-700 shadow-sm"
+                              className="p-4 bg-white dark:bg-stone-800 rounded-2xl opacity-60 mb-3 flex items-center gap-3 border border-stone-100 dark:border-stone-700 shadow-sm grayscale transition-all hover:grayscale-0 hover:opacity-100"
                             >
-                              {/* Header */}
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex-1">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                                      Pending Verification
-                                    </span>
-                                  </div>
-                                  <h4 className="font-bold text-stone-800 dark:text-white text-lg leading-tight">
-                                    {task.title}
-                                  </h4>
-                                </div>
-                                <div className="text-right">
-                                  <p className="text-lg font-bold text-green-600 dark:text-green-400">${task.stake}</p>
-                                  <p className="text-[10px] text-stone-400 uppercase">USDC</p>
-                                </div>
+                              <CheckCircle size={20} className="text-green-500 flex-shrink-0" weight="fill" />
+                              <div>
+                                <p className="font-bold text-stone-600 dark:text-stone-300 line-through decoration-stone-400 decoration-2">
+                                  {task.title}
+                                </p>
+                                <p className="text-xs text-stone-400 font-bold mt-0.5">Completed</p>
                               </div>
-
-                              {/* Creator Info */}
-                              <div className="flex items-center gap-2 mb-4 text-sm text-stone-500 dark:text-stone-400">
-                                <span>Created by</span>
-                                <span className="font-bold text-stone-700 dark:text-stone-300">
-                                  @{task.creatorUsername || task.creator?.slice(0, 8) || "unknown"}
-                                </span>
-                              </div>
-
-                              {/* Action Button */}
-                              <button
-                                onClick={() => {
-                                  setSelectedVerificationGoal(task);
-                                  setIsVerifyModalOpen(true);
-                                }}
-                                className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md"
-                              >
-                                <ShieldCheck size={18} weight="fill" />
-                                Review & Verify
-                              </button>
                             </div>
                           ))}
                       </div>
@@ -868,120 +793,176 @@ const VouchieApp = () => {
                   </div>
                 )}
 
-                {activeTab === "calendar" && (
-                  <CalendarView
-                    tasks={goals}
-                    onTaskClick={goal => {
-                      setSelectedTaskForDetails(goal);
-                    }}
-                  />
+                {/* Verify Tab */}
+                {dashboardTab === "verify" && (
+                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
+                    {/* Empty State */}
+                    {!loading && verificationGoals.length === 0 && (
+                      <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
+                        <div className="text-4xl mb-4">🛡️</div>
+                        <p className="text-stone-400 font-bold text-lg mb-2">No verifications pending</p>
+                        <p className="text-stone-400 text-sm">
+                          When someone adds you as a vouchie, their goals will appear here for you to verify.
+                        </p>
+                      </div>
+                    )}
+
+                    {/* Verification Cards */}
+                    {!loading &&
+                      verificationGoals.map(task => (
+                        <div
+                          key={task.id}
+                          className="bg-white dark:bg-stone-800 rounded-2xl p-4 border border-stone-200 dark:border-stone-700 shadow-sm"
+                        >
+                          {/* Header */}
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                                  Pending Verification
+                                </span>
+                              </div>
+                              <h4 className="font-bold text-stone-800 dark:text-white text-lg leading-tight">
+                                {task.title}
+                              </h4>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-lg font-bold text-green-600 dark:text-green-400">${task.stake}</p>
+                              <p className="text-[10px] text-stone-400 uppercase">USDC</p>
+                            </div>
+                          </div>
+
+                          {/* Creator Info */}
+                          <div className="flex items-center gap-2 mb-4 text-sm text-stone-500 dark:text-stone-400">
+                            <span>Created by</span>
+                            <span className="font-bold text-stone-700 dark:text-stone-300">
+                              @{task.creatorUsername || task.creator?.slice(0, 8) || "unknown"}
+                            </span>
+                          </div>
+
+                          {/* Action Button */}
+                          <button
+                            onClick={() => {
+                              setSelectedVerificationGoal(task);
+                              setIsVerifyModalOpen(true);
+                            }}
+                            className="w-full py-3 bg-blue-500 hover:bg-blue-600 text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md"
+                          >
+                            <ShieldCheck size={18} weight="fill" />
+                            Review & Verify
+                          </button>
+                        </div>
+                      ))}
+                  </div>
                 )}
-                {activeTab === "feed" && <FriendActivityView />}
-                {activeTab === "squad" && <VouchieView />}
-                {activeTab === "profile" && <ProfileView />}
               </div>
-            </div>
+            )}
 
-            {/* Desktop FAB */}
-            <div className="hidden lg:block fixed bottom-10 right-10 z-50">
-              <button
-                onClick={() => setAddModalOpen(true)}
-                className="relative w-16 h-16 rounded-2xl overflow-hidden hover:scale-110 transition-all duration-300 shadow-[0_0_15px_rgba(255,167,38,0.3)] group"
-              >
-                <div className="absolute inset-[-100%] bg-[conic-gradient(from_90deg_at_50%_50%,#1F1F1F_0%,#FFA726_50%,#1F1F1F_100%)] animate-[spin_2s_linear_infinite]" />
-                <div className="absolute inset-[2px] bg-white dark:bg-[#1F1F1F] rounded-[14px] flex items-center justify-center z-10">
-                  <Plus size={32} weight="bold" className="text-[#8B5A2B] dark:text-[#FFA726]" />
-                </div>
-              </button>
-            </div>
-
-            {/* Bottom Nav (Mobile) - FAB integrated in center, hidden when keyboard is open */}
-            <div
-              className={`lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-stone-900/95 backdrop-blur-lg border-t border-stone-100 dark:border-stone-800 flex items-center justify-around px-4 z-40 transition-transform duration-200 ${isKeyboardOpen ? "translate-y-full" : "translate-y-0"}`}
-            >
-              <button
-                onClick={() => setActiveTab("dashboard")}
-                className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "dashboard" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
-              >
-                <House size={22} weight={activeTab === "dashboard" ? "fill" : "bold"} />
-              </button>
-              <button
-                onClick={() => setActiveTab("calendar")}
-                className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "calendar" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
-              >
-                <CalendarBlank size={22} weight={activeTab === "calendar" ? "fill" : "bold"} />
-              </button>
-              {/* Center FAB in nav */}
-              <button
-                onClick={() => setAddModalOpen(true)}
-                className="relative w-14 h-14 rounded-xl overflow-hidden hover:scale-105 transition-all duration-300 shadow-[0_0_15px_rgba(255,167,38,0.3)] -mt-4 group"
-              >
-                <div className="absolute inset-[-100%] bg-[conic-gradient(from_90deg_at_50%_50%,#1F1F1F_0%,#FFA726_50%,#1F1F1F_100%)] animate-[spin_2s_linear_infinite]" />
-                <div className="absolute inset-[2px] bg-white dark:bg-[#1F1F1F] rounded-[10px] flex items-center justify-center z-10">
-                  <Plus size={28} weight="bold" className="text-[#8B5A2B] dark:text-[#FFA726]" />
-                </div>
-              </button>
-              <button
-                onClick={() => setActiveTab("feed")}
-                className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "feed" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
-              >
-                <Compass size={22} weight={activeTab === "feed" ? "fill" : "bold"} />
-              </button>
-              <button
-                onClick={() => setActiveTab("profile")}
-                className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "profile" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
-              >
-                <User size={22} weight={activeTab === "profile" ? "fill" : "bold"} />
-              </button>
-            </div>
-
-            {/* Modals */}
-            <AddModal isOpen={isAddModalOpen} onClose={() => setAddModalOpen(false)} onAdd={handleAdd} />
-
-            <TaskDetailModal
-              isOpen={!!selectedTaskForDetails}
-              goal={selectedTaskForDetails}
-              onClose={() => setSelectedTaskForDetails(null)}
-              onSubmit={handleSubmitProof}
-              onGiveUp={handleGiveUp}
-              onExtend={handleExtend}
-              onComposeCast={composeCast}
-              onSettle={handleSettle}
-              onClaim={handleClaim}
-            />
-
-            <GiveUpModal
-              isOpen={!!selectedTaskForGiveUp}
-              goal={selectedTaskForGiveUp}
-              onClose={() => setSelectedTaskForGiveUp(null)}
-              onConfirmGiveUp={handleConfirmGiveUp}
-              onExtend={handleExtend}
-            />
-
-            <StartTaskModal
-              isOpen={!!selectedTaskForStart}
-              goal={selectedTaskForStart}
-              onClose={() => setSelectedTaskForStart(null)}
-              onStart={handleStartTask}
-            />
-
-            <VerifyModal
-              isOpen={isVerifyModalOpen}
-              goal={selectedVerificationGoal}
-              onClose={() => {
-                setIsVerifyModalOpen(false);
-                setSelectedVerificationGoal(null);
-              }}
-              onVote={handleVote}
-            />
-
-            {/* Background Blobs */}
-            <div className="fixed top-20 right-0 w-64 h-64 bg-[#8B5A2B] rounded-full blur-[100px] opacity-10 pointer-events-none -z-10" />
-            <div className="fixed bottom-20 left-0 w-64 h-64 bg-[#FFA726] rounded-full blur-[80px] opacity-10 pointer-events-none -z-10" />
-          </main>
+            {activeTab === "calendar" && <CalendarView tasks={goals} />}
+            {activeTab === "feed" && <FriendActivityView />}
+            {activeTab === "squad" && <VouchieView />}
+            {activeTab === "profile" && <ProfileView />}
+          </div>
         </div>
-      )}
-    </>
+
+        {/* Desktop FAB */}
+        <div className="hidden lg:block fixed bottom-10 right-10 z-50">
+          <button
+            onClick={() => setAddModalOpen(true)}
+            className="relative w-16 h-16 rounded-2xl overflow-hidden hover:scale-110 transition-all duration-300 shadow-[0_0_15px_rgba(255,167,38,0.3)] group"
+          >
+            <div className="absolute inset-[-100%] bg-[conic-gradient(from_90deg_at_50%_50%,#1F1F1F_0%,#FFA726_50%,#1F1F1F_100%)] animate-[spin_2s_linear_infinite]" />
+            <div className="absolute inset-[2px] bg-white dark:bg-[#1F1F1F] rounded-[14px] flex items-center justify-center z-10">
+              <Plus size={32} weight="bold" className="text-[#8B5A2B] dark:text-[#FFA726]" />
+            </div>
+          </button>
+        </div>
+
+        {/* Bottom Nav (Mobile) - FAB integrated in center, hidden when keyboard is open */}
+        <div
+          className={`lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 dark:bg-stone-900/95 backdrop-blur-lg border-t border-stone-100 dark:border-stone-800 flex items-center justify-around px-4 z-40 transition-transform duration-200 ${isKeyboardOpen ? "translate-y-full" : "translate-y-0"}`}
+        >
+          <button
+            onClick={() => setActiveTab("dashboard")}
+            className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "dashboard" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
+          >
+            <House size={22} weight={activeTab === "dashboard" ? "fill" : "bold"} />
+          </button>
+          <button
+            onClick={() => setActiveTab("calendar")}
+            className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "calendar" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
+          >
+            <CalendarBlank size={22} weight={activeTab === "calendar" ? "fill" : "bold"} />
+          </button>
+          {/* Center FAB in nav */}
+          <button
+            onClick={() => setAddModalOpen(true)}
+            className="relative w-14 h-14 rounded-xl overflow-hidden hover:scale-105 transition-all duration-300 shadow-[0_0_15px_rgba(255,167,38,0.3)] -mt-4 group"
+          >
+            <div className="absolute inset-[-100%] bg-[conic-gradient(from_90deg_at_50%_50%,#1F1F1F_0%,#FFA726_50%,#1F1F1F_100%)] animate-[spin_2s_linear_infinite]" />
+            <div className="absolute inset-[2px] bg-white dark:bg-[#1F1F1F] rounded-[10px] flex items-center justify-center z-10">
+              <Plus size={28} weight="bold" className="text-[#8B5A2B] dark:text-[#FFA726]" />
+            </div>
+          </button>
+          <button
+            onClick={() => setActiveTab("feed")}
+            className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "feed" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
+          >
+            <Compass size={22} weight={activeTab === "feed" ? "fill" : "bold"} />
+          </button>
+          <button
+            onClick={() => setActiveTab("profile")}
+            className={`flex flex-col items-center justify-center w-12 h-12 ${activeTab === "profile" ? "text-[#8B5A2B] dark:text-[#FFA726]" : "text-stone-400"}`}
+          >
+            <User size={22} weight={activeTab === "profile" ? "fill" : "bold"} />
+          </button>
+        </div>
+
+        {/* Modals */}
+        <AddModal isOpen={isAddModalOpen} onClose={() => setAddModalOpen(false)} onAdd={handleAdd} />
+
+        <TaskDetailModal
+          isOpen={!!selectedTaskForDetails}
+          goal={selectedTaskForDetails}
+          onClose={() => setSelectedTaskForDetails(null)}
+          onSubmit={handleSubmitProof}
+          onGiveUp={handleGiveUp}
+          onExtend={handleExtend}
+          onComposeCast={composeCast}
+          onSettle={handleSettle}
+          onClaim={handleClaim}
+        />
+
+        <GiveUpModal
+          isOpen={!!selectedTaskForGiveUp}
+          goal={selectedTaskForGiveUp}
+          onClose={() => setSelectedTaskForGiveUp(null)}
+          onConfirmGiveUp={handleConfirmGiveUp}
+          onExtend={handleExtend}
+        />
+
+        <StartTaskModal
+          isOpen={!!selectedTaskForStart}
+          goal={selectedTaskForStart}
+          onClose={() => setSelectedTaskForStart(null)}
+          onStart={handleStartTask}
+        />
+
+        <VerifyModal
+          isOpen={isVerifyModalOpen}
+          goal={selectedVerificationGoal}
+          onClose={() => {
+            setIsVerifyModalOpen(false);
+            setSelectedVerificationGoal(null);
+          }}
+          onVote={handleVote}
+        />
+
+        {/* Background Blobs */}
+        <div className="fixed top-20 right-0 w-64 h-64 bg-[#8B5A2B] rounded-full blur-[100px] opacity-10 pointer-events-none -z-10" />
+        <div className="fixed bottom-20 left-0 w-64 h-64 bg-[#FFA726] rounded-full blur-[80px] opacity-10 pointer-events-none -z-10" />
+      </main>
+    </div>
   );
 };
 
