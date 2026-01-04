@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
 interface SplashScreenProps {
@@ -8,6 +8,12 @@ interface SplashScreenProps {
 const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const [isVisible, setIsVisible] = useState(true);
   const [progress, setProgress] = useState(0);
+  const onCompleteRef = useRef(onComplete);
+
+  // Keep ref up to date
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     const progressInterval = setInterval(() => {
@@ -22,14 +28,14 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
 
     const timer = setTimeout(() => {
       setIsVisible(false);
-      setTimeout(onComplete, 300);
+      setTimeout(() => onCompleteRef.current(), 300);
     }, 2000);
 
     return () => {
       clearTimeout(timer);
       clearInterval(progressInterval);
     };
-  }, [onComplete]);
+  }, []); // Empty deps - only run once on mount
 
   if (!isVisible) return null;
 
