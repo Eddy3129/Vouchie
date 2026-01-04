@@ -12,9 +12,7 @@ import {
   ShieldCheck,
   User,
   Users,
-  Wallet,
 } from "@phosphor-icons/react";
-import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { toast } from "react-hot-toast";
 import { parseUnits } from "viem";
 import { erc20Abi } from "viem";
@@ -60,11 +58,11 @@ const MOCK_LONG_TERM: LongTermGoal[] = [
 
 const VouchieApp = () => {
   const { address } = useAccount();
-  const { context, composeCast, isReady } = useMiniapp();
+  const { context, composeCast } = useMiniapp();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dashboardTab, setDashboardTab] = useState<"tasks" | "verify">("tasks");
   const [isAddModalOpen, setAddModalOpen] = useState(false);
-  const [splashAnimationComplete, setSplashAnimationComplete] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -445,15 +443,12 @@ const VouchieApp = () => {
     }
   }, [goals, loading, autoResolveExpiredGoals]);
 
-  // Show splash until both animation completes AND MiniappProvider is ready
-  const showSplash = !splashAnimationComplete || !isReady;
-
   return (
     <>
       {showSplash ? (
         <SplashScreen
           onComplete={() => {
-            setSplashAnimationComplete(true);
+            setShowSplash(false);
           }}
         />
       ) : (
@@ -545,43 +540,6 @@ const VouchieApp = () => {
                         </p>
                       </div>
                     </div>
-
-                    {/* Connect Wallet CTA (if not connected and no Farcaster auth) */}
-                    {!address && !context?.user?.primaryAddress && (
-                      <div className="absolute inset-0 z-50 flex items-center justify-center p-6 bg-[#FAF7F2]/80 dark:bg-stone-900/80 backdrop-blur-md transition-all duration-500">
-                        <div className="bg-white dark:bg-stone-800 rounded-[32px] p-8 shadow-2xl border border-stone-100 dark:border-stone-700 animate-in fade-in zoom-in-95 duration-500 max-w-sm w-full relative overflow-hidden">
-                          {/* Decorative gradient blob */}
-                          <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-orange-50/50 dark:from-orange-900/10 to-transparent pointer-events-none" />
-
-                          <div className="relative flex flex-col items-center justify-center text-center">
-                            <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#8B5A2B] to-[#FFA726] flex items-center justify-center mb-6 shadow-xl ring-8 ring-orange-50 dark:ring-orange-900/20">
-                              <Wallet size={40} weight="fill" className="text-white" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-stone-800 dark:text-stone-100 mb-3">
-                              Start Your Journey
-                            </h2>
-                            <p className="text-stone-500 dark:text-stone-400 mb-8 leading-relaxed">
-                              Connect your wallet to set goals, stake USDC, and make your life more productive today!
-                            </p>
-                            <ConnectButton.Custom>
-                              {({ openConnectModal, mounted }) => {
-                                const ready = mounted;
-                                return (
-                                  <button
-                                    onClick={openConnectModal}
-                                    disabled={!ready}
-                                    className="w-full py-4 px-6 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] hover:from-[#956A4A] hover:to-[#7A4A1B] dark:hover:from-[#E68A00] dark:hover:to-[#E67E00] text-white dark:text-stone-900 font-bold text-lg rounded-2xl shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all duration-200 flex items-center justify-center gap-2.5 active:scale-[0.98]"
-                                  >
-                                    <Wallet size={24} weight="fill" />
-                                    Connect Wallet
-                                  </button>
-                                );
-                              }}
-                            </ConnectButton.Custom>
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     {/* Dashboard Tabs */}
                     <div className="flex gap-2 mb-6">

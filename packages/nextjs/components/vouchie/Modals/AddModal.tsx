@@ -534,7 +534,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
           </div>
 
           {/* Slide to Confirm OR Connect Wallet */}
-          {!address ? (
+          {!address && !context?.user?.primaryAddress ? (
             <div className="w-full">
               <ConnectButton.Custom>
                 {({ openConnectModal, mounted }) => {
