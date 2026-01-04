@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 import { sdk } from "@farcaster/miniapp-sdk";
+import { useAccount, useConnect } from "wagmi";
 
 /**
  * Full Farcaster SDK context types
@@ -147,6 +148,10 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
   const [context, setContext] = useState<FullMiniAppContext>({ user: null });
   const [isReady, setIsReady] = useState(false);
   const [isMiniApp, setIsMiniApp] = useState(false);
+
+  // Wagmi hooks for auto-connecting in mini-app
+  const { connect, connectors } = useConnect();
+  const { isConnected } = useAccount();
 
   const composeCast = async ({ text, embeds = [] }: { text: string; embeds?: string[] }) => {
     try {
@@ -308,6 +313,21 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
 
     initialize();
   }, []);
+
+  // Auto-connect Farcaster wallet when in mini-app
+  useEffect(() => {
+    if (isMiniApp && !isConnected) {
+      // Find the Farcaster miniapp connector
+      const farcasterConnector = connectors.find(
+        c => c.id === "farcasterMiniApp" || c.name.toLowerCase().includes("farcaster"),
+      );
+
+      if (farcasterConnector) {
+        console.log("Auto-connecting Farcaster wallet in mini-app...");
+        connect({ connector: farcasterConnector });
+      }
+    }
+  }, [isMiniApp, isConnected, connect, connectors]);
 
   const value = {
     context,

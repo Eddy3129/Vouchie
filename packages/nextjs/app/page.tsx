@@ -60,11 +60,11 @@ const MOCK_LONG_TERM: LongTermGoal[] = [
 
 const VouchieApp = () => {
   const { address } = useAccount();
-  const { context, composeCast } = useMiniapp();
+  const { context, composeCast, isReady } = useMiniapp();
   const [activeTab, setActiveTab] = useState("dashboard");
   const [dashboardTab, setDashboardTab] = useState<"tasks" | "verify">("tasks");
   const [isAddModalOpen, setAddModalOpen] = useState(false);
-  const [showSplash, setShowSplash] = useState(true);
+  const [splashAnimationComplete, setSplashAnimationComplete] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
@@ -445,12 +445,15 @@ const VouchieApp = () => {
     }
   }, [goals, loading, autoResolveExpiredGoals]);
 
+  // Show splash until both animation completes AND MiniappProvider is ready
+  const showSplash = !splashAnimationComplete || !isReady;
+
   return (
     <>
       {showSplash ? (
         <SplashScreen
           onComplete={() => {
-            setShowSplash(false);
+            setSplashAnimationComplete(true);
           }}
         />
       ) : (
