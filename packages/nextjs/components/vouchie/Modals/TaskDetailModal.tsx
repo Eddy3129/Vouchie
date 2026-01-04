@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Goal } from "../../../types/vouchie";
-import { Camera, PaperPlaneTilt, SmileySad, X } from "@phosphor-icons/react";
+import { ArrowRight, Bank, Camera, HandCoins, PaperPlaneTilt, SmileySad, X } from "@phosphor-icons/react";
 import { buildProofSubmittedCast } from "~~/utils/castHelpers";
 
 interface TaskDetailModalProps {
@@ -13,7 +13,16 @@ interface TaskDetailModalProps {
   onComposeCast?: (params: { text: string; embeds?: string[] }) => void;
 }
 
-const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onComposeCast }: TaskDetailModalProps) => {
+const TaskDetailModal = ({
+  isOpen,
+  onClose,
+  goal,
+  onSubmit,
+  onGiveUp,
+  onComposeCast,
+  onSettle,
+  onClaim,
+}: TaskDetailModalProps & { onSettle?: (id: number) => void; onClaim?: (id: number, index: number) => void }) => {
   const [proofText, setProofText] = useState("");
   const [now, setNow] = useState(Date.now());
 
@@ -174,20 +183,117 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onComposeC
           </div>
         </div>
 
-        {/* Time remaining text - now with seconds */}
+        {/* Time remaining or Status */}
         <div className="text-center mb-6">
-          <div
-            className={`text-3xl font-bold tabular-nums ${
-              timeData.urgency === "danger"
-                ? "text-red-400"
-                : timeData.urgency === "warning"
-                  ? "text-amber-400"
-                  : "text-green-400"
-            }`}
-          >
-            {timeData.hoursLeft}h {timeData.minutesLeft}m {timeData.secondsLeft}s
-          </div>
-          <p className="text-stone-500 text-sm font-semibold">remaining</p>
+          {goal.resolved ? (
+            <div className="flex flex-col items-center">
+              <div
+                className={`text-4xl font-black ${goal.successful ? "text-green-500" : "text-red-500"} flex items-center gap-2 mb-2 tracking-tight`}
+              >
+                {goal.successful ? "SUCCESS" : "FAILED"}
+              </div>
+
+              {/* Fund Destination Card */}
+              <div
+                className={`w-full bg-stone-50 dark:bg-stone-800/50 rounded-2xl p-4 border border-stone-100 dark:border-stone-700/50 mb-2 mt-2`}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
+                    Resolution Payout
+                  </span>
+                  <span
+                    className={`text-xs font-bold px-2 py-0.5 rounded-full ${goal.successful ? "bg-green-100 dark:bg-green-900/30 text-green-600" : "bg-red-100 dark:bg-red-900/30 text-red-600"}`}
+                  >
+                    {goal.successful ? "Refund" : "Slashed"}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div
+                    className={`p-3 rounded-xl ${goal.successful ? "bg-green-500" : "bg-red-500"} text-white shadow-lg shadow-inner`}
+                  >
+                    {goal.successful ? <HandCoins size={24} weight="fill" /> : <Bank size={24} weight="fill" />}
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-xl font-black text-stone-800 dark:text-white leading-none mb-1">
+                      ${goal.stake} <span className="text-[10px] text-stone-400 font-bold">USDC</span>
+                    </p>
+                    <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">
+                      {goal.successful ? (
+                        <>
+                          to be claimed by{" "}
+                          <span className="font-bold text-stone-700 dark:text-stone-200">
+                            @{goal.creatorUsername || "creator"}
+                          </span>
+                        </>
+                      ) : isSolo ? (
+                        <>
+                          sent to{" "}
+                          <span className="font-bold text-red-600/80 dark:text-red-400/80">Protocol Treasury</span>
+                        </>
+                      ) : (
+                        "distributed to the Squad"
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : now > goal.deadline ? (
+            <div className="flex flex-col items-center">
+              <div className="text-4xl font-black text-amber-500 mb-2 tracking-tight">EXPIRED</div>
+
+              {/* Expected Resolution Preview */}
+              <div className="w-full bg-amber-50 dark:bg-amber-900/10 rounded-2xl p-4 border border-amber-100 dark:border-amber-900/30 mb-2 mt-2">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest">
+                    Pending Resolution
+                  </span>
+                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600">
+                    Expired
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-4">
+                  <div className="p-3 rounded-xl bg-amber-400 text-white shadow-lg">
+                    <Bank size={24} weight="fill" />
+                  </div>
+                  <div className="flex-1 text-left">
+                    <p className="text-xl font-black text-stone-800 dark:text-white leading-none mb-1">
+                      ${goal.stake} <span className="text-[10px] text-stone-400 font-bold">USDC</span>
+                    </p>
+                    <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">
+                      will be{" "}
+                      {isSolo ? (
+                        <>
+                          sent to <span className="font-bold text-amber-600">Protocol Treasury</span>
+                        </>
+                      ) : (
+                        <>
+                          split by <span className="font-bold text-amber-600">The Squad</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div
+                className={`text-3xl font-bold tabular-nums ${
+                  timeData.urgency === "danger"
+                    ? "text-red-400"
+                    : timeData.urgency === "warning"
+                      ? "text-amber-400"
+                      : "text-green-400"
+                }`}
+              >
+                {timeData.hoursLeft}h {timeData.minutesLeft}m {timeData.secondsLeft}s
+              </div>
+              <p className="text-stone-500 text-sm font-semibold uppercase tracking-wider">remaining</p>
+            </>
+          )}
         </div>
 
         {/* Vouchies Section - Show who will verify (Squad mode only) */}
@@ -217,51 +323,80 @@ const TaskDetailModal = ({ isOpen, onClose, goal, onSubmit, onGiveUp, onComposeC
           </div>
         )}
 
-        {/* Submit Proof Section */}
-        <div className="bg-stone-50 dark:bg-stone-800 p-4 rounded-2xl mb-4 border border-stone-200 dark:border-stone-700">
-          <h4 className="font-bold text-stone-800 dark:text-white mb-3 flex items-center gap-2 text-sm">
-            <Camera size={16} weight="bold" className="text-stone-400" /> Submit Proof
-          </h4>
-          <p className="text-stone-500 dark:text-stone-400 text-xs mb-3">
-            Your proof will be shared via Farcaster cast. Add a message below!
-          </p>
-          <textarea
-            rows={2}
-            placeholder={
-              isSolo ? "Add a message to your celebration post..." : "Tell your vouchies what you accomplished..."
-            }
-            className="w-full bg-stone-100 dark:bg-stone-700/50 p-3 rounded-xl outline-none font-semibold text-sm text-stone-800 dark:text-stone-200 resize-none mb-3 placeholder:text-stone-400 dark:placeholder:text-stone-500 border border-stone-200 dark:border-stone-600 focus:border-stone-400 dark:focus:border-stone-500"
-            value={proofText}
-            onChange={e => setProofText(e.target.value)}
-          />
+        {/* Settlement / Claiming Actions */}
+        {!goal.resolved && now > goal.deadline && (
           <button
-            onClick={handleSubmit}
-            className={`w-full py-3.5 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 text-sm ${
-              isSolo ? "bg-green-500 hover:bg-green-600" : "bg-purple-500 hover:bg-purple-600"
-            }`}
+            onClick={() => onSettle?.(goal.id)}
+            className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-orange-500/20 mb-4"
           >
-            {isSolo ? (
-              <>
-                <PaperPlaneTilt size={18} weight="bold" /> Complete & Share
-              </>
-            ) : (
-              <>
-                <PaperPlaneTilt size={18} weight="bold" /> Cast Proof to Vouchies
-              </>
-            )}
+            Settle Goal Now <ArrowRight size={18} weight="bold" />
           </button>
-          <p className="text-stone-500 text-xs text-center mt-2">
-            {isSolo ? "Share your win with your followers! 🎉" : "Your vouchies will verify via the cast embed"}
-          </p>
-        </div>
+        )}
 
-        {/* Give Up Button - Opens GiveUpModal */}
-        <button
-          onClick={() => onGiveUp(goal.id)}
-          className="w-full py-3 text-red-400 font-bold hover:bg-red-900/20 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm border border-red-900/50"
-        >
-          <SmileySad size={16} weight="bold" /> I Can&apos;t Do This
-        </button>
+        {goal.resolved && !goal.userHasClaimed && goal.stake > 0 && (
+          <button
+            onClick={() => onClaim?.(goal.id, goal.currentUserVouchieIndex || 0)}
+            className="w-full py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-green-500/20 mb-4"
+          >
+            Claim {goal.successful ? "Refund" : "Share"} (+${goal.stake}) <HandCoins size={18} weight="bold" />
+          </button>
+        )}
+
+        {goal.resolved && goal.userHasClaimed && (
+          <div className="bg-stone-100 dark:bg-stone-800 p-4 rounded-xl text-center mb-4 border border-stone-200 dark:border-stone-700">
+            <p className="text-sm font-bold text-stone-400">✅ Payout Collected</p>
+          </div>
+        )}
+
+        {/* Submit Proof Section - Only if active */}
+        {!goal.resolved && now <= goal.deadline && (
+          <div className="bg-stone-50 dark:bg-stone-800 p-4 rounded-2xl mb-4 border border-stone-200 dark:border-stone-700">
+            <h4 className="font-bold text-stone-800 dark:text-white mb-3 flex items-center gap-2 text-sm">
+              <Camera size={16} weight="bold" className="text-stone-400" /> Submit Proof
+            </h4>
+            <p className="text-stone-500 dark:text-stone-400 text-xs mb-3">
+              Your proof will be shared via Farcaster cast. Add a message below!
+            </p>
+            <textarea
+              rows={2}
+              placeholder={
+                isSolo ? "Add a message to your celebration post..." : "Tell your vouchies what you accomplished..."
+              }
+              className="w-full bg-stone-100 dark:bg-stone-700/50 p-3 rounded-xl outline-none font-semibold text-sm text-stone-800 dark:text-stone-200 resize-none mb-3 placeholder:text-stone-400 dark:placeholder:text-stone-500 border border-stone-200 dark:border-stone-600 focus:border-stone-400 dark:focus:border-stone-500"
+              value={proofText}
+              onChange={e => setProofText(e.target.value)}
+            />
+            <button
+              onClick={handleSubmit}
+              className={`w-full py-3.5 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 text-sm ${
+                isSolo ? "bg-green-500 hover:bg-green-600" : "bg-purple-500 hover:bg-purple-600"
+              }`}
+            >
+              {isSolo ? (
+                <>
+                  <PaperPlaneTilt size={18} weight="bold" /> Complete & Share
+                </>
+              ) : (
+                <>
+                  <PaperPlaneTilt size={18} weight="bold" /> Cast Proof to Vouchies
+                </>
+              )}
+            </button>
+            <p className="text-stone-500 text-xs text-center mt-2">
+              {isSolo ? "Share your win with your followers! 🎉" : "Your vouchies will verify via the cast embed"}
+            </p>
+          </div>
+        )}
+
+        {/* Give Up Button - Only if active */}
+        {!goal.resolved && now <= goal.deadline && (
+          <button
+            onClick={() => onGiveUp(goal.id)}
+            className="w-full py-3 text-red-400 font-bold hover:bg-red-900/20 rounded-xl transition-colors flex items-center justify-center gap-2 text-sm border border-red-900/50"
+          >
+            <SmileySad size={16} weight="bold" /> I Can&apos;t Do This
+          </button>
+        )}
       </div>
     </div>
   );

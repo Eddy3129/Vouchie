@@ -7,9 +7,10 @@ import { useVouchieData } from "~~/hooks/vouchie/useVouchieData";
 
 interface CalendarViewProps {
   tasks: Goal[];
+  onTaskClick?: (goal: Goal) => void;
 }
 
-const CalendarView = ({ tasks }: CalendarViewProps) => {
+const CalendarView = ({ tasks, onTaskClick }: CalendarViewProps) => {
   const [activeTab, setActiveTab] = useState<"upcoming" | "past">("upcoming");
   const [currentDate, setCurrentDate] = useState(new Date());
 
@@ -225,7 +226,8 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
           displayedTasks.map(task => (
             <div
               key={task.id}
-              className="relative bg-white dark:bg-stone-800 py-1 pr-2 pl-4 rounded-lg flex items-center justify-between shadow-sm border border-stone-100 dark:border-stone-700"
+              onClick={() => onTaskClick?.(task)}
+              className="relative bg-white dark:bg-stone-800 py-1 pr-2 pl-4 rounded-lg flex items-center justify-between shadow-sm border border-stone-100 dark:border-stone-700 cursor-pointer hover:border-[#8B5A2B] dark:hover:border-[#FFA726] transition-all"
             >
               <div
                 className={`absolute left-1.5 top-1/2 -translate-y-1/2 w-1 h-6 rounded-full ${

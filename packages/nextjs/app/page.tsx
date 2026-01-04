@@ -868,7 +868,14 @@ const VouchieApp = () => {
                   </div>
                 )}
 
-                {activeTab === "calendar" && <CalendarView tasks={goals} />}
+                {activeTab === "calendar" && (
+                  <CalendarView
+                    tasks={goals}
+                    onTaskClick={goal => {
+                      setSelectedTaskForDetails(goal);
+                    }}
+                  />
+                )}
                 {activeTab === "feed" && <FriendActivityView />}
                 {activeTab === "squad" && <VouchieView />}
                 {activeTab === "profile" && <ProfileView />}
@@ -939,6 +946,8 @@ const VouchieApp = () => {
               onGiveUp={handleGiveUp}
               onExtend={handleExtend}
               onComposeCast={composeCast}
+              onSettle={handleSettle}
+              onClaim={handleClaim}
             />
 
             <GiveUpModal
