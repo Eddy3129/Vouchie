@@ -155,7 +155,7 @@
 }
 
 @utility btn-primary {
-  @apply bg-[#8B5A2B] hover:bg-[#7A4A1F] dark:bg-[#FFA726] dark:hover:bg-[#FF8C00] text-white font-bold py-3 px-6 rounded-full transition-all shadow-md hover:shadow-lg;
+  @apply bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900 font-bold py-3 px-6 rounded-full transition-all shadow-md hover:shadow-lg;
 }
 
 @utility btn-secondary {

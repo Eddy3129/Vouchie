@@ -34,7 +34,7 @@ const HomeActiveView = ({
   const isUrgent = activeGoal ? activeGoal.deadline - Date.now() < 1000 * 60 * 60 * 4 : false;
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-24 px-6 pt-6">
+    <div className="space-y-8 animate-in fade-in duration-500 pb-8 px-6 pt-6">
       {/* 1. HERO SECTION: Active Commitment */}
       {activeGoal ? (
         <div className="relative overflow-hidden rounded-[2rem] bg-white dark:bg-stone-900 shadow-xl border-2 border-stone-100 dark:border-stone-800 p-8 text-center group transition-all hover:shadow-2xl hover:scale-[1.01]">
@@ -107,7 +107,7 @@ const HomeActiveView = ({
           </p>
           <button
             onClick={onCreate}
-            className="px-8 py-4 bg-[#8B5A2B] hover:bg-[#7A4A1F] text-white rounded-2xl font-bold shadow-lg hover:shadow-lg transition-all transform active:scale-95"
+            className="px-8 py-4 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900 rounded-2xl font-bold shadow-lg hover:shadow-lg transition-all transform active:scale-95"
           >
             Create New Commitment
           </button>

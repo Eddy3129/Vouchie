@@ -22,6 +22,7 @@ export interface Goal {
   successful: boolean;
   userHasClaimed?: boolean;
   currentUserVouchieIndex?: number;
+  proofText?: string;
 }
 
 // Grace period constant (10 minutes in ms) - must match contract

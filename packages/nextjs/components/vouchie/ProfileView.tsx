@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Avatar from "./Avatar";
 import SlidingTabs from "./SlidingTabs";
-import { CaretDown, CaretUp, Fire, Spinner, Wallet } from "@phosphor-icons/react";
+import { CaretDown, CaretUp, Fire, Spinner, Target, Trophy, Wallet } from "@phosphor-icons/react";
 import { Quotes } from "@phosphor-icons/react";
 import { formatUnits } from "viem";
 import { useAccount } from "wagmi";
@@ -58,11 +58,20 @@ const ProfileView = () => {
   }, [leaderboard, lookupBatch, address]);
 
   // Compute display stats
+  const totalCreated = userStats?.goalsCreated ?? 0;
+  const successRate = totalCreated > 0 ? Math.round(((userStats?.goalsCompleted ?? 0) / totalCreated) * 100) : 0;
+
+  // Find rank in leaderboard
+  const userRank = leaderboard?.findIndex(u => u.id.toLowerCase() === address?.toLowerCase()) ?? -1;
+  const displayRank = userRank !== -1 ? `#${userRank + 1}` : null;
+
   const stats = {
     tasksCompleted: userStats?.goalsCompleted ?? 0,
     usdcSaved: userStats?.totalSaved ? Number(formatUnits(BigInt(userStats.totalSaved), 6)) : 0,
     streak: userStats?.currentStreak ?? 0,
     active: (userStats?.goalsCreated ?? 0) - (userStats?.goalsCompleted ?? 0) - (userStats?.goalsFailed ?? 0),
+    successRate,
+    displayRank,
   };
 
   // Build leaderboard entries with current user and Farcaster data
@@ -127,101 +136,116 @@ const ProfileView = () => {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-24 px-6 pt-6">
+    <div className="space-y-4 pb-8 px-6 pt-6">
       {/* Profile Header - Only show if connected */}
       {address && (
-        <div className="relative overflow-hidden bg-white dark:bg-stone-900 rounded-3xl p-7 shadow-xl border-2 border-stone-300 dark:border-stone-800">
+        <div className="relative overflow-hidden bg-white dark:bg-stone-900 rounded-2xl p-5 shadow-lg border border-stone-200 dark:border-stone-700">
           {/* Background decoration */}
           <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-[#8B5A2B]/20 to-transparent rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
 
-          <div className="relative z-10 flex flex-col items-center text-center">
-            <div className="mb-4 relative">
-              <div className="absolute -inset-1 bg-gradient-to-r from-[#8B5A2B] to-[#FFA726] rounded-full blur opacity-75"></div>
-              <Avatar
-                src={currentUserFc?.pfpUrl || getAvatarUrl(address)}
-                name={currentUserFc?.displayName || "You"}
-                size="xl"
-              />
+          <div className="relative z-10">
+            {/* Rank Badge */}
+            {stats.displayRank && (
+              <div className="absolute top-0 right-0 z-20">
+                <div className="bg-stone-800 dark:bg-stone-700 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm border border-stone-600 dark:border-stone-500">
+                  RANK {stats.displayRank}
+                </div>
+              </div>
+            )}
+
+            {/* Top Container: PFP Left, Info Right */}
+            <div className="flex items-center gap-4 mb-5">
+              {/* Profile Picture */}
+              <div className="relative">
+                <div className="absolute -inset-1 bg-gradient-to-r from-[#8B5A2B] to-[#FFA726] rounded-full blur opacity-75"></div>
+                <Avatar
+                  src={currentUserFc?.pfpUrl || getAvatarUrl(address)}
+                  name={currentUserFc?.displayName || "You"}
+                  size="lg"
+                />
+              </div>
+
+              {/* Identity & Streak Container */}
+              <div className="flex flex-col items-start gap-1">
+                <h1 className="text-lg font-bold text-stone-800 dark:text-white leading-none">
+                  {currentUserFc?.displayName || currentUserFc?.username || formatAddress(address)}
+                </h1>
+
+                {/* Streak Component */}
+                <div className="flex items-center gap-1 px-2.5 py-0.5 bg-orange-50 dark:bg-orange-900/30 rounded-full border border-orange-200 dark:border-orange-800/50">
+                  <Fire size={14} weight="fill" className="text-orange-500" />
+                  <span className="text-xs font-bold text-orange-700 dark:text-orange-300">{stats.streak} Streak</span>
+                </div>
+              </div>
             </div>
 
-            <h1 className="text-2xl font-bold text-stone-800 dark:text-white mb-6">
-              {currentUserFc?.displayName || currentUserFc?.username || formatAddress(address)}
-            </h1>
-
-            {/* Stats Grid */}
-            <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
-              {/* Streak */}
-              <div className="bg-stone-50 dark:bg-stone-800/50 rounded-2xl p-4 border-2 border-stone-200 dark:border-stone-700/50 flex flex-col items-center">
-                <div className="mb-1 text-orange-500">
-                  <Fire size={24} weight="fill" />
+            {/* Bottom Container: Horizontal display of stats */}
+            <div className="grid grid-cols-2 gap-2">
+              {/* Active commitments */}
+              <div className="bg-stone-50 dark:bg-stone-800/50 rounded-xl p-2.5 border border-stone-200 dark:border-stone-700/50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="text-blue-500 bg-blue-100 dark:bg-blue-900/30 p-1 rounded-lg">
+                    <Target size={16} weight="bold" />
+                  </div>
+                  <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Active</span>
                 </div>
-                <span className="text-xl font-bold text-stone-800 dark:text-white">{stats.streak}</span>
-                <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Streak</span>
+                <span className="text-base font-bold text-stone-800 dark:text-white">{Math.max(0, stats.active)}</span>
               </div>
 
-              {/* Completed */}
-              <div className="bg-stone-50 dark:bg-stone-800/50 rounded-2xl p-4 border-2 border-stone-200 dark:border-stone-700/50 flex flex-col items-center">
-                <div className="mb-1 text-green-500">
-                  <Wallet size={24} weight="fill" />
+              {/* Success Rate */}
+              <div className="bg-stone-50 dark:bg-stone-800/50 rounded-xl p-2.5 border border-stone-200 dark:border-stone-700/50 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="text-amber-500 bg-amber-100 dark:bg-amber-900/30 p-1 rounded-lg">
+                    <Trophy size={16} weight="fill" />
+                  </div>
+                  <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Success</span>
                 </div>
-                <span className="text-xl font-bold text-stone-800 dark:text-white">{stats.tasksCompleted}</span>
-                <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Done</span>
-              </div>
-
-              {/* Current Active */}
-              <div className="bg-stone-50 dark:bg-stone-800/50 rounded-2xl p-4 border-2 border-stone-200 dark:border-stone-700/50 flex flex-col items-center">
-                <div className="mb-1 text-blue-500">
-                  <Spinner size={24} weight="bold" />
-                </div>
-                <span className="text-xl font-bold text-stone-800 dark:text-white">{Math.max(0, stats.active)}</span>
-                <span className="text-[10px] text-stone-500 font-bold uppercase tracking-wider">Active</span>
+                <span className="text-base font-bold text-stone-800 dark:text-white">{stats.successRate}%</span>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {/* Daily Motivation Quote */}
-      <div className="relative rounded-2xl overflow-hidden bg-white dark:bg-stone-900 shadow-sm border-2 border-[#8B5A2B]/20 dark:border-[#FFA726]/20">
+      {/* Daily Motivation Quote - Compact */}
+      <div className="relative rounded-xl overflow-hidden bg-white dark:bg-stone-900 shadow-sm border border-[#8B5A2B]/20 dark:border-[#FFA726]/20">
         {/* Base gradient */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#8B5A2B]/5 via-transparent to-[#8B5A2B]/5" />
 
-        {/* Floating Silhouette Background - More Visible */}
+        <div className="relative p-4 flex items-start gap-3 z-10 pr-16">
+          <Quotes className="text-[#FFA726] opacity-40 flex-shrink-0" size={24} weight="fill" />
+          <div className="flex-1 min-w-0">
+            <p
+              className="text-stone-700 dark:text-stone-300 text-sm leading-snug italic mb-1.5 font-medium line-clamp-2"
+              style={{ fontFamily: "Playfair Display, serif" }}
+            >
+              {dailyQuote.text}
+            </p>
+            <p
+              className="text-[#8B5A2B] dark:text-[#FFA726] text-[10px] font-bold tracking-wide uppercase"
+              style={{ fontFamily: "Playfair Display, serif" }}
+            >
+              — {dailyQuote.author}
+            </p>
+          </div>
+        </div>
+        {/* Famous Person Image - Stuck to the right border */}
         {quoteBg && (
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-80 opacity-[0.22] pointer-events-none grayscale blur-[0.5px]">
-            <Image src={quoteBg} alt="background" width={300} height={300} className="object-contain" />
+          <div className="absolute right-0 top-0 bottom-0 w-32 opacity-20 grayscale pointer-events-none">
+            <Image src={quoteBg} alt={dailyQuote.author} fill className="object-contain object-right" />
           </div>
         )}
-
-        {/* Subtle protective overlay for text readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-white/30 via-white/20 to-white/30 dark:from-stone-900/30 dark:via-stone-900/20 dark:to-stone-900/30 pointer-events-none" />
-
-        <div className="relative p-6 flex flex-col items-center text-center z-10">
-          <Quotes className="text-[#FFA726] mb-3 opacity-50" size={32} weight="fill" />
-          <p
-            className="text-stone-800 dark:text-stone-200 text-lg leading-relaxed italic mb-3 font-medium"
-            style={{ fontFamily: "Playfair Display, serif" }}
-          >
-            &ldquo;{dailyQuote.text}&rdquo;
-          </p>
-          <p
-            className="text-[#8B5A2B] dark:text-[#FFA726] text-xs font-bold tracking-widest uppercase"
-            style={{ fontFamily: "Playfair Display, serif" }}
-          >
-            — {dailyQuote.author}
-          </p>
-        </div>
       </div>
 
       {/* Leaderboard Section */}
-      <div className="space-y-4">
-        <header className="flex flex-col gap-4">
+      <div className="space-y-3">
+        <header className="flex flex-col gap-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-stone-800 dark:text-stone-100 flex items-center gap-2">
+            <h2 className="text-lg font-bold text-stone-800 dark:text-stone-100 flex items-center gap-2">
               {activeTab === "streak" ? (
-                <Fire size={24} weight="fill" className="text-orange-500" />
+                <Fire size={20} weight="fill" className="text-orange-500" />
               ) : (
-                <Wallet size={24} weight="fill" className="text-green-500" />
+                <Wallet size={20} weight="fill" className="text-green-500" />
               )}
               Leaderboard
             </h2>

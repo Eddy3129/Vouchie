@@ -230,7 +230,7 @@ const GoalCard = ({ goal, onStart, onViewDetails, isTimelineMode = false, varian
         {goal.status === "pending" && (
           <button
             onClick={() => onStart(goal)}
-            className="w-full py-3 bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 rounded-xl font-bold text-sm shadow-sm hover:bg-[#6B4423] dark:hover:bg-[#FF9800] transition-colors flex items-center justify-center gap-2 min-h-[44px]"
+            className="w-full py-3 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900 rounded-xl font-bold text-sm shadow-sm transition-all flex items-center justify-center gap-2 min-h-[44px]"
           >
             Begin Task <Play size={16} weight="fill" />
           </button>

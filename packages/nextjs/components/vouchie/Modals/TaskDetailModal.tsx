@@ -106,7 +106,7 @@ const TaskDetailModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className={`bg-white dark:bg-stone-900 w-full max-w-sm rounded-3xl p-7 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto border-2 border-stone-300 dark:border-stone-600 ${bgGlow}`}
+        className={`bg-[#FDFBF7] dark:bg-stone-900 w-full max-w-sm rounded-3xl p-7 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto border border-stone-200 dark:border-stone-800 ${bgGlow}`}
       >
         {/* Header */}
         <div className="flex justify-between items-start mb-4">

@@ -73,6 +73,40 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
   const [animationState, setAnimationState] = useState<AnimationState>("exited");
   const [shouldRender, setShouldRender] = useState(false);
 
+  // Recent vouchies state
+  const [recentVouchies, setRecentVouchies] = useState<Vouchie[]>([]);
+
+  // Load recents on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("vouchie_recent_vouchies");
+    if (saved) {
+      try {
+        setRecentVouchies(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to load recents", e);
+      }
+    }
+  }, []);
+
+  const saveToRecents = (vouchies: Vouchie[]) => {
+    if (vouchies.length === 0) return;
+
+    setRecentVouchies(prev => {
+      // Merge new vouchies with existing recents, avoiding duplicates
+      const newRecents = [...vouchies];
+      prev.forEach(p => {
+        if (!newRecents.some(n => n.fid === p.fid)) {
+          newRecents.push(p);
+        }
+      });
+
+      // Keep only top 8 recents
+      const finalRecents = newRecents.slice(0, 8);
+      localStorage.setItem("vouchie_recent_vouchies", JSON.stringify(finalRecents));
+      return finalRecents;
+    });
+  };
+
   // Handle open/close animations - simplified for performance
   useEffect(() => {
     if (isOpen) {
@@ -294,6 +328,8 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
     const effectiveStart = formData.startTime > now ? formData.startTime : now;
     const diffSeconds = Math.max(0, Math.floor((formData.deadline.getTime() - effectiveStart.getTime()) / 1000));
 
+    saveToRecents(formData.vouchies);
+
     onAdd({
       ...formData,
       durationSeconds: diffSeconds,
@@ -407,7 +443,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
                   onClick={chip.action}
                   className={`flex-1 py-1.5 rounded-lg font-bold text-xs transition-all active:scale-95 ${
                     activeChip === chip.label
-                      ? "bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900"
+                      ? "bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900"
                       : "bg-white dark:bg-stone-700 text-stone-500 dark:text-stone-400 hover:text-[#8B5A2B] dark:hover:text-orange-300"
                   }`}
                 >
@@ -463,6 +499,37 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
               </div>
             ) : null}
 
+            {/* Recent Vouchies - Only show when input is active or no vouchies selected */}
+            {(showUsernameInput || formData.vouchies.length === 0) && recentVouchies.length > 0 && (
+              <div className="mb-3">
+                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1.5 px-1">Recents</p>
+                <div className="flex flex-wrap gap-2">
+                  {recentVouchies.map(v => (
+                    <button
+                      key={v.fid}
+                      onClick={() => {
+                        if (!formData.vouchies.some(ev => ev.fid === v.fid)) {
+                          setFormData(prev => ({ ...prev, vouchies: [...prev.vouchies, v] }));
+                        }
+                      }}
+                      className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-xs font-bold transition-all ${
+                        formData.vouchies.some(ev => ev.fid === v.fid)
+                          ? "bg-amber-100 dark:bg-orange-900/30 border-[#8B5A2B] dark:border-[#FFA726] text-[#8B5A2B] dark:text-[#FFA726] opacity-50"
+                          : "bg-white dark:bg-stone-800 border-stone-200 dark:border-stone-700 text-stone-600 dark:text-stone-300 hover:border-[#8B5A2B] dark:hover:border-[#FFA726]"
+                      }`}
+                    >
+                      {v.avatar && v.avatar.startsWith("http") ? (
+                        <Image src={v.avatar} alt={v.name} width={16} height={16} className="w-4 h-4 rounded-full" />
+                      ) : (
+                        <span>{v.avatar || "👤"}</span>
+                      )}
+                      @{v.username}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
               {/* Add button */}
               <button
@@ -514,23 +581,42 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
           </div>
 
           {/* Stake - Simple inline */}
-          <div className="flex items-center gap-3 bg-stone-50 dark:bg-stone-800 rounded-xl p-3 border border-stone-100 dark:border-stone-700">
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Wallet size={18} weight="fill" className="text-[#8B5A2B] dark:text-[#FFA726]" />
-              <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lock</span>
+          <div className="space-y-2">
+            <div className="flex items-center gap-3 bg-stone-50 dark:bg-stone-800 rounded-xl p-3 border border-stone-100 dark:border-stone-700">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Wallet size={18} weight="fill" className="text-[#8B5A2B] dark:text-[#FFA726]" />
+                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">Lock</span>
+              </div>
+              <div className="flex-1 flex items-center justify-end gap-1">
+                <input
+                  type="number"
+                  placeholder="10"
+                  className="bg-transparent text-xl font-bold w-24 outline-none text-right text-stone-800 dark:text-stone-100 placeholder:text-stone-300 dark:placeholder:text-stone-600"
+                  value={formData.stake === 0 ? "" : formData.stake}
+                  onChange={e => setFormData({ ...formData, stake: Number(e.target.value) })}
+                />
+              </div>
+              <span className="text-xs font-bold text-stone-400 bg-white dark:bg-stone-700 px-2 py-1 rounded-lg">
+                USDC
+              </span>
             </div>
-            <div className="flex-1 flex items-center justify-end gap-1">
-              <input
-                type="number"
-                placeholder="10"
-                className="bg-transparent text-xl font-bold w-24 outline-none text-right text-stone-800 dark:text-stone-100 placeholder:text-stone-300 dark:placeholder:text-stone-600"
-                value={formData.stake}
-                onChange={e => setFormData({ ...formData, stake: Number(e.target.value) })}
-              />
+
+            {/* Quick Stake Chips */}
+            <div className="flex gap-2">
+              {[1, 5, 10, 20].map(amount => (
+                <button
+                  key={amount}
+                  onClick={() => setFormData(prev => ({ ...prev, stake: amount }))}
+                  className={`flex-1 py-1.5 rounded-lg font-bold text-xs transition-all active:scale-95 ${
+                    formData.stake === amount
+                      ? "bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900"
+                      : "bg-stone-50 dark:bg-stone-800 text-stone-500 dark:text-stone-400 border border-stone-100 dark:border-stone-700 hover:text-[#8B5A2B] dark:hover:text-orange-300"
+                  }`}
+                >
+                  ${amount}
+                </button>
+              ))}
             </div>
-            <span className="text-xs font-bold text-stone-400 bg-white dark:bg-stone-700 px-2 py-1 rounded-lg">
-              USDC
-            </span>
           </div>
 
           {/* Slide to Confirm OR Connect Wallet */}
@@ -589,7 +675,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
       {/* Confirmation Popup */}
       {showConfirm && (
         <div className="absolute inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white dark:bg-stone-900 rounded-2xl p-5 w-full max-w-sm animate-in zoom-in-95 duration-200 shadow-2xl border border-stone-100 dark:border-stone-800">
+          <div className="bg-[#FDFBF7] dark:bg-stone-900 rounded-2xl p-5 w-full max-w-sm animate-in zoom-in-95 duration-200 shadow-2xl border border-stone-200 dark:border-stone-800">
             {/* Header */}
             <div className="text-center mb-4">
               <h4 className="text-xl font-bold text-stone-800 dark:text-stone-100 mb-1">Confirm Challenge</h4>
@@ -712,7 +798,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
               </button>
               <button
                 onClick={confirmAdd}
-                className="flex-1 py-3 rounded-xl font-bold text-white bg-[#8B5A2B] dark:bg-[#FFA726] dark:text-stone-900 hover:bg-[#6B4423] dark:hover:bg-[#FF9800] transition-colors shadow-lg text-sm flex items-center justify-center gap-1.5"
+                className="flex-1 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] dark:text-stone-900 transition-colors shadow-lg text-sm flex items-center justify-center gap-1.5"
               >
                 <CheckCircle size={18} weight="fill" /> Begin Challenge
               </button>

@@ -43,7 +43,7 @@ const getActivityStyle = (activity: Activity) => {
         icon: <Plus size={14} weight="bold" className="text-white" />,
         iconBg: "bg-blue-500",
         accent: "text-blue-600 dark:text-blue-400",
-        action: "created & staked",
+        action: "staked",
       };
     case "goal_resolved":
       if (activity.successful) {
@@ -177,7 +177,7 @@ const FriendActivityView = () => {
   ];
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-24 px-6 pt-6">
+    <div className="space-y-6 pb-24 px-6 pt-6">
       {/* Sliding Tabs */}
       <SlidingTabs
         tabs={tabs}
@@ -206,8 +206,8 @@ const FriendActivityView = () => {
               ? `https://warpcast.com/${fcUser.username}`
               : `https://warpcast.com/~/profiles/${fcUser?.fid}`;
 
-            // Amount Formatting
-            const rawAmount = Number(formatUnits(BigInt(activity.stakeAmount || 0), decimals)).toFixed(0);
+            // Amount Formatting - formatUnits already converts from wei/base units
+            const rawAmount = Number(formatUnits(BigInt(activity.stakeAmount || 0), decimals)).toFixed(2);
             let amountDisplay = "";
             let amountClass = "";
 

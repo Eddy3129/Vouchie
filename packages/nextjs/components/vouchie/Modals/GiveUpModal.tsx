@@ -74,7 +74,7 @@ const GiveUpModal = ({ isOpen, onClose, goal, onConfirmGiveUp, onExtend }: GiveU
 
   return (
     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-stone-900 rounded-2xl p-5 w-full max-w-xs animate-in zoom-in-95 duration-200 shadow-2xl border border-stone-100 dark:border-stone-800 relative">
+      <div className="bg-[#FDFBF7] dark:bg-stone-900 rounded-2xl p-5 w-full max-w-xs animate-in zoom-in-95 duration-200 shadow-2xl border border-stone-200 dark:border-stone-800 relative">
         {/* Close button */}
         <button
           onClick={onClose}
