@@ -14,6 +14,11 @@ export async function GET(request: NextRequest) {
   const username = searchParams.get("username") || "";
   const mode = searchParams.get("mode") || "Solo";
 
+  // Fetch Ultra font
+  const ultraFont = await fetch(
+    new URL("https://fonts.gstatic.com/s/ultra/v24/zOL64pLDlL1D99S8g8PtiKchq-lmjcXYpw.woff"),
+  ).then(res => res.arrayBuffer());
+
   // Format deadline
   let deadlineText = "";
   if (deadline) {
@@ -59,7 +64,7 @@ export async function GET(request: NextRequest) {
             ? "linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)"
             : "linear-gradient(135deg, #FAF7F2 0%, #F5EFE6 50%, #E8DFD5 100%)",
           padding: "60px",
-          fontFamily: "system-ui, sans-serif",
+          fontFamily: "Ultra",
         }}
       >
         {/* Header */}
@@ -80,15 +85,14 @@ export async function GET(request: NextRequest) {
           >
             <div
               style={{
-                fontSize: "48px",
+                fontSize: "46px",
               }}
             >
               {isProof ? "✅" : "🎯"}
             </div>
             <div
               style={{
-                fontSize: "32px",
-                fontWeight: "bold",
+                fontSize: "30px",
                 color: isProof ? "#FFA726" : "#8B5A2B",
                 letterSpacing: "2px",
               }}
@@ -106,11 +110,10 @@ export async function GET(request: NextRequest) {
               borderRadius: "50px",
             }}
           >
-            <span style={{ fontSize: "20px" }}>{isSquad ? "👥" : "🧍"}</span>
+            <span style={{ fontSize: "18px" }}>{isSquad ? "👥" : "🧍"}</span>
             <span
               style={{
-                fontSize: "18px",
-                fontWeight: "bold",
+                fontSize: "16px",
                 color: isProof ? "#FFA726" : "#8B5A2B",
               }}
             >
@@ -132,8 +135,7 @@ export async function GET(request: NextRequest) {
                 ? "linear-gradient(90deg, #22C55E, #16A34A)"
                 : "linear-gradient(90deg, #FFA726, #FF9800)",
               color: "white",
-              fontSize: "18px",
-              fontWeight: "bold",
+              fontSize: "16px",
               padding: "10px 24px",
               borderRadius: "50px",
               letterSpacing: "1px",
@@ -146,8 +148,7 @@ export async function GET(request: NextRequest) {
         {/* Title */}
         <div
           style={{
-            fontSize: "56px",
-            fontWeight: "bold",
+            fontSize: "54px",
             color: isProof ? "#FFFFFF" : "#1F1F1F",
             marginBottom: "32px",
             lineHeight: "1.2",
@@ -177,7 +178,7 @@ export async function GET(request: NextRequest) {
           >
             <div
               style={{
-                fontSize: "16px",
+                fontSize: "14px",
                 color: isProof ? "#9CA3AF" : "#6B7280",
                 fontWeight: "600",
                 letterSpacing: "1px",
@@ -192,11 +193,10 @@ export async function GET(request: NextRequest) {
                 gap: "12px",
               }}
             >
-              <span style={{ fontSize: "36px" }}>💰</span>
+              <span style={{ fontSize: "34px" }}>💰</span>
               <span
                 style={{
-                  fontSize: "48px",
-                  fontWeight: "bold",
+                  fontSize: "46px",
                   color: isProof ? "#22C55E" : "#16A34A",
                 }}
               >
@@ -204,7 +204,7 @@ export async function GET(request: NextRequest) {
               </span>
               <span
                 style={{
-                  fontSize: "24px",
+                  fontSize: "22px",
                   color: isProof ? "#9CA3AF" : "#6B7280",
                 }}
               >
@@ -224,7 +224,7 @@ export async function GET(request: NextRequest) {
             >
               <div
                 style={{
-                  fontSize: "16px",
+                  fontSize: "14px",
                   color: isProof ? "#9CA3AF" : "#6B7280",
                   fontWeight: "600",
                   letterSpacing: "1px",
@@ -239,11 +239,10 @@ export async function GET(request: NextRequest) {
                   gap: "12px",
                 }}
               >
-                <span style={{ fontSize: "36px" }}>⏰</span>
+                <span style={{ fontSize: "34px" }}>⏰</span>
                 <span
                   style={{
-                    fontSize: "32px",
-                    fontWeight: "bold",
+                    fontSize: "30px",
                     color: isProof ? "#FFFFFF" : "#1F1F1F",
                   }}
                 >
@@ -274,8 +273,8 @@ export async function GET(request: NextRequest) {
             >
               <div
                 style={{
-                  width: "48px",
-                  height: "48px",
+                  width: "46px",
+                  height: "46px",
                   borderRadius: "50%",
                   background: isProof
                     ? "linear-gradient(135deg, #FFA726, #FF9800)"
@@ -283,18 +282,16 @@ export async function GET(request: NextRequest) {
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: "24px",
+                  fontSize: "22px",
                   color: "white",
-                  fontWeight: "bold",
                 }}
               >
                 {username.charAt(0).toUpperCase()}
               </div>
               <span
                 style={{
-                  fontSize: "24px",
+                  fontSize: "22px",
                   color: isProof ? "#E5E7EB" : "#374151",
-                  fontWeight: "600",
                 }}
               >
                 @{username}
@@ -312,8 +309,7 @@ export async function GET(request: NextRequest) {
                 ? "linear-gradient(90deg, #8B5AFF, #6366F1)"
                 : "linear-gradient(90deg, #8B5A2B, #A67B5B)",
               color: "white",
-              fontSize: "24px",
-              fontWeight: "bold",
+              fontSize: "22px",
               padding: "20px 40px",
               borderRadius: "16px",
               boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
@@ -337,6 +333,14 @@ export async function GET(request: NextRequest) {
     {
       width: 1200,
       height: 630,
+      fonts: [
+        {
+          name: "Ultra",
+          data: ultraFont,
+          style: "normal",
+          weight: 400,
+        },
+      ],
     },
   );
 }

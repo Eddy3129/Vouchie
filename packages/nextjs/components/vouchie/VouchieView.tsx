@@ -69,7 +69,7 @@ const VouchieView = () => (
           </button>
         </Card>
       ))}
-      <button className="w-full py-4 border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl text-stone-400 font-bold hover:bg-white/50 dark:hover:bg-stone-800/50 hover:text-[#FFA726] hover:border-[#FFA726] dark:hover:border-[#FFA726] transition-all min-h-[48px]">
+      <button className="w-full py-4 border-2 border-dashed border-stone-300 dark:border-stone-600 rounded-2xl text-stone-400 font-bold hover:bg-white/50 dark:hover:bg-stone-800/50 hover:text-[#FFA726] hover:border-[#FFA726] dark:hover:border-[#FFA726] transition-all min-h-[48px]">
         + Invite Vouchie
       </button>
     </div>

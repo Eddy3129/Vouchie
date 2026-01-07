@@ -54,7 +54,7 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote }: VerifyModalProps) => {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-stone-900 w-full max-w-sm rounded-3xl p-6 animate-in zoom-in-95 duration-300 shadow-2xl border border-stone-200 dark:border-stone-800">
+      <div className="bg-white dark:bg-stone-900 w-full max-w-sm rounded-3xl p-7 animate-in zoom-in-95 duration-300 shadow-2xl border-2 border-stone-300 dark:border-stone-600">
         {!showDenyStep ? (
           <>
             {/* Header */}
@@ -67,7 +67,7 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote }: VerifyModalProps) => {
             </div>
 
             {/* Creator Info */}
-            <div className="flex items-center gap-3 mb-4 p-3 bg-stone-50 dark:bg-stone-800/50 rounded-xl border border-stone-200 dark:border-stone-700">
+            <div className="flex items-center gap-3 mb-4 p-4 bg-stone-50 dark:bg-stone-800/50 rounded-2xl border-2 border-stone-200 dark:border-stone-700">
               {creatorAvatar ? (
                 <Image
                   src={creatorAvatar}
@@ -88,7 +88,7 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote }: VerifyModalProps) => {
             </div>
 
             {/* Goal Info */}
-            <div className="bg-stone-50 dark:bg-stone-800/50 rounded-2xl p-4 mb-6 border border-stone-200 dark:border-stone-700">
+            <div className="bg-stone-50 dark:bg-stone-800/50 rounded-2xl p-5 mb-6 border-2 border-stone-200 dark:border-stone-700">
               <h4 className="font-bold text-stone-800 dark:text-white text-lg mb-2 leading-tight">
                 &ldquo;{goal.title}&rdquo;
               </h4>
@@ -102,7 +102,7 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote }: VerifyModalProps) => {
 
             {/* What happens section */}
             <div className="grid grid-cols-2 gap-3 mb-6">
-              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/50 rounded-xl p-3">
+              <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-300 dark:border-green-800 rounded-2xl p-4">
                 <p className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase tracking-wider mb-1">
                   If Verified
                 </p>
@@ -110,7 +110,7 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote }: VerifyModalProps) => {
                   They get ${goal.stake} back 🎉
                 </p>
               </div>
-              <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl p-3">
+              <div className="bg-red-50 dark:bg-red-900/20 border-2 border-red-300 dark:border-red-800 rounded-2xl p-4">
                 <p className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-1">
                   If Denied
                 </p>
@@ -159,7 +159,7 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote }: VerifyModalProps) => {
             </div>
 
             {/* Goal reminder */}
-            <div className="bg-stone-50 dark:bg-stone-800/50 rounded-xl p-3 mb-4 border border-stone-200 dark:border-stone-700">
+            <div className="bg-stone-50 dark:bg-stone-800/50 rounded-2xl p-4 mb-4 border-2 border-stone-200 dark:border-stone-700">
               <p className="text-sm text-stone-600 dark:text-stone-300 font-semibold">&ldquo;{goal.title}&rdquo;</p>
               <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">${goal.stake} USDC will be slashed</p>
             </div>

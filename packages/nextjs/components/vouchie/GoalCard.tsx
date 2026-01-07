@@ -131,7 +131,7 @@ const GoalCard = ({ goal, onStart, onViewDetails, isTimelineMode = false, varian
     >
       <Card
         color={isFailed ? "bg-red-50 dark:bg-red-900/10" : goal.status === "verifying" ? "bg-white" : goal.color}
-        className={`flex flex-col gap-4 mb-4 ${isFailed ? "opacity-75" : ""}`}
+        className={`flex flex-col gap-4 mb-4 ${isFailed ? "opacity-75 border-red-500 dark:border-red-500/50" : isDone ? "border-green-500 dark:border-green-500/50" : goal.status === "verifying" ? "border-blue-500 dark:border-blue-500/50" : "border-stone-300 dark:border-stone-600"}`}
       >
         <div className="flex justify-between items-start">
           <div>

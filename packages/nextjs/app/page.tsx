@@ -10,7 +10,6 @@ import {
   Compass,
   House,
   Plus,
-  Quotes,
   ShieldCheck,
   User,
   Users,
@@ -22,14 +21,15 @@ import { useAccount, usePublicClient, useReadContract, useWriteContract } from "
 import { useMiniapp } from "~~/components/MiniappProvider";
 import CalendarView from "~~/components/vouchie/CalendarView";
 import FriendActivityView from "~~/components/vouchie/FriendActivityView";
-import GoalCard from "~~/components/vouchie/GoalCard";
 import FontStyles from "~~/components/vouchie/Helper/FontStyles";
+import HomeActiveView from "~~/components/vouchie/HomeActiveView";
 import AddModal from "~~/components/vouchie/Modals/AddModal";
 import GiveUpModal from "~~/components/vouchie/Modals/GiveUpModal";
 import StartTaskModal from "~~/components/vouchie/Modals/StartTaskModal";
 import TaskDetailModal from "~~/components/vouchie/Modals/TaskDetailModal";
 import VerifyModal from "~~/components/vouchie/Modals/VerifyModal";
 import ProfileView from "~~/components/vouchie/ProfileView";
+import SlidingTabs from "~~/components/vouchie/SlidingTabs";
 import VouchieView from "~~/components/vouchie/VouchieView";
 import {
   useDeployedContractInfo,
@@ -39,23 +39,8 @@ import {
 } from "~~/hooks/scaffold-eth";
 import { useFamousQuotes } from "~~/hooks/vouchie/useFamousQuotes";
 import { useVouchieData } from "~~/hooks/vouchie/useVouchieData";
-import { CANCEL_GRACE_PERIOD_MS, Goal, LongTermGoal } from "~~/types/vouchie";
+import { CANCEL_GRACE_PERIOD_MS, Goal } from "~~/types/vouchie";
 import { buildGoalCreatedCast } from "~~/utils/castHelpers";
-
-const MOCK_LONG_TERM: LongTermGoal[] = [
-  {
-    id: 101,
-    title: "Become a Web3 Dev",
-    icon: "🚀",
-    color: "bg-white",
-    deadline: new Date("2025-12-31"),
-    routines: [
-      { id: 1, text: "Daily Solidity Practice", done: true, frequency: "Daily" },
-      { id: 2, text: "Read Whitepaper", done: false, frequency: "Weekly" },
-      { id: 3, text: "Build dApp", done: false, frequency: "Monthly" },
-    ],
-  },
-];
 
 const VouchieApp = () => {
   const { address } = useAccount();
@@ -92,18 +77,50 @@ const VouchieApp = () => {
 
   // Detect virtual keyboard open/close to hide bottom nav
   useEffect(() => {
-    if (typeof window === "undefined" || typeof visualViewport === "undefined") return;
+    if (typeof window === "undefined") return;
 
     const handleResize = () => {
+      if (typeof visualViewport === "undefined" || !visualViewport) return;
       // If viewport height is significantly less than window height, keyboard is likely open
-      const viewportHeight = visualViewport?.height || window.innerHeight;
+      const viewportHeight = visualViewport.height;
       const windowHeight = window.innerHeight;
-      const threshold = windowHeight * 0.75; // Keyboard typically takes 25%+ of screen
+      const threshold = windowHeight * 0.8; // Increased threshold slightly
       setIsKeyboardOpen(viewportHeight < threshold);
     };
 
+    // Also listen for focus events on inputs as a faster signal
+    const handleFocus = (e: FocusEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "INPUT" || target.tagName === "TEXTAREA") {
+        setIsKeyboardOpen(true);
+      }
+    };
+
+    const handleBlur = () => {
+      // Only reset if we're not focusing another input
+      setTimeout(() => {
+        if (document.activeElement?.tagName !== "INPUT" && document.activeElement?.tagName !== "TEXTAREA") {
+          // Let the resize handler verify if keyboard is actually gone (some delay needed)
+          if (
+            typeof visualViewport !== "undefined" &&
+            visualViewport &&
+            visualViewport.height >= window.innerHeight * 0.8
+          ) {
+            setIsKeyboardOpen(false);
+          }
+        }
+      }, 100);
+    };
+
     visualViewport?.addEventListener("resize", handleResize);
-    return () => visualViewport?.removeEventListener("resize", handleResize);
+    window.addEventListener("focusin", handleFocus);
+    window.addEventListener("focusout", handleBlur);
+
+    return () => {
+      visualViewport?.removeEventListener("resize", handleResize);
+      window.removeEventListener("focusin", handleFocus);
+      window.removeEventListener("focusout", handleBlur);
+    };
   }, []);
 
   // Selection States
@@ -114,11 +131,20 @@ const VouchieApp = () => {
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
 
   // Data Hook
-  const { goals, verificationGoals, loading, refresh, updateGoal } = useVouchieData();
-  const [longTermGoals, setLongTermGoals] = useState<LongTermGoal[]>(MOCK_LONG_TERM);
+  /* 
+    Security Fix: Filter goals by user address to ensure data privacy 
+    Verify against both primary Farcaster address and connected wallet
+  */
+  const { goals: rawGoals, verificationGoals, loading, refresh, updateGoal } = useVouchieData();
+
+  const goals = React.useMemo(() => {
+    const userAddr = context?.user?.primaryAddress || address;
+    if (!userAddr) return [];
+    return rawGoals.filter(g => g.creator?.toLowerCase() === userAddr.toLowerCase());
+  }, [rawGoals, context?.user?.primaryAddress, address]);
 
   // Quotes
-  const { dailyQuote } = useFamousQuotes();
+  useFamousQuotes();
 
   // Network Check
   const { targetNetwork } = useTargetNetwork();
@@ -164,77 +190,57 @@ const VouchieApp = () => {
   });
 
   const handleAdd = async (formData: any) => {
-    if (formData.type === "goal") {
-      setLongTermGoals([
-        ...longTermGoals,
-        {
-          id: Date.now(),
-          title: formData.title,
-          icon: "✨",
-          color: "bg-white",
-          deadline: new Date(formData.goalDeadline),
-          routines: [
-            { id: 1, text: "Daily Task", done: false, frequency: "Daily" },
-            { id: 2, text: "Weekly Check-in", done: false, frequency: "Weekly" },
-          ],
-        },
-      ]);
-    } else {
-      try {
-        const stakeAmount = parseUnits(formData.stake.toString(), usdcDecimals);
-        const durationSeconds =
-          formData.durationSeconds ||
-          (formData.deadline === "1h" ? 3600 : formData.deadline === "24h" ? 86400 : 604800);
-        const vouchies =
-          formData.mode === "Vouchie"
-            ? formData.vouchies.map((v: any) => v.address).filter((addr: string) => addr && addr.startsWith("0x"))
-            : [];
+    try {
+      const stakeAmount = parseUnits(formData.stake.toString(), usdcDecimals);
+      const durationSeconds = formData.durationSeconds || 3600; // Default to 1 hour
 
-        // Step 1: Silent approve (no notification popup)
-        if (vaultInfo?.address && usdcInfo?.address && publicClient) {
-          const approveTxHash = await silentApprove({
-            address: usdcInfo.address,
-            abi: erc20Abi,
-            functionName: "approve",
-            args: [vaultInfo.address, stakeAmount],
-          });
-          // Wait for approval to be confirmed before proceeding
-          await publicClient.waitForTransactionReceipt({ hash: approveTxHash });
-        } else if (!publicClient) {
-          console.error("Public client not available, cannot wait for approval");
-          return;
-        }
+      // Extract vouchie addresses only if vouchies array has entries
+      const vouchies =
+        formData.vouchies && formData.vouchies.length > 0
+          ? formData.vouchies.map((v: any) => v.address).filter((addr: string) => addr && addr.startsWith("0x"))
+          : [];
 
-        // Step 2: Create the goal (shows single success notification)
-        await createGoal({
-          functionName: "createGoal",
-          args: [stakeAmount, BigInt(durationSeconds), formData.title, vouchies as any[]],
+      // Step 1: Silent approve (no notification popup)
+      if (vaultInfo?.address && usdcInfo?.address && publicClient) {
+        const approveTxHash = await silentApprove({
+          address: usdcInfo.address,
+          abi: erc20Abi,
+          functionName: "approve",
+          args: [vaultInfo.address, stakeAmount],
         });
-        refresh();
-        refetchBalance();
-
-        // Step 3: Prompt user to share on Farcaster with dynamic OG embed
-        const appUrl = typeof window !== "undefined" ? window.location.origin : "https://vouchie.app";
-        const deadlineTimestamp = Date.now() + durationSeconds * 1000;
-
-        // Get the next goal ID (we just created it, so it should be the latest)
-        // For now, use timestamp as a temporary ID since we don't have the real one yet
-        const tempGoalId = Date.now();
-
-        const castContent = buildGoalCreatedCast(appUrl, {
-          goalId: tempGoalId,
-          title: formData.title,
-          stake: formData.stake,
-          deadline: deadlineTimestamp,
-          username: context?.user?.username || "",
-          mode: formData.vouchies?.length > 0 ? "Squad" : "Solo",
-          vouchieUsernames: formData.vouchies?.map((v: { username?: string }) => v.username).filter(Boolean) || [],
-        });
-
-        composeCast(castContent);
-      } catch (e) {
-        console.error("Error creating goal:", e);
+        // Wait for approval to be confirmed before proceeding
+        await publicClient.waitForTransactionReceipt({ hash: approveTxHash });
+      } else if (!publicClient) {
+        console.error("Public client not available, cannot wait for approval");
+        return;
       }
+
+      // Step 2: Create the goal with vouchie addresses (empty array triggers solo mode)
+      await createGoal({
+        functionName: "createGoal",
+        args: [stakeAmount, BigInt(durationSeconds), formData.title, vouchies],
+      });
+      refresh();
+      refetchBalance();
+
+      // Step 3: Prompt user to share on Farcaster with dynamic OG embed
+      const appUrl = typeof window !== "undefined" ? window.location.origin : "https://vouchie.app";
+      const deadlineTimestamp = Date.now() + durationSeconds * 1000;
+      const tempGoalId = Date.now();
+
+      const castContent = buildGoalCreatedCast(appUrl, {
+        goalId: tempGoalId,
+        title: formData.title,
+        stake: formData.stake,
+        deadline: deadlineTimestamp,
+        username: context?.user?.username || "",
+        mode: vouchies.length > 0 ? "Squad" : "Solo",
+        vouchieUsernames: formData.vouchies?.map((v: { username?: string }) => v.username).filter(Boolean) || [],
+      });
+
+      composeCast(castContent);
+    } catch (e) {
+      console.error("Error creating goal:", e);
     }
   };
 
@@ -486,52 +492,13 @@ const VouchieApp = () => {
       {/* Main Content */}
       <main className="flex-1 flex flex-col h-full relative overflow-hidden">
         {/* Content Area */}
-        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scroll-smooth px-6 pb-24 lg:px-8 lg:pb-8">
-          <div className="max-w-4xl mx-auto pt-6">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scroll-smooth pb-24 lg:pb-8">
+          <div className="max-w-4xl mx-auto">
             {activeTab === "dashboard" && (
               <div className="space-y-6 animate-in fade-in duration-500">
                 {/* Hero Quote Section */}
                 {/* Hero Quote Section */}
-                <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-[#FAF7F2] via-white to-[#F5EFE6] dark:from-stone-900 dark:via-stone-800 dark:to-stone-900 shadow-sm border border-stone-200 dark:border-stone-800">
-                  {/* Subtle warm gradient overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#8B5A2B]/10 via-transparent to-[#8B5A2B]/5" />
-
-                  {/* Ghost silhouette - faded, bleeds off edge */}
-                  <div className="absolute -right-6 bottom-0 w-40 h-full opacity-[0.12] pointer-events-none flex items-end justify-center">
-                    <Image
-                      src={dailyQuote.silhouette}
-                      alt=""
-                      width={160}
-                      height={160}
-                      className="max-w-full max-h-full object-contain object-bottom"
-                      priority
-                      sizes="160px"
-                    />
-                  </div>
-
-                  {/* Content */}
-                  <div className="relative p-4 pr-16">
-                    {/* Quote mark */}
-                    <Quotes
-                      className="absolute top-3 left-3 text-[#FFA726]/40 dark:text-[#FFA726]/20"
-                      size={24}
-                      weight="fill"
-                    />
-
-                    {/* Quote text */}
-                    <p
-                      className="text-stone-800 dark:text-white/90 text-sm leading-relaxed pl-5 italic"
-                      style={{ fontFamily: "'Playfair Display', Georgia, serif" }}
-                    >
-                      {dailyQuote.text}
-                    </p>
-
-                    {/* Author */}
-                    <p className="text-[#8B5A2B] dark:text-[#FFA726]/80 text-[10px] mt-2 font-bold tracking-widest uppercase pl-5">
-                      — {dailyQuote.author}
-                    </p>
-                  </div>
-                </div>
+                {/* Hero Quote Section Removed - Moved to Profile // */}
 
                 {/* Action Required Section */}
                 {!loading && (
@@ -623,179 +590,63 @@ const VouchieApp = () => {
                 )}
 
                 {/* Dashboard Tabs */}
-                <div className="flex gap-2 mb-6">
-                  <button
-                    onClick={() => setDashboardTab("tasks")}
-                    className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                      dashboardTab === "tasks"
-                        ? "bg-[#8B5A2B] dark:bg-[#FFA726] text-white dark:text-stone-900 shadow-lg"
-                        : "bg-white dark:bg-stone-800 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700"
-                    }`}
-                  >
-                    📋 My Tasks
-                    {goals.filter(t => t.status !== "done" && t.status !== "failed").length > 0 && (
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs ${
-                          dashboardTab === "tasks"
-                            ? "bg-white/20 text-white dark:text-stone-900"
-                            : "bg-stone-100 dark:bg-stone-700 text-stone-600 dark:text-stone-300"
-                        }`}
-                      >
-                        {goals.filter(t => t.status !== "done" && t.status !== "failed").length}
-                      </span>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setDashboardTab("verify")}
-                    className={`flex-1 py-3 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2 ${
-                      dashboardTab === "verify"
-                        ? "bg-blue-500 text-white shadow-lg"
-                        : "bg-white dark:bg-stone-800 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700"
-                    }`}
-                  >
-                    🛡️ Verify
-                    {verificationGoals.length > 0 && (
-                      <span
-                        className={`px-2 py-0.5 rounded-full text-xs ${
-                          dashboardTab === "verify"
-                            ? "bg-white/20 text-white"
-                            : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
-                        }`}
-                      >
-                        {verificationGoals.length}
-                      </span>
-                    )}
-                  </button>
-                </div>
+                <SlidingTabs
+                  tabs={[
+                    { id: "tasks", label: <> To Dos</> },
+                    {
+                      id: "verify",
+                      label: (
+                        <>
+                          Verifications
+                          {verificationGoals.length > 0 && (
+                            <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-red-500 text-white">
+                              {verificationGoals.length}
+                            </span>
+                          )}
+                        </>
+                      ),
+                    },
+                  ]}
+                  activeTab={dashboardTab}
+                  onChange={id => setDashboardTab(id as "tasks" | "verify")}
+                  className="mb-6 px-6"
+                />
 
-                {/* Task List Tab */}
-                {dashboardTab === "tasks" && (
-                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-                    {/* Empty State */}
-                    {!loading &&
-                      address &&
-                      goals.filter(t => t.status !== "done" && t.status !== "failed").length === 0 && (
-                        <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
-                          <p className="text-stone-400 font-bold text-lg mb-2">
-                            Woohoo! No pending tasks! <span className="text-2xl ml-1">🎉</span>
-                          </p>
-                          <p className="text-stone-400 text-sm">Use the + button to create a new goal.</p>
-                        </div>
-                      )}
+                {/* Task List Tab -> Now Home Active View */}
+                {dashboardTab === "tasks" &&
+                  // We need to pass data to HomeActiveView
+                  // Logic: Find the single most "active" goal.
+                  // Priority: In Progress > Pending (Tomorrow/Today) > Empty
+                  (() => {
+                    const activeGoals = goals.filter(t => t.status !== "done" && t.status !== "failed");
+                    const inProgress = activeGoals.find(t => t.status === "in_progress");
+                    // If no in-progress, find the nearest pending one
+                    const nextPending = activeGoals.sort((a, b) => a.deadline - b.deadline)[0];
 
-                    {/* Today's Tasks */}
-                    {!loading &&
-                      (() => {
-                        const today = new Date();
-                        today.setHours(0, 0, 0, 0);
-                        const tomorrow = new Date(today);
-                        tomorrow.setDate(tomorrow.getDate() + 1);
-                        const dayAfter = new Date(tomorrow);
-                        dayAfter.setDate(dayAfter.getDate() + 1);
+                    const activeGoal = inProgress || nextPending;
 
-                        const activeGoals = goals.filter(t => t.status !== "done" && t.status !== "failed");
-                        const todayGoals = activeGoals.filter(t => {
-                          const deadline = new Date(t.deadline);
-                          return deadline >= today && deadline < tomorrow;
-                        });
-                        const tomorrowGoals = activeGoals.filter(t => {
-                          const deadline = new Date(t.deadline);
-                          return deadline >= tomorrow && deadline < dayAfter;
-                        });
-                        const otherGoals = activeGoals.filter(t => {
-                          const deadline = new Date(t.deadline);
-                          return deadline >= dayAfter;
-                        });
+                    // Upcoming are the rest
+                    const upcomingGoals = activeGoals
+                      .filter(t => t.id !== activeGoal?.id)
+                      .sort((a, b) => a.deadline - b.deadline);
 
-                        return (
-                          <>
-                            {todayGoals.length > 0 && (
-                              <div>
-                                <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
-                                  📅 Today
-                                </h3>
-                                <div className="space-y-3">
-                                  {todayGoals.map(task => (
-                                    <GoalCard
-                                      key={task.id}
-                                      goal={task}
-                                      onStart={setSelectedTaskForStart}
-                                      onViewDetails={setSelectedTaskForDetails}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
+                    const completedGoals = goals.filter(t => t.status === "done");
 
-                            {tomorrowGoals.length > 0 && (
-                              <div>
-                                <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
-                                  🌅 Tomorrow
-                                </h3>
-                                <div className="space-y-3">
-                                  {tomorrowGoals.map(task => (
-                                    <GoalCard
-                                      key={task.id}
-                                      goal={task}
-                                      onStart={setSelectedTaskForStart}
-                                      onViewDetails={setSelectedTaskForDetails}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {otherGoals.length > 0 && (
-                              <div>
-                                <h3 className="text-sm font-bold text-stone-500 dark:text-stone-400 mb-3 uppercase tracking-wider">
-                                  📆 Later
-                                </h3>
-                                <div className="space-y-3">
-                                  {otherGoals.map(task => (
-                                    <GoalCard
-                                      key={task.id}
-                                      goal={task}
-                                      onStart={setSelectedTaskForStart}
-                                      onViewDetails={setSelectedTaskForDetails}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </>
-                        );
-                      })()}
-
-                    {/* Completed Section */}
-                    {!loading && goals.filter(t => t.status === "done").length > 0 && (
-                      <div className="pt-6 border-t border-stone-200 dark:border-stone-700">
-                        <h4 className="text-stone-400 font-bold mb-4 text-xs uppercase tracking-wider flex items-center gap-2">
-                          <CheckCircle size={14} weight="fill" /> Completed
-                        </h4>
-                        {goals
-                          .filter(t => t.status === "done")
-                          .map(task => (
-                            <div
-                              key={task.id}
-                              className="p-4 bg-white dark:bg-stone-800 rounded-2xl opacity-60 mb-3 flex items-center gap-3 border border-stone-100 dark:border-stone-700 shadow-sm grayscale transition-all hover:grayscale-0 hover:opacity-100"
-                            >
-                              <CheckCircle size={20} className="text-green-500 flex-shrink-0" weight="fill" />
-                              <div>
-                                <p className="font-bold text-stone-600 dark:text-stone-300 line-through decoration-stone-400 decoration-2">
-                                  {task.title}
-                                </p>
-                                <p className="text-xs text-stone-400 font-bold mt-0.5">Completed</p>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                    return (
+                      <HomeActiveView
+                        activeGoal={activeGoal}
+                        upcomingGoals={upcomingGoals}
+                        completedGoals={completedGoals}
+                        onVerify={(g: Goal) => setSelectedTaskForDetails(g)}
+                        onStart={(g: Goal) => setSelectedTaskForStart(g)}
+                        onCreate={() => setAddModalOpen(true)}
+                      />
+                    );
+                  })()}
 
                 {/* Verify Tab */}
                 {dashboardTab === "verify" && (
-                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4">
+                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4 px-6 pt-6 pb-24">
                     {/* Empty State */}
                     {!loading && verificationGoals.length === 0 && (
                       <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">

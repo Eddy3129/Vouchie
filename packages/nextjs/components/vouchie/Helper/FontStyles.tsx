@@ -2,12 +2,21 @@ import React from "react";
 
 const FontStyles = () => (
   <style jsx global>{`
-    @import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;0,600;1,400;1,500&display=swap");
+    @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Ultra&display=swap");
     @import url("https://unpkg.com/@phosphor-icons/web@2.1.1/src/regular/style.css");
 
     body {
-      font-family: "Nunito", sans-serif;
+      font-family: "Playfair Display", serif;
       background-color: var(--fallback-bg, #faf7f2);
+    }
+
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-family: "Ultra", serif;
     }
 
     [data-theme="dark"] body {

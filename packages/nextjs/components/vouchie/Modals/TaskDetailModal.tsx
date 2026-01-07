@@ -106,7 +106,7 @@ const TaskDetailModal = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 dark:bg-black/70 backdrop-blur-md animate-in fade-in duration-200">
       <div
-        className={`bg-white dark:bg-stone-900 w-full max-w-sm rounded-3xl p-6 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto border border-stone-200 dark:border-transparent ${bgGlow}`}
+        className={`bg-white dark:bg-stone-900 w-full max-w-sm rounded-3xl p-7 animate-in zoom-in-95 duration-300 max-h-[90vh] overflow-y-auto border-2 border-stone-300 dark:border-stone-600 ${bgGlow}`}
       >
         {/* Header */}
         <div className="flex justify-between items-start mb-4">
@@ -184,55 +184,40 @@ const TaskDetailModal = ({
         </div>
 
         {/* Time remaining or Status */}
-        <div className="text-center mb-6">
+        <div className="text-center mb-4">
           {goal.resolved ? (
             <div className="flex flex-col items-center">
-              <div
-                className={`text-4xl font-black ${goal.successful ? "text-green-500" : "text-red-500"} flex items-center gap-2 mb-2 tracking-tight`}
-              >
+              <div className={`text-2xl ${goal.successful ? "text-green-500" : "text-red-500"} mb-2`}>
                 {goal.successful ? "SUCCESS" : "FAILED"}
               </div>
 
-              {/* Fund Destination Card */}
+              {/* Compact Fund Destination */}
               <div
-                className={`w-full bg-stone-50 dark:bg-stone-800/50 rounded-2xl p-4 border border-stone-100 dark:border-stone-700/50 mb-2 mt-2`}
+                className={`w-full bg-stone-50 dark:bg-stone-800/50 rounded-2xl p-4 border-2 border-stone-200 dark:border-stone-700`}
               >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">
-                    Resolution Payout
-                  </span>
-                  <span
-                    className={`text-xs font-bold px-2 py-0.5 rounded-full ${goal.successful ? "bg-green-100 dark:bg-green-900/30 text-green-600" : "bg-red-100 dark:bg-red-900/30 text-red-600"}`}
-                  >
-                    {goal.successful ? "Refund" : "Slashed"}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div
-                    className={`p-3 rounded-xl ${goal.successful ? "bg-green-500" : "bg-red-500"} text-white shadow-lg shadow-inner`}
+                    className={`p-2 rounded-lg ${goal.successful ? "bg-green-500" : "bg-red-500"} text-white flex-shrink-0`}
                   >
-                    {goal.successful ? <HandCoins size={24} weight="fill" /> : <Bank size={24} weight="fill" />}
+                    {goal.successful ? <HandCoins size={20} weight="fill" /> : <Bank size={20} weight="fill" />}
                   </div>
-                  <div className="flex-1 text-left">
-                    <p className="text-xl font-black text-stone-800 dark:text-white leading-none mb-1">
-                      ${goal.stake} <span className="text-[10px] text-stone-400 font-bold">USDC</span>
-                    </p>
-                    <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-1 mb-0.5">
+                      <span className="text-lg text-stone-800 dark:text-white">${goal.stake}</span>
+                      <span className="text-[9px] text-stone-400 uppercase">USDC</span>
+                      <span
+                        className={`text-[9px] px-1.5 py-0.5 rounded ml-auto ${goal.successful ? "bg-green-100 dark:bg-green-900/30 text-green-600" : "bg-red-100 dark:bg-red-900/30 text-red-600"}`}
+                      >
+                        {goal.successful ? "Refund" : "Slashed"}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-stone-500 dark:text-stone-400 leading-tight">
                       {goal.successful ? (
-                        <>
-                          to be claimed by{" "}
-                          <span className="font-bold text-stone-700 dark:text-stone-200">
-                            @{goal.creatorUsername || "creator"}
-                          </span>
-                        </>
+                        <>for @{goal.creatorUsername || "creator"}</>
                       ) : isSolo ? (
-                        <>
-                          sent to{" "}
-                          <span className="font-bold text-red-600/80 dark:text-red-400/80">Protocol Treasury</span>
-                        </>
+                        <>to Protocol Treasury</>
                       ) : (
-                        "distributed to the Squad"
+                        <>to Squad</>
                       )}
                     </p>
                   </div>
@@ -241,38 +226,24 @@ const TaskDetailModal = ({
             </div>
           ) : now > goal.deadline ? (
             <div className="flex flex-col items-center">
-              <div className="text-4xl font-black text-amber-500 mb-2 tracking-tight">EXPIRED</div>
+              <div className="text-2xl text-amber-500 mb-2">EXPIRED</div>
 
-              {/* Expected Resolution Preview */}
-              <div className="w-full bg-amber-50 dark:bg-amber-900/10 rounded-2xl p-4 border border-amber-100 dark:border-amber-900/30 mb-2 mt-2">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-[10px] font-bold text-amber-500/80 uppercase tracking-widest">
-                    Pending Resolution
-                  </span>
-                  <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-600">
-                    Expired
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-xl bg-amber-400 text-white shadow-lg">
-                    <Bank size={24} weight="fill" />
+              {/* Compact Expected Resolution */}
+              <div className="w-full bg-amber-50 dark:bg-amber-900/10 rounded-2xl p-4 border-2 border-amber-200 dark:border-amber-800">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-lg bg-amber-400 text-white flex-shrink-0">
+                    <Bank size={20} weight="fill" />
                   </div>
-                  <div className="flex-1 text-left">
-                    <p className="text-xl font-black text-stone-800 dark:text-white leading-none mb-1">
-                      ${goal.stake} <span className="text-[10px] text-stone-400 font-bold">USDC</span>
-                    </p>
-                    <p className="text-xs text-stone-500 dark:text-stone-400 font-medium">
-                      will be{" "}
-                      {isSolo ? (
-                        <>
-                          sent to <span className="font-bold text-amber-600">Protocol Treasury</span>
-                        </>
-                      ) : (
-                        <>
-                          split by <span className="font-bold text-amber-600">The Squad</span>
-                        </>
-                      )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-1 mb-0.5">
+                      <span className="text-lg text-stone-800 dark:text-white">${goal.stake}</span>
+                      <span className="text-[9px] text-stone-400 uppercase">USDC</span>
+                      <span className="text-[9px] px-1.5 py-0.5 rounded ml-auto bg-amber-100 dark:bg-amber-900/40 text-amber-600">
+                        Pending
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-stone-500 dark:text-stone-400 leading-tight">
+                      {isSolo ? <>to Protocol Treasury</> : <>to Squad</>}
                     </p>
                   </div>
                 </div>
@@ -281,45 +252,40 @@ const TaskDetailModal = ({
           ) : (
             <>
               <div
-                className={`text-3xl font-bold tabular-nums ${
+                className={`text-2xl tabular-nums ${
                   timeData.urgency === "danger"
-                    ? "text-red-400"
+                    ? "text-red-500"
                     : timeData.urgency === "warning"
-                      ? "text-amber-400"
-                      : "text-green-400"
+                      ? "text-amber-500"
+                      : "text-green-500"
                 }`}
               >
                 {timeData.hoursLeft}h {timeData.minutesLeft}m {timeData.secondsLeft}s
               </div>
-              <p className="text-stone-500 text-sm font-semibold uppercase tracking-wider">remaining</p>
+              <p className="text-stone-400 text-[10px] uppercase tracking-wider">remaining</p>
             </>
           )}
         </div>
 
-        {/* Vouchies Section - Show who will verify (Squad mode only) */}
+        {/* Vouchies Section - Compact list without avatars */}
         {!isSolo && goal.vouchies.length > 0 && (
-          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-2xl mb-4 border border-purple-200 dark:border-purple-800/50">
-            <h4 className="font-bold text-purple-700 dark:text-purple-300 mb-3 text-sm">
-              👥 Your Vouchies ({goal.vouchies.length})
-            </h4>
-            <div className="flex flex-wrap gap-2">
+          <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-2xl mb-4 border-2 border-purple-200 dark:border-purple-800">
+            <div className="flex items-center justify-between mb-2">
+              <h4 className="text-purple-700 dark:text-purple-300 text-[11px] uppercase tracking-wider">
+                👥 Vouchies ({goal.vouchies.length})
+              </h4>
+              <span className="text-purple-600 dark:text-purple-400 text-[9px]">will verify via Farcaster</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
               {goal.vouchies.map((vouchie, idx) => (
-                <div
+                <span
                   key={idx}
-                  className="flex items-center gap-2 bg-white dark:bg-stone-800 px-3 py-2 rounded-full border border-purple-200 dark:border-purple-700"
+                  className="text-[11px] bg-white dark:bg-stone-800 px-2 py-1 rounded-md text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700/50"
                 >
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-400 to-indigo-500 flex items-center justify-center text-white text-xs font-bold">
-                    {vouchie.username ? vouchie.username.charAt(0).toUpperCase() : vouchie.name.charAt(0).toUpperCase()}
-                  </div>
-                  <span className="text-sm font-semibold text-stone-700 dark:text-stone-300">
-                    {vouchie.username ? `@${vouchie.username}` : vouchie.name}
-                  </span>
-                </div>
+                  @{vouchie.username || vouchie.name}
+                </span>
               ))}
             </div>
-            <p className="text-purple-600 dark:text-purple-400 text-xs mt-3">
-              They will verify your proof via Farcaster
-            </p>
           </div>
         )}
 
@@ -350,7 +316,7 @@ const TaskDetailModal = ({
 
         {/* Submit Proof Section - Only if active */}
         {!goal.resolved && now <= goal.deadline && (
-          <div className="bg-stone-50 dark:bg-stone-800 p-4 rounded-2xl mb-4 border border-stone-200 dark:border-stone-700">
+          <div className="bg-stone-50 dark:bg-stone-800 p-5 rounded-2xl mb-4 border-2 border-stone-200 dark:border-stone-700">
             <h4 className="font-bold text-stone-800 dark:text-white mb-3 flex items-center gap-2 text-sm">
               <Camera size={16} weight="bold" className="text-stone-400" /> Submit Proof
             </h4>

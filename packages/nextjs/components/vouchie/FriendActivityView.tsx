@@ -1,7 +1,22 @@
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { ArrowRight, Check, Clock, Coins, Fire, Medal, Plus, Spinner, Trophy, X } from "@phosphor-icons/react";
+import SlidingTabs from "./SlidingTabs";
+import {
+  ArrowRight,
+  ArrowSquareOut,
+  Calendar,
+  Check,
+  Clock,
+  Coins,
+  Fire,
+  Medal,
+  Plus,
+  Spinner,
+  Trophy,
+  X,
+} from "@phosphor-icons/react";
 import { formatUnits } from "viem";
+import { useAccount } from "wagmi";
 import { useMiniapp } from "~~/components/MiniappProvider";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { FarcasterUser, useFarcasterUser } from "~~/hooks/vouchie/useFarcasterUser";
@@ -102,11 +117,13 @@ const truncateTitle = (title: string | null, maxLength: number = 40) => {
 };
 
 const FriendActivityView = () => {
-  const { data: activities, isLoading, error } = useActivities(20);
+  const { data: activities, isLoading, error } = useActivities(50);
+  const { address: userAddress } = useAccount(); // Get current user address
   const { targetNetwork } = useTargetNetwork();
   const { openProfile } = useMiniapp();
   const { lookupBatch } = useFarcasterUser();
   const [farcasterUsers, setFarcasterUsers] = useState<Map<string, FarcasterUser | null>>(new Map());
+  const [activeTab, setActiveTab] = useState<"global" | "you">("global");
   const decimals = targetNetwork.id === 31337 ? 18 : 6;
 
   // Lookup Farcaster users for activity addresses
@@ -147,128 +164,168 @@ const FriendActivityView = () => {
     );
   }
 
-  // Filter out unwanted activity types (like funds_claimed)
-  const filteredActivities = activities?.filter(a => a.type !== "funds_claimed") || [];
+  // Filter activities based on tab
+  const allActivities = activities?.filter(a => a.type !== "funds_claimed") || [];
+  const filteredActivities =
+    activeTab === "global"
+      ? allActivities
+      : allActivities.filter(a => a.user.toLowerCase() === userAddress?.toLowerCase());
 
-  if (filteredActivities.length === 0) {
-    return (
-      <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-        <header className="mb-4">
-          <h2 className="text-xl font-bold text-stone-800 dark:text-stone-100">Activity</h2>
-        </header>
-        <div className="p-8 text-center text-stone-400 font-bold border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
-          No activities yet. Create a goal to get started!
-        </div>
-      </div>
-    );
-  }
+  const tabs = [
+    { id: "you", label: "Personal" },
+    { id: "global", label: "Global" },
+  ];
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500 pb-20">
-      <header className="mb-2">
-        <h2 className="text-2xl font-bold text-stone-800 dark:text-stone-100">Activity</h2>
-      </header>
+    <div className="space-y-6 animate-in fade-in duration-500 pb-24 px-6 pt-6">
+      {/* Sliding Tabs */}
+      <SlidingTabs
+        tabs={tabs}
+        activeTab={activeTab}
+        onChange={id => setActiveTab(id as "global" | "you")}
+        className="mb-6"
+      />
 
-      <div className="space-y-3">
-        {filteredActivities.map(activity => {
-          const style = getActivityStyle(activity);
-          const goalTitle = truncateTitle(activity.goalTitle);
+      {filteredActivities.length === 0 ? (
+        <div className="p-8 text-center text-stone-400 font-bold border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
+          {activeTab === "you" ? "You haven't done anything yet!" : "No activities yet."}
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredActivities.map(activity => {
+            const style = getActivityStyle(activity);
+            const goalTitle = truncateTitle(activity.goalTitle);
 
-          // Get Farcaster user data if available
-          const fcUser = farcasterUsers.get(activity.user.toLowerCase());
-          const displayName = fcUser?.displayName || fcUser?.username || formatAddress(activity.user);
-          const avatarUrl = fcUser?.pfpUrl || getAvatarUrl(activity.user);
+            // Get Farcaster user data if available
+            const fcUser = farcasterUsers.get(activity.user.toLowerCase());
+            const displayName = fcUser?.displayName || fcUser?.username || formatAddress(activity.user);
+            const avatarUrl = fcUser?.pfpUrl || getAvatarUrl(activity.user);
 
-          // Amount Formatting
-          const rawAmount = Number(formatUnits(BigInt(activity.stakeAmount || 0), decimals)).toFixed(0);
-          let amountDisplay = "";
-          let amountClass = "";
+            // Warpcast Profile URL
+            const warpcastUrl = fcUser?.username
+              ? `https://warpcast.com/${fcUser.username}`
+              : `https://warpcast.com/~/profiles/${fcUser?.fid}`;
 
-          if (activity.type === "goal_created") {
-            amountDisplay = `-$${rawAmount}`;
-            amountClass = "text-red-600 bg-red-50 dark:bg-red-900/20";
-          } else if (activity.type === "goal_resolved") {
-            if (activity.successful) {
-              amountDisplay = `+$${rawAmount}`;
-              amountClass = "text-green-600 bg-green-50 dark:bg-green-900/20";
-            } else {
+            // Amount Formatting
+            const rawAmount = Number(formatUnits(BigInt(activity.stakeAmount || 0), decimals)).toFixed(0);
+            let amountDisplay = "";
+            let amountClass = "";
+
+            if (activity.type === "goal_created") {
               amountDisplay = `-$${rawAmount}`;
               amountClass = "text-red-600 bg-red-50 dark:bg-red-900/20";
+            } else if (activity.type === "goal_resolved") {
+              if (activity.successful) {
+                amountDisplay = `+$${rawAmount}`;
+                amountClass = "text-green-600 bg-green-50 dark:bg-green-900/20";
+              } else {
+                amountDisplay = `-$${rawAmount}`;
+                amountClass = "text-red-600 bg-red-50 dark:bg-red-900/20";
+              }
             }
-          }
 
-          return (
-            <div
-              key={activity.id}
-              className="bg-white dark:bg-stone-800 rounded-xl p-3 shadow-sm border border-stone-100 dark:border-stone-700 transition-all"
-            >
-              <div className="flex gap-3">
-                {/* Avatar */}
-                <div
-                  className={`relative flex-shrink-0 w-10 h-10 ${fcUser?.fid ? "cursor-pointer" : ""}`}
-                  onClick={() => fcUser?.fid && openProfile({ fid: fcUser.fid })}
-                >
-                  <div className="w-10 h-10 rounded-full overflow-hidden bg-stone-100 dark:bg-stone-700 ring-2 ring-white dark:ring-stone-800">
-                    <Image
-                      src={avatarUrl}
-                      alt={displayName}
-                      width={40}
-                      height={40}
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  {/* Small Action Icon Overlay */}
+            // Timestamp Logic
+            const timeAgo = formatPreciseDate(activity.timestamp);
+
+            return (
+              <div
+                key={activity.id}
+                className="card-vouchie relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99]"
+              >
+                <div className="flex gap-3 relative z-10">
+                  {/* Avatar */}
                   <div
-                    className={`absolute -bottom-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center ${style.iconBg} ring-2 ring-white dark:ring-stone-800`}
+                    className="relative flex-shrink-0 w-11 h-11 cursor-pointer"
+                    onClick={() => fcUser?.fid && openProfile({ fid: fcUser.fid })}
                   >
-                    {React.cloneElement(style.icon as React.ReactElement, { size: 10 } as any)}
+                    <div className="w-11 h-11 rounded-full overflow-hidden bg-stone-100 dark:bg-stone-700 ring-2 ring-white dark:ring-stone-800">
+                      <Image
+                        src={avatarUrl}
+                        alt={displayName}
+                        width={44}
+                        height={44}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    {/* Small Action Icon Overlay */}
+                    <div
+                      className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ${style.iconBg} ring-2 ring-white dark:ring-stone-800 shadow-sm`}
+                    >
+                      {React.cloneElement(style.icon as React.ReactElement, { size: 12 } as any)}
+                    </div>
                   </div>
-                </div>
 
-                {/* Content */}
-                <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  {/* Top Row: Name + Action + Date */}
-                  <div className="flex justify-between items-baseline mb-0.5">
-                    <div className="flex items-center gap-1.5 overflow-hidden text-xs">
+                  {/* Content */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+                    {/* Top Row: Name + Time */}
+                    <div className="flex justify-between items-center">
                       <span
-                        className={`font-bold text-stone-900 dark:text-stone-100 truncate ${fcUser?.fid ? "cursor-pointer hover:underline" : ""}`}
+                        className="font-bold text-stone-900 dark:text-stone-100 text-sm truncate cursor-pointer hover:underline"
                         onClick={() => fcUser?.fid && openProfile({ fid: fcUser.fid })}
                       >
-                        {displayName}
+                        {displayName} <span className="text-stone-400 font-normal mx-1">•</span>{" "}
+                        <span className="text-stone-400 font-normal text-xs">{timeAgo}</span>
                       </span>
-                      <span className="text-stone-500 dark:text-stone-400 flex-shrink-0">{style.action}</span>
+
+                      {/* Valid Action Pill (Created/Completed) */}
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border ${
+                          activity.type === "goal_created"
+                            ? "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-900/30"
+                            : activity.successful
+                              ? "bg-green-50 text-green-600 border-green-100 dark:bg-green-900/20 dark:border-green-900/30"
+                              : "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:border-red-900/30"
+                        }`}
+                      >
+                        {style.action}
+                      </span>
                     </div>
-                    {/* Timestamp of the event itself (not deadline) */}
-                    <span className="text-[10px] text-stone-400 font-medium whitespace-nowrap ml-2">
-                      {formatPreciseDate(activity.timestamp)}
-                    </span>
-                  </div>
 
-                  {/* Goal Title */}
-                  <div className="text-sm font-bold text-stone-800 dark:text-stone-100 leading-tight mb-1.5 line-clamp-1">
-                    {goalTitle}
-                  </div>
+                    {/* Goal Title */}
+                    <div className="text-base font-bold text-stone-800 dark:text-stone-100 leading-tight line-clamp-2">
+                      {goalTitle}
+                    </div>
 
-                  {/* Metadata Row: Amount + Deadline (if applicable) */}
-                  <div className="flex items-center gap-2">
-                    {amountDisplay && (
-                      <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md ${amountClass}`}>
-                        {amountDisplay}
-                      </span>
-                    )}
+                    {/* Footer Row: Details */}
+                    <div className="flex items-center justify-between mt-1">
+                      <div className="flex items-center gap-2">
+                        {/* Amount */}
+                        {amountDisplay && (
+                          <span className={`text-xs font-bold px-2 py-1 rounded-lg ${amountClass}`}>
+                            {amountDisplay}
+                          </span>
+                        )}
 
-                    {activity.deadline && Number(activity.deadline) > 0 && (
-                      <span className="text-[10px] text-stone-400 font-medium flex items-center gap-1">
-                        Due {formatPreciseDate(activity.deadline)}
-                      </span>
-                    )}
+                        {/* Deadline Pill (Only if active and exists) */}
+                        {activity.type === "goal_created" && activity.deadline && Number(activity.deadline) > 0 && (
+                          <span className="text-[10px] font-bold text-stone-500 bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded-lg flex items-center gap-1">
+                            <Calendar size={12} weight="fill" />
+                            Due {formatPreciseDate(activity.deadline)}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Integrated Warpcast Link */}
+                      {fcUser && (
+                        <a
+                          href={warpcastUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-stone-400 hover:text-[#8B5A2B] dark:hover:text-[#FFA726] transition-colors"
+                          onClick={e => e.stopPropagation()}
+                          title="View on Warpcast"
+                        >
+                          <ArrowSquareOut size={16} weight="bold" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
