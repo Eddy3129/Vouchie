@@ -2,6 +2,92 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Goal } from "../../types/vouchie";
 import { ArrowRight, CheckCircle, Clock, ShieldCheck } from "@phosphor-icons/react";
 
+// --- Utility: Get Previous State Hook ---
+function usePrevious<T>(value: T): T | undefined {
+  const ref = useRef<T>(undefined);
+  useEffect(() => {
+    ref.current = value;
+  }, [value]);
+  return ref.current;
+}
+
+// --- Component: Single Flip Digit ---
+const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => {
+  const [isFlipping, setIsFlipping] = useState(false);
+  const prevDigit = usePrevious(val);
+
+  useEffect(() => {
+    if (prevDigit !== undefined && val !== prevDigit) {
+      setIsFlipping(true);
+      const timer = setTimeout(() => {
+        setIsFlipping(false);
+      }, 600); // Matches CSS duration
+      return () => clearTimeout(timer);
+    }
+  }, [val, prevDigit]);
+
+  const digitToRender = val;
+  const prevToRender = prevDigit !== undefined ? prevDigit : val;
+
+  return (
+    <div className="relative w-8 h-12 perspective-[400px]" style={{ perspective: "400px" }}>
+      {/* STATIC LAYER (Behind) */}
+      <div className="absolute top-0 left-0 w-full h-1/2 bg-stone-900 rounded-t-lg overflow-hidden border-b border-black/40 z-0 flex justify-center items-end">
+        <span className={`text-2xl font-black font-mono tracking-tighter translate-y-[50%] ${colorClass}`}>
+          {digitToRender}
+        </span>
+      </div>
+
+      <div className="absolute bottom-0 left-0 w-full h-1/2 bg-stone-900 rounded-b-lg overflow-hidden border-t border-white/5 z-0 flex justify-center items-start shadow-xl">
+        <span className={`text-2xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
+          {prevToRender}
+        </span>
+      </div>
+
+      {/* ANIMATION LAYERS (Front) */}
+      <div
+        className={`absolute top-0 left-0 w-full h-1/2 bg-stone-900 rounded-t-lg overflow-hidden border-b border-black/40 z-10 origin-bottom backface-hidden flex justify-center items-end ${
+          isFlipping ? "animate-flip-down" : ""
+        }`}
+        style={{ transformStyle: "preserve-3d" }}
+      >
+        <span className={`text-2xl font-black font-mono tracking-tighter translate-y-[50%] ${colorClass}`}>
+          {prevToRender}
+        </span>
+      </div>
+
+      <div
+        className={`absolute top-1/2 left-0 w-full h-1/2 bg-stone-900 rounded-b-lg overflow-hidden border-t border-white/5 z-10 origin-top backface-hidden flex justify-center items-start ${
+          isFlipping ? "animate-flip-up" : "hidden"
+        }`}
+        style={{ transform: "rotateX(180deg)" }}
+      >
+        <span className={`text-2xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
+          {digitToRender}
+        </span>
+      </div>
+
+      {/* Subtle urgent glow */}
+      {colorClass.includes("text-red-500") && (
+        <div className="absolute inset-0 bg-red-500/5 animate-pulse pointer-events-none rounded-lg" />
+      )}
+    </div>
+  );
+};
+
+// --- Component: Group of two digits ---
+const FlipGroup = ({ val, colorClass, label }: { val: string; colorClass: string; label: string }) => {
+  return (
+    <div className="flex flex-col items-center">
+      <div className="flex gap-1 items-center">
+        <FlipDigit val={val[0] || "0"} colorClass={colorClass} />
+        <FlipDigit val={val[1] || "0"} colorClass={colorClass} />
+      </div>
+      <span className="text-[9px] font-bold uppercase tracking-widest text-stone-500 mt-2">{label}</span>
+    </div>
+  );
+};
+
 interface HomeActiveViewProps {
   activeGoal: Goal | undefined;
   upcomingGoals: Goal[];
@@ -69,79 +155,6 @@ const HomeActiveView = ({
       return goalDate >= startOfToday;
     });
   }, [completedGoals]);
-
-  // Flip digit component for animation
-  const FlipDigit = ({ val, colorClass, label }: { val: string; colorClass: string; label?: string }) => {
-    const [isFlipping, setIsFlipping] = useState(false);
-    const prevDigitRef = useRef(val);
-    const prevDigit = prevDigitRef.current;
-
-    useEffect(() => {
-      if (val !== prevDigit) {
-        setIsFlipping(true);
-        const timer = setTimeout(() => {
-          setIsFlipping(false);
-          prevDigitRef.current = val;
-        }, 600); // Matches CSS duration
-        return () => clearTimeout(timer);
-      }
-    }, [val, prevDigit]);
-
-    const digitToRender = val;
-    const prevToRender = prevDigit;
-
-    return (
-      <div className="flex flex-col items-center flex-1">
-        <div className="relative w-full aspect-[2/3] max-w-[80px] perspective-[400px]">
-          {/* STATIC LAYER (Behind) */}
-          {/* Top Half (Shows Current Digit) */}
-          <div className="absolute top-0 left-0 w-full h-1/2 bg-stone-900 rounded-t-xl overflow-hidden border-b border-black/20 z-0 flex justify-center items-end">
-            <span className={`text-3xl font-black font-mono tracking-tighter translate-y-[50%] ${colorClass}`}>
-              {digitToRender}
-            </span>
-          </div>
-
-          {/* Bottom Half (Shows Previous Digit) */}
-          <div className="absolute bottom-0 left-0 w-full h-1/2 bg-stone-900 rounded-b-xl overflow-hidden border-t border-white/5 z-0 flex justify-center items-start shadow-xl">
-            <span className={`text-3xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
-              {prevToRender}
-            </span>
-          </div>
-
-          {/* ANIMATION LAYERS (Front) */}
-          {/* 1. Top Flipping Card (Front Face - Previous) */}
-          <div
-            className={`absolute top-0 left-0 w-full h-1/2 bg-stone-900 rounded-t-xl overflow-hidden border-b border-black/20 z-10 origin-bottom backface-hidden flex justify-center items-end ${
-              isFlipping ? "animate-flip-down" : ""
-            }`}
-            style={{ transformStyle: "preserve-3d" }}
-          >
-            <span className={`text-3xl font-black font-mono tracking-tighter translate-y-[50%] ${colorClass}`}>
-              {prevToRender}
-            </span>
-          </div>
-
-          {/* 2. Top Flipping Card (Back Face - Current) */}
-          <div
-            className={`absolute top-1/2 left-0 w-full h-1/2 bg-stone-900 rounded-b-xl overflow-hidden border-t border-white/5 z-10 origin-top backface-hidden flex justify-center items-start ${
-              isFlipping ? "animate-flip-up" : "hidden"
-            }`}
-            style={{ transform: "rotateX(180deg)" }}
-          >
-            <span className={`text-3xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
-              {digitToRender}
-            </span>
-          </div>
-
-          {/* Subtle urgent glow */}
-          {colorClass.includes("text-red-500") && (
-            <div className="absolute inset-0 bg-red-500/5 animate-pulse pointer-events-none rounded-xl" />
-          )}
-        </div>
-        {label && <span className="text-[9px] font-bold uppercase tracking-widest text-stone-500 mt-2">{label}</span>}
-      </div>
-    );
-  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-8 px-6 pt-6">
@@ -212,8 +225,8 @@ const HomeActiveView = ({
                         { val: m, label: "Mins" },
                         { val: s, label: "Secs" },
                       ].map((unit, idx) => (
-                        <div key={idx} className="flex-1">
-                          <FlipDigit
+                        <div key={idx} className="flex-1 px-1">
+                          <FlipGroup
                             val={unit.val}
                             colorClass={isUrgent ? "text-red-500" : "text-white"}
                             label={unit.label}
