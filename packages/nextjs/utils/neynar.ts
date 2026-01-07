@@ -12,9 +12,9 @@ export const fetchProofCasts = async (
     // Construct the goal frame URL that we expect to be embedded
     const frameUrl = `https://vouchie.app/api/frame/goal/${goalId}`;
 
-    // Query Neynar for casts by the creator containing this URL
-    // Using fetchFeed with filter: embed_url (based on Neynar docs/search results)
-    const url = `https://api.neynar.com/v2/farcaster/feed?feed_type=filter&filter_type=embed_url&embed_url=${encodeURIComponent(frameUrl)}&fids=${creatorFid}&limit=1`;
+    // Query Neynar for recent casts by the creator using the free endpoint
+    // v2/farcaster/feed/user/casts (4 credits per call)
+    const url = `https://api.neynar.com/v2/farcaster/feed/user/casts?fid=${creatorFid}&limit=15&include_replies=false&include_recasts=false`;
 
     const response = await fetch(url, {
       method: "GET",
@@ -32,11 +32,16 @@ export const fetchProofCasts = async (
     const data = await response.json();
     const casts = data.casts;
 
-    if (casts && casts.length > 0) {
-      return {
-        text: casts[0].text,
-        hash: casts[0].hash,
-      };
+    if (casts && Array.isArray(casts)) {
+      // Client-side filtering for the specific frame URL
+      const proofCast = casts.find((cast: any) => cast.embeds?.some((embed: any) => embed.url === frameUrl));
+
+      if (proofCast) {
+        return {
+          text: proofCast.text,
+          hash: proofCast.hash,
+        };
+      }
     }
 
     return null;
