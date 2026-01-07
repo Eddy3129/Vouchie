@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Goal } from "../../types/vouchie";
 import { ArrowRight, CheckCircle, Clock, ShieldCheck } from "@phosphor-icons/react";
 
@@ -25,7 +25,7 @@ const HomeActiveView = ({
   onCreate,
   isBlockingSettle = false,
 }: HomeActiveViewProps) => {
-  const [showCompleted, setShowCompleted] = useState(false);
+  const [showCompleted, setShowCompleted] = useState(true);
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -60,8 +60,115 @@ const HomeActiveView = ({
   const isUrgent = activeGoal ? activeGoal.deadline - now < 1000 * 60 * 60 * 4 && !activeGoal.resolved : false;
   const isMatured = activeGoal ? activeGoal.deadline < now && !activeGoal.resolved : false;
 
+  // Filter completed goals to only show those from TODAY
+  const completedToday = useMemo(() => {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    return completedGoals.filter(goal => {
+      const goalDate = new Date(goal.deadline);
+      return goalDate >= startOfToday;
+    });
+  }, [completedGoals]);
+
+  // Flip digit component for animation
+  const FlipDigit = ({ val, colorClass, label }: { val: string; colorClass: string; label?: string }) => {
+    const [isFlipping, setIsFlipping] = useState(false);
+    const prevDigitRef = useRef(val);
+    const prevDigit = prevDigitRef.current;
+
+    useEffect(() => {
+      if (val !== prevDigit) {
+        setIsFlipping(true);
+        const timer = setTimeout(() => {
+          setIsFlipping(false);
+          prevDigitRef.current = val;
+        }, 600); // Matches CSS duration
+        return () => clearTimeout(timer);
+      }
+    }, [val, prevDigit]);
+
+    const digitToRender = val;
+    const prevToRender = prevDigit;
+
+    return (
+      <div className="flex flex-col items-center flex-1">
+        <div className="relative w-full aspect-[2/3] max-w-[80px] perspective-[400px]">
+          {/* STATIC LAYER (Behind) */}
+          {/* Top Half (Shows Current Digit) */}
+          <div className="absolute top-0 left-0 w-full h-1/2 bg-stone-900 rounded-t-xl overflow-hidden border-b border-black/20 z-0 flex justify-center items-end">
+            <span className={`text-3xl font-black font-mono tracking-tighter translate-y-[50%] ${colorClass}`}>
+              {digitToRender}
+            </span>
+          </div>
+
+          {/* Bottom Half (Shows Previous Digit) */}
+          <div className="absolute bottom-0 left-0 w-full h-1/2 bg-stone-900 rounded-b-xl overflow-hidden border-t border-white/5 z-0 flex justify-center items-start shadow-xl">
+            <span className={`text-3xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
+              {prevToRender}
+            </span>
+          </div>
+
+          {/* ANIMATION LAYERS (Front) */}
+          {/* 1. Top Flipping Card (Front Face - Previous) */}
+          <div
+            className={`absolute top-0 left-0 w-full h-1/2 bg-stone-900 rounded-t-xl overflow-hidden border-b border-black/20 z-10 origin-bottom backface-hidden flex justify-center items-end ${
+              isFlipping ? "animate-flip-down" : ""
+            }`}
+            style={{ transformStyle: "preserve-3d" }}
+          >
+            <span className={`text-3xl font-black font-mono tracking-tighter translate-y-[50%] ${colorClass}`}>
+              {prevToRender}
+            </span>
+          </div>
+
+          {/* 2. Top Flipping Card (Back Face - Current) */}
+          <div
+            className={`absolute top-1/2 left-0 w-full h-1/2 bg-stone-900 rounded-b-xl overflow-hidden border-t border-white/5 z-10 origin-top backface-hidden flex justify-center items-start ${
+              isFlipping ? "animate-flip-up" : "hidden"
+            }`}
+            style={{ transform: "rotateX(180deg)" }}
+          >
+            <span className={`text-3xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
+              {digitToRender}
+            </span>
+          </div>
+
+          {/* Subtle urgent glow */}
+          {colorClass.includes("text-red-500") && (
+            <div className="absolute inset-0 bg-red-500/5 animate-pulse pointer-events-none rounded-xl" />
+          )}
+        </div>
+        {label && <span className="text-[9px] font-bold uppercase tracking-widest text-stone-500 mt-2">{label}</span>}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-8 px-6 pt-6">
+      <style>{`
+        .backface-hidden {
+          backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
+        }
+        
+        @keyframes flip-down {
+          0% { transform: rotateX(0deg); }
+          100% { transform: rotateX(-180deg); }
+        }
+        
+        @keyframes flip-up {
+          0% { transform: rotateX(180deg); }
+          100% { transform: rotateX(0deg); }
+        }
+        
+        .animate-flip-down {
+          animation: flip-down 0.6s cubic-bezier(0.455, 0.030, 0.515, 0.955) forwards;
+        }
+        
+        .animate-flip-up {
+          animation: flip-up 0.6s cubic-bezier(0.455, 0.030, 0.515, 0.955) forwards;
+        }
+      `}</style>
       {/* 1. HERO SECTION: Active Commitment */}
       {activeGoal ? (
         <div className="relative overflow-hidden rounded-[2rem] bg-white dark:bg-stone-900 shadow-xl border-2 border-stone-100 dark:border-stone-800 p-6 text-center group transition-all hover:shadow-2xl hover:scale-[1.01]">
@@ -105,24 +212,12 @@ const HomeActiveView = ({
                         { val: m, label: "Mins" },
                         { val: s, label: "Secs" },
                       ].map((unit, idx) => (
-                        <div key={idx} className="flex flex-col items-center flex-1">
-                          <div
-                            className={`w-full aspect-square max-w-[80px] flex items-center justify-center rounded-2xl bg-stone-900 border border-stone-800 shadow-xl overflow-hidden relative group`}
-                          >
-                            {/* Flip overlay feel */}
-                            <div className="absolute inset-x-0 top-0 h-1/2 bg-white/5 pointer-events-none" />
-                            <div className="absolute inset-x-0 bottom-0 h-[1px] bg-white/10 top-1/2" />
-                            <span
-                              className={`text-3xl font-black font-mono tracking-tighter ${
-                                isUrgent ? "text-red-500" : "text-white"
-                              }`}
-                            >
-                              {unit.val}
-                            </span>
-                          </div>
-                          <span className="text-[9px] font-bold uppercase tracking-widest text-stone-500 mt-2">
-                            {unit.label}
-                          </span>
+                        <div key={idx} className="flex-1">
+                          <FlipDigit
+                            val={unit.val}
+                            colorClass={isUrgent ? "text-red-500" : "text-white"}
+                            label={unit.label}
+                          />
                         </div>
                       ))}
                     </>
@@ -164,7 +259,7 @@ const HomeActiveView = ({
                 onClick={() => onVerify(activeGoal)}
                 className="w-full max-w-sm py-4 bg-[#FF8C00] hover:bg-[#EF6C00] text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-orange-500/20 transition-all flex items-center justify-center gap-3 transform active:scale-95"
               >
-                Verify <ArrowRight size={20} weight="bold" />
+                Complete <ArrowRight size={20} weight="bold" />
               </button>
             ) : (
               <button
@@ -233,14 +328,14 @@ const HomeActiveView = ({
       )}
 
       {/* 3. COLLAPSED: Completed */}
-      {completedGoals.length > 0 && (
+      {completedToday.length > 0 && (
         <div className="px-2">
           <button
             onClick={() => setShowCompleted(!showCompleted)}
             className="w-full flex items-center justify-between text-stone-400 hover:text-stone-600 dark:hover:text-stone-300 transition-colors p-2"
           >
             <span className="text-xs font-bold uppercase tracking-widest">
-              Completed Today ({completedGoals.length})
+              Completed Today ({completedToday.length})
             </span>
             <ArrowRight
               size={14}
@@ -251,7 +346,7 @@ const HomeActiveView = ({
 
           {showCompleted && (
             <div className="mt-3 grid gap-2 animate-in slide-in-from-top-2 duration-200">
-              {completedGoals.map(goal => (
+              {completedToday.map(goal => (
                 <div
                   key={goal.id}
                   className="flex items-center gap-3 p-3 rounded-xl bg-stone-50 dark:bg-stone-900 border border-stone-100 dark:border-stone-800 opacity-60"

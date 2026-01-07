@@ -173,7 +173,7 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
             <div className="grid grid-cols-7 gap-y-3 gap-x-1">
               {calendarDays.map((day, i) => {
                 const isToday = isCurrentMonth && day === todayDate;
-                const isSelected = selectedDay === day;
+                const isSelected = day !== null && selectedDay === day;
                 const activity = day ? getDayActivity(day) : null;
 
                 return (
