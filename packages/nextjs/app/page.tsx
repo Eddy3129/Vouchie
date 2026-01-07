@@ -8,6 +8,7 @@ import {
   CheckCircle,
   Clock,
   Compass,
+  HandCoins,
   House,
   Plus,
   ShieldCheck,
@@ -534,7 +535,12 @@ const VouchieApp = () => {
                               Action Required: Claim Pot
                             </h4>
                             <p className="text-green-800/70 dark:text-green-300/60 text-xs mt-0.5 line-clamp-1">
-                              Goal failed! Claim your share of {g.stake} {g.currency}.
+                              Goal failed! Claim your share of{" "}
+                              {g.stake.toLocaleString(undefined, {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                              })}{" "}
+                              {g.currency}.
                             </p>
                           </div>
                           <button
@@ -562,7 +568,12 @@ const VouchieApp = () => {
                               Action Required: Claim Refund
                             </h4>
                             <p className="text-blue-800/70 dark:text-blue-300/60 text-xs mt-0.5 line-clamp-1">
-                              Goal successful! Claim your {g.stake} {g.currency} refund.
+                              Goal successful! Claim your{" "}
+                              {g.stake.toLocaleString(undefined, {
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 2,
+                              })}{" "}
+                              {g.currency} refund.
                             </p>
                           </div>
                           <button
@@ -627,6 +638,10 @@ const VouchieApp = () => {
                         onVerify={(g: Goal) => setSelectedTaskForDetails(g)}
                         onStart={(g: Goal) => setSelectedTaskForStart(g)}
                         onSettle={handleSettle}
+                        onForfeit={(id: number) => {
+                          const goal = goals.find(g => g.id === id);
+                          if (goal) setSelectedTaskForGiveUp(goal);
+                        }}
                         onCreate={() => setAddModalOpen(true)}
                         isBlockingSettle={hasBlockingSettle}
                       />
@@ -730,7 +745,7 @@ const VouchieApp = () => {
                                   <p className="text-lg font-bold text-green-600 dark:text-green-400">
                                     $
                                     {task.stake.toLocaleString(undefined, {
-                                      minimumFractionDigits: 0,
+                                      minimumFractionDigits: 2,
                                       maximumFractionDigits: 2,
                                     })}
                                   </p>
@@ -739,28 +754,38 @@ const VouchieApp = () => {
                               </div>
 
                               {/* Action Button */}
-                              <button
-                                onClick={() => {
-                                  if (isExpired) {
-                                    handleSettle(task.id);
-                                  } else {
+                              {task.resolved && !task.userHasClaimed && task.stake > 0 ? (
+                                <button
+                                  onClick={() => handleClaim(task.id, task.currentUserVouchieIndex || 0)}
+                                  className="w-full py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-green-500/20"
+                                >
+                                  Claim {task.successful ? "Refund" : "Share"} (+$
+                                  {task.stake.toLocaleString(undefined, {
+                                    minimumFractionDigits: 0,
+                                    maximumFractionDigits: 2,
+                                  })}
+                                  ) <HandCoins size={18} weight="bold" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => {
                                     setSelectedVerificationGoal(task);
                                     setIsVerifyModalOpen(true);
-                                  }
-                                }}
-                                className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md ${
-                                  canVerify
-                                    ? "bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900"
-                                    : "bg-stone-100 dark:bg-stone-800 text-stone-400 cursor-not-allowed shadow-none border border-stone-200 dark:border-stone-700"
-                                }`}
-                              >
-                                {isExpired ? (
-                                  <Clock size={18} weight="fill" />
-                                ) : (
-                                  <ShieldCheck size={18} weight="fill" />
-                                )}
-                                {isExpired ? "Settle Goal" : canVerify ? "Verify" : "Verification Locked"}
-                              </button>
+                                  }}
+                                  className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md ${
+                                    canVerify || isExpired
+                                      ? "bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900"
+                                      : "bg-stone-100 dark:bg-stone-800 text-stone-400 cursor-not-allowed shadow-none border border-stone-200 dark:border-stone-700"
+                                  }`}
+                                >
+                                  {isExpired ? (
+                                    <Clock size={18} weight="fill" />
+                                  ) : (
+                                    <ShieldCheck size={18} weight="fill" />
+                                  )}
+                                  {isExpired ? "Review & Settle" : canVerify ? "Verify" : "Verification Locked"}
+                                </button>
+                              )}
                             </div>
                           );
                         })
@@ -886,6 +911,7 @@ const VouchieApp = () => {
             setSelectedVerificationGoal(null);
           }}
           onVote={handleVote}
+          onSettle={handleSettle}
         />
 
         {/* Background Blobs */}

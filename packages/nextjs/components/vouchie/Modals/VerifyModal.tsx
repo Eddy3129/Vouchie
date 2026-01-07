@@ -8,9 +8,10 @@ interface VerifyModalProps {
   onClose: () => void;
   goal: Goal | null;
   onVote: (goalId: number, isValid: boolean, denyReason?: string) => void;
+  onSettle: (goalId: number) => void;
 }
 
-const VerifyModal = ({ isOpen, onClose, goal, onVote }: VerifyModalProps) => {
+const VerifyModal = ({ isOpen, onClose, goal, onVote, onSettle }: VerifyModalProps) => {
   const [isVoting, setIsVoting] = useState(false);
   const [showDenyStep, setShowDenyStep] = useState(false);
   const [denyReason, setDenyReason] = useState("");
@@ -64,7 +65,7 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote }: VerifyModalProps) => {
                   Verification Required
                 </span>
                 <span className="text-[10px] font-bold text-stone-400 ml-auto">
-                  ${goal.stake.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC
+                  ${goal.stake.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC
                 </span>
               </div>
 
@@ -128,6 +129,23 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote }: VerifyModalProps) => {
               </button>
             </div>
 
+            {goal.deadline < Date.now() && (
+              <div className="mb-4 pt-2 border-t border-stone-100 dark:border-stone-800">
+                <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest text-center mb-2">
+                  Deadline Passed
+                </p>
+                <button
+                  onClick={() => {
+                    onSettle(goal.id);
+                    onClose();
+                  }}
+                  className="w-full py-3 bg-stone-800 dark:bg-white text-white dark:text-stone-900 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95"
+                >
+                  Settle with Current Votes
+                </button>
+              </div>
+            )}
+
             <button
               onClick={handleClose}
               className="w-full text-stone-400 font-bold text-xs py-2 hover:text-stone-600 dark:hover:text-stone-300"
@@ -150,7 +168,7 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote }: VerifyModalProps) => {
             <div className="bg-stone-50 dark:bg-stone-800/50 rounded-2xl p-4 mb-4 border-2 border-stone-200 dark:border-stone-700">
               <p className="text-sm text-stone-600 dark:text-stone-300 font-semibold">&ldquo;{goal.title}&rdquo;</p>
               <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                ${goal.stake.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC
+                ${goal.stake.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USDC
                 will be slashed
               </p>
             </div>

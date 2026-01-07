@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Goal } from "../../types/vouchie";
 import Card from "./Helper/Card";
 import SlidingTabs from "./SlidingTabs";
-import { Bank, CalendarPlus, CaretLeft, CaretRight, Check, HandCoins, X } from "@phosphor-icons/react";
+import { Bank, CalendarPlus, CaretLeft, CaretRight, Check, Clock, HandCoins, X } from "@phosphor-icons/react";
 import { formatUnits } from "viem";
 import { useAccount } from "wagmi";
 import { useMiniapp } from "~~/components/MiniappProvider";
@@ -18,6 +18,7 @@ interface CalendarViewProps {
 const CalendarView = ({ tasks }: CalendarViewProps) => {
   const [activeTab, setActiveTab] = useState<"timeline" | "history">("timeline");
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const { data: activities } = useActivities(100);
   const { targetNetwork } = useTargetNetwork();
   const { address: connectedAddress } = useAccount();
@@ -56,12 +57,35 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
     return tasks.filter(t => t.deadline >= startOfDay && t.deadline <= endOfDay);
   };
 
-  const getDayStatus = (day: number) => {
+  const getDayActivity = (day: number) => {
     const dayTasks = getTasksForDay(day);
     if (dayTasks.length === 0) return null;
-    if (dayTasks.some(t => t.status === "failed")) return "failed";
-    if (dayTasks.every(t => t.status === "done")) return "done";
-    return "active";
+
+    return {
+      success: dayTasks.filter(t => t.status === "done"),
+      failed: dayTasks.filter(t => t.status === "failed"),
+      active: dayTasks.filter(t => t.status === "verifying" || t.status === "in_progress"),
+    };
+  };
+
+  const renderSymbols = (count: number, color: "green" | "red" | "amber") => {
+    const stars = Math.floor(count / 5);
+    const dots = count % 5;
+    const colorClass = color === "green" ? "text-green-500" : color === "red" ? "text-red-500" : "text-amber-400";
+    return (
+      <div className={`flex flex-wrap justify-center items-center gap-0.5 max-w-[32px] overflow-hidden`}>
+        {Array.from({ length: stars }).map((_, i) => (
+          <span key={`star-${i}`} className={`text-[10px] ${colorClass} leading-none`}>
+            ★
+          </span>
+        ))}
+        {Array.from({ length: dots }).map((_, i) => (
+          <span key={`dot-${i}`} className={`text-[10px] ${colorClass} leading-none`}>
+            •
+          </span>
+        ))}
+      </div>
+    );
   };
 
   // Explicitly filter for current user to prevent global leak
@@ -146,34 +170,47 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
                 </div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-y-2 gap-x-1">
+            <div className="grid grid-cols-7 gap-y-3 gap-x-1">
               {calendarDays.map((day, i) => {
                 const isToday = isCurrentMonth && day === todayDate;
-                const status = day ? getDayStatus(day) : null;
+                const isSelected = selectedDay === day;
+                const activity = day ? getDayActivity(day) : null;
+
                 return (
                   <div
                     key={i}
+                    onClick={() => day && setSelectedDay(day === selectedDay ? null : day)}
                     className={`
-                      aspect-square rounded-full flex flex-col items-center justify-center relative
+                      aspect-square rounded-2xl flex flex-col items-center justify-start py-1 relative transition-all
                       ${!day ? "" : "hover:bg-stone-100 dark:hover:bg-stone-800/80 cursor-pointer"}
-                      ${isToday ? "ring-2 ring-orange-500 ring-offset-2 dark:ring-offset-stone-900" : ""}
+                      ${isSelected ? "bg-orange-50 dark:bg-orange-900/20 ring-1 ring-orange-200 dark:ring-orange-800/50" : ""}
+                      ${isToday && !isSelected ? "ring-1 ring-orange-500/50" : ""}
                     `}
                   >
                     {day && (
                       <>
                         <span
-                          className={`text-sm font-bold ${isToday ? "text-orange-600 dark:text-orange-400" : "text-stone-600 dark:text-stone-400"}`}
+                          className={`text-xs font-bold leading-none mb-1.5 ${
+                            isSelected
+                              ? "text-orange-600 dark:text-orange-400"
+                              : isToday
+                                ? "text-orange-500"
+                                : "text-stone-600 dark:text-stone-400"
+                          }`}
                         >
                           {day}
                         </span>
-                        {status && (
-                          <div
-                            className={`
-                             w-1.5 h-1.5 rounded-full mt-0.5
-                             ${status === "done" ? "bg-green-500" : status === "failed" ? "bg-red-500" : "bg-amber-400"}
-                           `}
-                          />
-                        )}
+                        <div className="flex flex-col gap-0.5 items-center w-full px-0.5 overflow-hidden">
+                          {activity?.success &&
+                            activity.success.length > 0 &&
+                            renderSymbols(activity.success.length, "green")}
+                          {activity?.failed &&
+                            activity.failed.length > 0 &&
+                            renderSymbols(activity.failed.length, "red")}
+                          {activity?.active &&
+                            activity.active.length > 0 &&
+                            renderSymbols(activity.active.length, "amber")}
+                        </div>
                       </>
                     )}
                   </div>
@@ -181,6 +218,79 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
               })}
             </div>
           </Card>
+
+          {/* Activity List for Selected Day */}
+          {selectedDay && (
+            <div className="mx-2 space-y-3 animate-in fade-in slide-in-from-top-4 duration-300">
+              <div className="flex items-center justify-between px-2">
+                <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200">
+                  Tasks for {currentDate.toLocaleString("default", { month: "short" })} {selectedDay}
+                </h3>
+                <button
+                  onClick={() => setSelectedDay(null)}
+                  className="text-[10px] font-bold text-stone-400 uppercase tracking-widest hover:text-stone-600"
+                >
+                  Clear
+                </button>
+              </div>
+
+              <div className="space-y-2">
+                {getTasksForDay(selectedDay).length === 0 ? (
+                  <div className="p-8 text-center bg-white dark:bg-stone-900 rounded-2xl border border-stone-100 dark:border-stone-800 dashed">
+                    <p className="text-xs text-stone-400 font-medium italic">No activity on this day</p>
+                  </div>
+                ) : (
+                  getTasksForDay(selectedDay).map(task => (
+                    <div
+                      key={task.id}
+                      className="flex items-center justify-between p-3 bg-white dark:bg-stone-900 rounded-2xl border border-stone-100 dark:border-stone-800 shadow-sm"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div
+                          className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                            task.status === "done"
+                              ? "bg-green-100 dark:bg-green-900/30 text-green-600"
+                              : task.status === "failed"
+                                ? "bg-red-100 dark:bg-red-900/30 text-red-600"
+                                : "bg-amber-100 dark:bg-amber-900/30 text-amber-600"
+                          }`}
+                        >
+                          {task.status === "done" ? (
+                            <Check size={16} weight="bold" />
+                          ) : task.status === "failed" ? (
+                            <X size={16} weight="bold" />
+                          ) : (
+                            <Clock size={16} weight="fill" />
+                          )}
+                        </div>
+                        <div className="min-w-0">
+                          <h4 className="text-sm font-bold text-stone-700 dark:text-stone-200 truncate">
+                            {task.title}
+                          </h4>
+                          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wider">
+                            {task.status === "done" ? "Completed" : task.status === "failed" ? "Failed" : "Active"}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0 ml-4">
+                        <span
+                          className={`text-sm font-bold ${
+                            task.status === "done"
+                              ? "text-green-600"
+                              : task.status === "failed"
+                                ? "text-red-600"
+                                : "text-amber-500"
+                          }`}
+                        >
+                          {task.status === "done" ? "+" : "-"}${getOriginalStake(task.id, task.stake).toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
 
           <div className="px-4 py-4 bg-stone-50 dark:bg-stone-800/50 rounded-2xl mx-2 border border-stone-100 dark:border-stone-800">
             <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">Legend</h3>
@@ -320,7 +430,7 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
                 className="text-xs font-bold text-stone-500 dark:text-stone-400 uppercase tracking-widest"
                 style={{ fontFamily: "Playfair Display, serif" }}
               >
-                Net P&L
+                Net PnL
               </span>
               <div className="flex items-baseline gap-3 mt-2">
                 <h2
@@ -340,8 +450,8 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
                 style={{ fontFamily: "Playfair Display, serif" }}
               >
                 {netResult >= 0
-                  ? "🎉 You're on track! Keep building that streak."
-                  : "💪 Every setback is a setup for a comeback."}
+                  ? "You're on track! Keep building that streak."
+                  : "Every setback is a setup for a comeback."}
               </p>
             </div>
           </div>

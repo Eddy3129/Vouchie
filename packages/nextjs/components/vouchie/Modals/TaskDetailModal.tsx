@@ -169,7 +169,9 @@ const TaskDetailModal = ({
               </div>
               {/* Stake amount */}
               <div className="text-center">
-                <span className="text-2xl font-bold text-stone-800 dark:text-white">${goal.stake}</span>
+                <span className="text-2xl font-bold text-stone-800 dark:text-white">
+                  ${goal.stake.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
                 <span className="text-xs text-stone-400 ml-1">USDC</span>
               </div>
             </div>
@@ -203,7 +205,9 @@ const TaskDetailModal = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-1 mb-0.5">
-                      <span className="text-lg text-stone-800 dark:text-white">${goal.stake}</span>
+                      <span className="text-lg text-stone-800 dark:text-white">
+                        ${goal.stake.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
                       <span className="text-[9px] text-stone-400 uppercase">USDC</span>
                       <span
                         className={`text-[9px] px-1.5 py-0.5 rounded ml-auto ${goal.successful ? "bg-green-100 dark:bg-green-900/30 text-green-600" : "bg-red-100 dark:bg-red-900/30 text-red-600"}`}
@@ -236,7 +240,9 @@ const TaskDetailModal = ({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-1 mb-0.5">
-                      <span className="text-lg text-stone-800 dark:text-white">${goal.stake}</span>
+                      <span className="text-lg text-stone-800 dark:text-white">
+                        ${goal.stake.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </span>
                       <span className="text-[9px] text-stone-400 uppercase">USDC</span>
                       <span className="text-[9px] px-1.5 py-0.5 rounded ml-auto bg-amber-100 dark:bg-amber-900/40 text-amber-600">
                         Pending
@@ -304,7 +310,12 @@ const TaskDetailModal = ({
             onClick={() => onClaim?.(goal.id, goal.currentUserVouchieIndex || 0)}
             className="w-full py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-green-500/20 mb-4"
           >
-            Claim {goal.successful ? "Refund" : "Share"} (+${goal.stake}) <HandCoins size={18} weight="bold" />
+            Claim {goal.successful ? "Refund" : "Share"} (+$
+            {goal.stake.toLocaleString(undefined, {
+              minimumFractionDigits: 2,
+              maximumFractionDigits: 2,
+            })}
+            ) <HandCoins size={18} weight="bold" />
           </button>
         )}
 

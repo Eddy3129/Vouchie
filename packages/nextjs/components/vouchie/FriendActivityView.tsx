@@ -282,15 +282,15 @@ const FriendActivityView = () => {
                     </div>
 
                     {/* Goal Title */}
-                    <div className="text-base font-bold text-stone-800 dark:text-stone-100 leading-tight line-clamp-2">
+                    <div className="text-sm font-bold text-stone-800 dark:text-stone-100 leading-tight line-clamp-2">
                       {goalTitle}
                     </div>
 
                     {/* Footer Row: Details */}
                     <div className="flex items-center justify-between mt-1">
                       <div className="flex items-center gap-2">
-                        {/* Amount */}
-                        {amountDisplay && (
+                        {/* Amount - Only show for resolved goals */}
+                        {activity.type === "goal_resolved" && amountDisplay && (
                           <span className={`text-xs font-bold px-2 py-1 rounded-lg ${amountClass}`}>
                             {amountDisplay}
                           </span>

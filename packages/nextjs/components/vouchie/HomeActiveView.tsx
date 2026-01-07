@@ -1,7 +1,6 @@
-import React, { useState } from "react";
-import Image from "next/image";
+import React, { useEffect, useState } from "react";
 import { Goal } from "../../types/vouchie";
-import { ArrowRight, CheckCircle, Clock } from "@phosphor-icons/react";
+import { ArrowRight, CheckCircle, Clock, ShieldCheck } from "@phosphor-icons/react";
 
 interface HomeActiveViewProps {
   activeGoal: Goal | undefined;
@@ -10,6 +9,7 @@ interface HomeActiveViewProps {
   onVerify: (goal: Goal) => void;
   onStart: (goal: Goal) => void;
   onSettle: (goalId: number) => void;
+  onForfeit: (goalId: number) => void;
   onCreate: () => void;
   isBlockingSettle?: boolean;
 }
@@ -21,34 +21,61 @@ const HomeActiveView = ({
   onVerify,
   onStart,
   onSettle,
+  onForfeit,
   onCreate,
   isBlockingSettle = false,
 }: HomeActiveViewProps) => {
   const [showCompleted, setShowCompleted] = useState(false);
+  const [now, setNow] = useState(Date.now());
 
-  // Helper to format remaining time
+  useEffect(() => {
+    const interval = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Helper to get time units
+  const getTimeUnits = (deadline: number) => {
+    const diff = deadline - now;
+    if (diff <= 0) return { h: "00", m: "00", s: "00", expired: true };
+    const h = Math.floor(diff / (1000 * 60 * 60))
+      .toString()
+      .padStart(2, "0");
+    const m = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+      .toString()
+      .padStart(2, "0");
+    const s = Math.floor((diff % (1000 * 60)) / 1000)
+      .toString()
+      .padStart(2, "0");
+    return { h, m, s, expired: false };
+  };
+
   const getTimeRemaining = (deadline: number) => {
-    const diff = deadline - Date.now();
+    const diff = deadline - now;
     if (diff <= 0) return "Expired";
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     return `${hours}h ${minutes}m`;
   };
 
-  const isUrgent = activeGoal ? activeGoal.deadline - Date.now() < 1000 * 60 * 60 * 4 && !activeGoal.resolved : false;
-  const isMatured = activeGoal ? activeGoal.deadline < Date.now() && !activeGoal.resolved : false;
+  const isUrgent = activeGoal ? activeGoal.deadline - now < 1000 * 60 * 60 * 4 && !activeGoal.resolved : false;
+  const isMatured = activeGoal ? activeGoal.deadline < now && !activeGoal.resolved : false;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-8 px-6 pt-6">
       {/* 1. HERO SECTION: Active Commitment */}
       {activeGoal ? (
-        <div className="relative overflow-hidden rounded-[2rem] bg-white dark:bg-stone-900 shadow-xl border-2 border-stone-100 dark:border-stone-800 p-8 text-center group transition-all hover:shadow-2xl hover:scale-[1.01]">
-          {/* Background Glow */}
+        <div className="relative overflow-hidden rounded-[2rem] bg-white dark:bg-stone-900 shadow-xl border-2 border-stone-100 dark:border-stone-800 p-6 text-center group transition-all hover:shadow-2xl hover:scale-[1.01]">
+          {/* Background Glow & Urgent Pulse */}
           <div
-            className={`absolute top-0 left-1/2 -translate-x-1/2 w-64 h-64 rounded-full blur-[100px] opacity-40 pointer-events-none ${
-              isUrgent ? "bg-red-500" : "bg-orange-500"
+            className={`absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-[100px] opacity-40 pointer-events-none transition-all duration-1000 ${
+              isUrgent ? "bg-red-500 animate-pulse" : isMatured ? "bg-amber-500" : "bg-orange-500"
             }`}
           />
+
+          {/* Animated Glow Border for Urgency */}
+          {isUrgent && (
+            <div className="absolute inset-0 rounded-[2rem] border-2 border-red-500/20 animate-pulse pointer-events-none" />
+          )}
 
           <div className="relative z-10 flex flex-col items-center">
             {/* Status Pill */}
@@ -57,70 +84,87 @@ const HomeActiveView = ({
                 className={`w-2 h-2 rounded-full animate-pulse ${isMatured ? "bg-amber-500" : isUrgent ? "bg-red-500" : "bg-green-500"}`}
               />
               <span className="text-xs font-bold text-stone-500 dark:text-stone-300 uppercase tracking-widest">
-                {isMatured ? "Matured / Pending Settle" : "Active Commitment"}
+                {isMatured ? "Pending Resolve" : "Active"}
               </span>
             </div>
 
             {/* Task Title */}
-            <h1 className="text-4xl md:text-5xl font-black text-stone-800 dark:text-stone-50 mb-2 leading-tight">
+            <h1 className="text-3xl font-black text-stone-900 dark:text-white mb-6 leading-[1.1] font-serif">
               {activeGoal.title}
             </h1>
 
-            {/* Creator Info (for Verification Goals) */}
-            {activeGoal.creatorUsername && (
-              <div className="flex items-center gap-2 mb-6 bg-stone-50 dark:bg-stone-800/50 px-4 py-2 rounded-2xl border border-stone-100 dark:border-stone-700/50">
-                {activeGoal.creatorAvatar ? (
-                  <Image
-                    src={activeGoal.creatorAvatar}
-                    alt={activeGoal.creatorUsername}
-                    width={20}
-                    height={20}
-                    className="w-5 h-5 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="w-5 h-5 rounded-full bg-stone-200 dark:bg-stone-700 flex items-center justify-center text-[10px] text-stone-500">
-                    👤
-                  </div>
-                )}
-                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Created by</span>
-                <span className="text-sm font-black text-[#8B5A2B] dark:text-[#FFA726]">
-                  @{activeGoal.creatorUsername}
-                </span>
+            {/* Refined Countdown Display */}
+            <div className="flex flex-col items-center w-full max-w-[320px] mb-8">
+              <div className="w-full flex justify-center gap-3 mb-4">
+                {(() => {
+                  const { h, m, s } = getTimeUnits(activeGoal.deadline);
+                  return (
+                    <>
+                      {[
+                        { val: h, label: "Hours" },
+                        { val: m, label: "Mins" },
+                        { val: s, label: "Secs" },
+                      ].map((unit, idx) => (
+                        <div key={idx} className="flex flex-col items-center flex-1">
+                          <div
+                            className={`w-full aspect-square max-w-[80px] flex items-center justify-center rounded-2xl bg-stone-900 border border-stone-800 shadow-xl overflow-hidden relative group`}
+                          >
+                            {/* Flip overlay feel */}
+                            <div className="absolute inset-x-0 top-0 h-1/2 bg-white/5 pointer-events-none" />
+                            <div className="absolute inset-x-0 bottom-0 h-[1px] bg-white/10 top-1/2" />
+                            <span
+                              className={`text-3xl font-black font-mono tracking-tighter ${
+                                isUrgent ? "text-red-500" : "text-white"
+                              }`}
+                            >
+                              {unit.val}
+                            </span>
+                          </div>
+                          <span className="text-[9px] font-bold uppercase tracking-widest text-stone-500 mt-2">
+                            {unit.label}
+                          </span>
+                        </div>
+                      ))}
+                    </>
+                  );
+                })()}
               </div>
-            )}
 
-            {/* Stakes & Time */}
-            <div className="flex items-center gap-6 mb-8 text-stone-500 dark:text-stone-400">
-              <div className="flex items-center gap-2 bg-white/50 dark:bg-stone-800/50 px-4 py-2 rounded-xl border border-stone-100 dark:border-stone-700/50">
-                <span className="text-2xl font-bold text-stone-800 dark:text-white">
-                  ${activeGoal.stake.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
-                </span>
-                <span className="text-[10px] font-bold uppercase tracking-wider">At Risk</span>
-              </div>
-              <div className="flex items-center gap-2 bg-white/50 dark:bg-stone-800/50 px-4 py-2 rounded-xl border border-stone-100 dark:border-stone-700/50">
-                <Clock size={20} weight="fill" className={isUrgent ? "text-red-500" : "text-stone-400"} />
-                <span
-                  className={`text-xl font-bold ${isUrgent ? "text-red-600 dark:text-red-400" : "text-stone-700 dark:text-stone-300"}`}
-                >
-                  {getTimeRemaining(activeGoal.deadline)}
+              {/* Stake Amount Sub-label */}
+              <div className="flex items-center gap-2 bg-stone-50 dark:bg-stone-800/80 px-4 py-2 rounded-xl border border-stone-100 dark:border-stone-700 shadow-sm">
+                <ShieldCheck size={16} weight="fill" className="text-orange-500" />
+                <span className="text-sm font-bold text-stone-700 dark:text-stone-300">
+                  Pledged Stake:{" "}
+                  <span className="text-stone-900 dark:text-white ml-1">
+                    $
+                    {activeGoal.stake.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </span>
                 </span>
               </div>
             </div>
 
             {/* Primary Action Button */}
             {isMatured ? (
-              <button
-                onClick={() => onSettle(activeGoal.id)}
-                className="w-full max-w-sm py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-amber-500/20 transition-all flex items-center justify-center gap-3 transform active:scale-95"
-              >
-                Settle Task & Finalize <ArrowRight size={20} weight="bold" />
-              </button>
+              <div className="w-full max-w-sm space-y-3">
+                <button
+                  onClick={() => onSettle(activeGoal.id)}
+                  className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-amber-500/20 transition-all flex items-center justify-center gap-3 transform active:scale-95"
+                >
+                  Settle <ArrowRight size={20} weight="bold" />
+                </button>
+                <button
+                  onClick={() => onForfeit(activeGoal.id)}
+                  className="w-full py-3 bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 rounded-xl font-bold text-sm hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                >
+                  Forfeit
+                </button>
+              </div>
             ) : activeGoal.status === "in_progress" ? (
               <button
                 onClick={() => onVerify(activeGoal)}
                 className="w-full max-w-sm py-4 bg-[#FF8C00] hover:bg-[#EF6C00] text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-orange-500/20 transition-all flex items-center justify-center gap-3 transform active:scale-95"
               >
-                Verify Completion <ArrowRight size={20} weight="bold" />
+                Verify <ArrowRight size={20} weight="bold" />
               </button>
             ) : (
               <button
@@ -179,7 +223,7 @@ const HomeActiveView = ({
                 </div>
                 <div className="text-right">
                   <span className="block font-bold text-stone-800 dark:text-stone-300">
-                    ${goal.stake.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                    ${goal.stake.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>

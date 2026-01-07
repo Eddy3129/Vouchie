@@ -721,7 +721,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Your Stake</span>
                 <span className="text-lg font-bold text-stone-800 dark:text-stone-100">
-                  ${formData.stake} <span className="text-xs font-semibold text-stone-400">USDC</span>
+                  ${formData.stake.toFixed(2)} <span className="text-xs font-semibold text-stone-400">USDC</span>
                 </span>
               </div>
             </div>

@@ -148,7 +148,7 @@ const ProfileView = () => {
             {stats.displayRank && (
               <div className="absolute top-0 right-0 z-20">
                 <div className="bg-stone-800 dark:bg-stone-700 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm border border-stone-600 dark:border-stone-500">
-                  RANK {stats.displayRank}
+                  GLOBAL RANK {stats.displayRank}
                 </div>
               </div>
             )}
@@ -216,7 +216,7 @@ const ProfileView = () => {
           <Quotes className="text-[#FFA726] opacity-40 flex-shrink-0" size={24} weight="fill" />
           <div className="flex-1 min-w-0">
             <p
-              className="text-stone-700 dark:text-stone-300 text-sm leading-snug italic mb-1.5 font-medium line-clamp-2"
+              className="text-stone-700 dark:text-stone-300 text-xs leading-snug italic mb-1.5 font-medium"
               style={{ fontFamily: "Playfair Display, serif" }}
             >
               {dailyQuote.text}
@@ -266,7 +266,7 @@ const ProfileView = () => {
                 id: "wealth",
                 label: (
                   <>
-                    <Wallet size={16} weight={activeTab === "wealth" ? "fill" : "bold"} /> Wealth Builder
+                    <Wallet size={16} weight={activeTab === "wealth" ? "fill" : "bold"} /> Risk Staker
                   </>
                 ),
               },
