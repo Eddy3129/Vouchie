@@ -13,9 +13,11 @@ import { useActivities } from "~~/hooks/vouchie/usePonderData";
 
 interface CalendarViewProps {
   tasks: Goal[];
+  verificationGoals?: Goal[];
   onTaskClick?: (goal: Goal) => void;
+  onClaim?: (goalId: number, vouchieIndex: number) => void;
 }
-const CalendarView = ({ tasks }: CalendarViewProps) => {
+const CalendarView = ({ tasks, verificationGoals = [], onClaim }: CalendarViewProps) => {
   const [activeTab, setActiveTab] = useState<"timeline" | "history">("timeline");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -88,14 +90,22 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
     );
   };
 
-  // Explicitly filter for current user to prevent global leak
-  const historyItems = tasks
-    .filter(t => t.status === "done" || t.status === "failed")
-    .filter(t => {
-      if (!userAddress) return false;
-      return t.creator?.toLowerCase() === userAddress.toLowerCase();
-    })
-    .sort((a, b) => b.deadline - a.deadline);
+  // Combine creator goals and vouchie claims (failed squad goals where user is vouchie)
+  // Each item tracks whether it's a "creator" or "vouchie" claim
+  const historyItems = [
+    // Creator's own goals
+    ...tasks
+      .filter(t => t.status === "done" || t.status === "failed")
+      .filter(t => {
+        if (!userAddress) return false;
+        return t.creator?.toLowerCase() === userAddress.toLowerCase();
+      })
+      .map(t => ({ ...t, claimRole: "creator" as const })),
+    // Vouchie claims: failed squad goals where user is vouchie
+    ...verificationGoals
+      .filter(t => t.status === "failed" && t.resolved && t.mode === "Squad")
+      .map(t => ({ ...t, claimRole: "vouchie" as const })),
+  ].sort((a, b) => b.deadline - a.deadline);
 
   const netResult = historyItems.reduce((acc, t) => {
     const stake = getOriginalStake(t.id, t.stake);
@@ -472,10 +482,22 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
               historyItems.map(task => {
                 const stake = getOriginalStake(task.id, task.stake);
                 const isDone = task.status === "done";
+                const isVouchieRole = task.claimRole === "vouchie";
+
+                // Determine claim eligibility
+                // Creator claims: successful goals where stake > 0 and not claimed
+                // Vouchie claims: failed squad goals where stake > 0 and not claimed
+                const canClaim =
+                  task.resolved &&
+                  !task.userHasClaimed &&
+                  stake > 0 &&
+                  onClaim &&
+                  // Solo failures have no payout
+                  !(task.status === "failed" && task.mode === "Solo" && task.claimRole === "creator");
 
                 return (
                   <div
-                    key={task.id}
+                    key={`${task.id}-${task.claimRole}`}
                     className="card-vouchie relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99]"
                   >
                     <div className="flex gap-3 relative z-10">
@@ -531,6 +553,7 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
                             style={{ fontFamily: "Playfair Display, serif" }}
                           >
                             {isDone ? "Completed" : "Failed"}
+                            {isVouchieRole && " (Vouchie)"}
                           </span>
                         </div>
 
@@ -542,7 +565,7 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
                           {task.title}
                         </div>
 
-                        {/* Footer Row: Amount */}
+                        {/* Footer Row: Amount + Claim Button */}
                         <div className="flex items-center justify-between mt-1">
                           <div className="flex items-center gap-2">
                             {/* Amount Display */}
@@ -550,11 +573,13 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
                               className={`text-xs font-bold px-2 py-1 rounded-lg ${
                                 isDone
                                   ? "text-green-600 bg-green-50 dark:bg-green-900/20"
-                                  : "text-red-600 bg-red-50 dark:bg-red-900/20"
+                                  : isVouchieRole
+                                    ? "text-green-600 bg-green-50 dark:bg-green-900/20"
+                                    : "text-red-600 bg-red-50 dark:bg-red-900/20"
                               }`}
                               style={{ fontFamily: "Playfair Display, serif" }}
                             >
-                              {isDone ? `+$${stake}` : `−$${stake}`}
+                              {isDone || isVouchieRole ? `+$${stake.toFixed(2)}` : `−$${stake.toFixed(2)}`}
                             </span>
 
                             {/* Status text */}
@@ -562,9 +587,28 @@ const CalendarView = ({ tasks }: CalendarViewProps) => {
                               className="text-[10px] font-bold text-stone-400 uppercase tracking-wide"
                               style={{ fontFamily: "Playfair Display, serif" }}
                             >
-                              {isDone ? "Refunded" : "Lost"}
+                              {task.userHasClaimed
+                                ? "Claimed"
+                                : isDone
+                                  ? "Refundable"
+                                  : isVouchieRole
+                                    ? "Claimable"
+                                    : "Lost"}
                             </span>
                           </div>
+
+                          {/* Claim Button */}
+                          {canClaim && (
+                            <button
+                              onClick={e => {
+                                e.stopPropagation();
+                                onClaim(task.id, task.currentUserVouchieIndex || 0);
+                              }}
+                              className="px-3 py-1.5 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900 rounded-lg text-xs font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
+                            >
+                              {isDone ? "Claim Refund" : "Claim Share"}
+                            </button>
+                          )}
                         </div>
                       </div>
                     </div>

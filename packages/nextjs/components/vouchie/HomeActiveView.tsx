@@ -31,16 +31,16 @@ const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => 
 
   return (
     <div className="relative w-8 h-12 perspective-[400px]" style={{ perspective: "400px" }}>
-      {/* STATIC LAYER (Behind) */}
+      {/* STATIC LAYER (Behind) - Top shows PREVIOUS (revealed after top flap flips away), Bottom shows NEW (revealed when bottom flap flips up) */}
       <div className="absolute top-0 left-0 w-full h-1/2 bg-stone-900 rounded-t-lg overflow-hidden border-b border-black/40 z-0 flex justify-center items-end">
         <span className={`text-2xl font-black font-mono tracking-tighter translate-y-[50%] ${colorClass}`}>
-          {digitToRender}
+          {prevToRender}
         </span>
       </div>
 
       <div className="absolute bottom-0 left-0 w-full h-1/2 bg-stone-900 rounded-b-lg overflow-hidden border-t border-white/5 z-0 flex justify-center items-start shadow-xl">
         <span className={`text-2xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
-          {prevToRender}
+          {digitToRender}
         </span>
       </div>
 
@@ -226,11 +226,7 @@ const HomeActiveView = ({
                         { val: s, label: "Secs" },
                       ].map((unit, idx) => (
                         <div key={idx} className="flex-1 px-1">
-                          <FlipGroup
-                            val={unit.val}
-                            colorClass={isUrgent ? "text-red-500" : "text-white"}
-                            label={unit.label}
-                          />
+                          <FlipGroup val={unit.val} colorClass="text-white" label={unit.label} />
                         </div>
                       ))}
                     </>
