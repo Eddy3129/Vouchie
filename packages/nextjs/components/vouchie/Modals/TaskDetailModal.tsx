@@ -10,7 +10,7 @@ interface TaskDetailModalProps {
   onSubmit: (goalId: number, proof: string) => void;
   onGiveUp: (goalId: number) => void;
   onExtend: (goalId: number) => void;
-  onComposeCast?: (params: { text: string; embeds?: string[] }) => void;
+  onComposeCast?: (params: { text: string; embeds?: string[] }) => Promise<{ cast?: { hash: string } } | undefined>;
 }
 
 const TaskDetailModal = ({
@@ -25,6 +25,7 @@ const TaskDetailModal = ({
 }: TaskDetailModalProps & { onSettle?: (id: number) => void; onClaim?: (id: number, index: number) => void }) => {
   const [proofText, setProofText] = useState("");
   const [now, setNow] = useState(Date.now());
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Update time every second for live countdown
   useEffect(() => {
@@ -75,9 +76,13 @@ const TaskDetailModal = ({
         : "";
 
   // Handle submit - now casts for BOTH Solo and Squad modes
-  const handleSubmit = () => {
-    // Always prompt to cast for both modes
-    if (onComposeCast) {
+  // Waits for cast confirmation before proceeding
+  const handleSubmit = async () => {
+    if (!onComposeCast || isSubmitting) return;
+
+    setIsSubmitting(true);
+
+    try {
       const appUrl = typeof window !== "undefined" ? window.location.origin : "https://vouchie.app";
 
       // Get vouchie usernames for @mentions (Squad mode only)
@@ -96,11 +101,23 @@ const TaskDetailModal = ({
         proofText: proofText,
       });
 
-      onComposeCast(castContent);
-    }
+      // Await the cast result
+      const result = await onComposeCast(castContent);
 
-    // Call onSubmit to process the verification
-    onSubmit(goal.id, proofText);
+      // Only proceed if user actually posted the cast
+      if (result?.cast?.hash) {
+        console.log("Proof cast posted successfully:", result.cast.hash);
+        // Call onSubmit to process the verification
+        onSubmit(goal.id, proofText);
+        onClose();
+      } else {
+        console.log("User cancelled proof cast");
+      }
+    } catch (err) {
+      console.error("Error submitting proof:", err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -345,11 +362,20 @@ const TaskDetailModal = ({
             />
             <button
               onClick={handleSubmit}
+              disabled={isSubmitting}
               className={`w-full py-3.5 text-white rounded-xl font-bold transition-colors flex items-center justify-center gap-2 text-sm ${
-                isSolo ? "bg-green-500 hover:bg-green-600" : "bg-purple-500 hover:bg-purple-600"
+                isSubmitting
+                  ? "bg-stone-400 cursor-not-allowed"
+                  : isSolo
+                    ? "bg-green-500 hover:bg-green-600"
+                    : "bg-purple-500 hover:bg-purple-600"
               }`}
             >
-              {isSolo ? (
+              {isSubmitting ? (
+                <>
+                  <span className="animate-spin">⏳</span> Posting...
+                </>
+              ) : isSolo ? (
                 <>
                   <PaperPlaneTilt size={18} weight="bold" /> Complete & Share
                 </>

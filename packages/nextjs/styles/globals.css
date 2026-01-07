@@ -173,9 +173,9 @@
   background: var(--color-base-200);
 }
 
-/* Enforce Playfair Display globally */
-* {
-  font-family: "Playfair Display", serif !important;
+/* Enforce Playfair Display globally, but allow inline style overrides */
+*:not([style*="font-family"]) {
+  font-family: "Playfair Display", serif;
 }
 
 .btn {

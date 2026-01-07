@@ -114,7 +114,7 @@ interface MiniappContextType {
   isReady: boolean;
   isMiniApp: boolean;
   openLink: (url: string) => Promise<void>;
-  composeCast: (params: { text: string; embeds?: string[] }) => Promise<void>;
+  composeCast: (params: { text: string; embeds?: string[] }) => Promise<{ cast?: { hash: string } } | undefined>;
   openProfile: (params: { fid?: number; username?: string }) => Promise<void>;
 }
 
@@ -148,7 +148,13 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
   const [isReady, setIsReady] = useState(false);
   const [isMiniApp, setIsMiniApp] = useState(false);
 
-  const composeCast = async ({ text, embeds = [] }: { text: string; embeds?: string[] }) => {
+  const composeCast = async ({
+    text,
+    embeds = [],
+  }: {
+    text: string;
+    embeds?: string[];
+  }): Promise<{ cast?: { hash: string } } | undefined> => {
     try {
       if (isMiniApp) {
         const trimmed = embeds.filter(Boolean).slice(0, 2);
@@ -158,16 +164,19 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
           return [] as [];
         })();
         console.log("composeCast processing", text, embedsTuple);
-        await sdk.actions.composeCast({ text, embeds: embedsTuple });
-
-        return;
+        const result = await sdk.actions.composeCast({ text, embeds: embedsTuple });
+        console.log("composeCast result:", result);
+        return result as { cast?: { hash: string } } | undefined;
       }
+      // Fallback for non-miniapp: open compose URL (no return value possible)
       const url = new URL("https://farcaster.xyz/~/compose");
       url.searchParams.set("text", text);
       for (const e of embeds) url.searchParams.append("embeds[]", e);
       if (typeof window !== "undefined") window.open(url.toString(), "_blank");
+      return undefined;
     } catch (err) {
       console.error("composeCast error", err);
+      return undefined;
     }
   };
 
