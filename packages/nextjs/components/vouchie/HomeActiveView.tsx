@@ -1,57 +1,67 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Goal } from "../../types/vouchie";
 import { ArrowRight, CheckCircle, Clock, ShieldCheck } from "@phosphor-icons/react";
 
-// --- Utility: Get Previous State Hook ---
-function usePrevious<T>(value: T): T | undefined {
-  const ref = useRef<T>(undefined);
-  useEffect(() => {
-    ref.current = value;
-  }, [value]);
-  return ref.current;
-}
-
 // --- Component: Single Flip Digit ---
 const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => {
+  // displayedDigit is what's currently shown - only updates AFTER flip completes
+  const [displayedDigit, setDisplayedDigit] = useState(val);
   const [isFlipping, setIsFlipping] = useState(false);
-  const prevDigit = usePrevious(val);
+  const [nextDigit, setNextDigit] = useState(val);
+  const isFirstRender = useRef(true);
 
-  const digitToRender = val;
-  const prevDigitToRender = prevDigit !== undefined ? prevDigit : val;
+  // Use useLayoutEffect to synchronously detect changes before paint
+  useLayoutEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
 
-  // Trigger animation when digit changes
-  useEffect(() => {
-    if (val !== prevDigit && prevDigit !== undefined) {
+    // Only trigger flip if the value actually changed from what's displayed
+    if (val !== displayedDigit && !isFlipping) {
+      setNextDigit(val);
       setIsFlipping(true);
+    }
+  }, [val, displayedDigit, isFlipping]);
+
+  // When flip animation ends, update the displayed digit
+  useEffect(() => {
+    if (isFlipping) {
       const timer = setTimeout(() => {
+        setDisplayedDigit(nextDigit);
         setIsFlipping(false);
       }, 600); // Duration matches CSS animation
       return () => clearTimeout(timer);
     }
-  }, [val, prevDigit]);
+  }, [isFlipping, nextDigit]);
+
+  // What to show during animation vs static state
+  const topStaticDigit = isFlipping ? nextDigit : displayedDigit; // New digit revealed under flip
+  const bottomStaticDigit = displayedDigit; // Old digit (or current when not flipping)
+  const topFlapDigit = displayedDigit; // Old digit on the flipping panel
+  const bottomFlapDigit = nextDigit; // New digit coming up from below
 
   return (
     <div className="relative w-8 h-12" style={{ perspective: "400px" }}>
       {/* --- STATIC LAYER (Behind) --- */}
-      {/* Top Half (Shows Current Digit - Revealed when flip starts) */}
+      {/* Top Half - Shows digit that will be revealed (next digit during flip) */}
       <div className="absolute top-0 left-0 w-full h-1/2 bg-stone-900 rounded-t-lg overflow-hidden border-b border-black/40 z-0 flex justify-center items-end">
         <span className={`text-2xl font-black font-mono tracking-tighter translate-y-[50%] ${colorClass}`}>
-          {digitToRender}
+          {topStaticDigit}
         </span>
         <div className="absolute inset-0 bg-black/10" />
       </div>
 
-      {/* Bottom Half (Shows Previous Digit - Covered when flip ends) */}
+      {/* Bottom Half - Shows current/old digit (will be covered by flip) */}
       <div className="absolute bottom-0 left-0 w-full h-1/2 bg-stone-900 rounded-b-lg overflow-hidden border-t border-white/5 z-0 flex justify-center items-start shadow-xl">
         <span className={`text-2xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
-          {prevDigitToRender}
+          {bottomStaticDigit}
         </span>
         <div className="absolute inset-0 bg-black/10" />
       </div>
 
       {/* --- ANIMATION LAYERS (Front) --- */}
-      {/* 1. Top Flipping Card (Front Face) -> Starts at 0deg, flips to -180deg */}
-      {/* Shows Previous Digit Top Half */}
+      {/* Top Flipping Card - Shows OLD digit, flips down to reveal new digit underneath */}
       <div
         className={`absolute top-0 left-0 w-full h-1/2 bg-stone-900 rounded-t-lg overflow-hidden border-b border-black/40 z-10 origin-bottom backface-hidden flex justify-center items-end ${
           isFlipping ? "animate-flip-down" : ""
@@ -59,13 +69,12 @@ const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => 
         style={{ transformStyle: "preserve-3d" }}
       >
         <span className={`text-2xl font-black font-mono tracking-tighter translate-y-[50%] ${colorClass}`}>
-          {prevDigitToRender}
+          {topFlapDigit}
         </span>
         <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
       </div>
 
-      {/* 2. Bottom Flipping Card (Back Face) -> Starts at 180deg (hidden), ends at 0deg */}
-      {/* Shows Current Digit Bottom Half */}
+      {/* Bottom Flipping Card - Shows NEW digit, flips up to cover old digit */}
       <div
         className={`absolute top-1/2 left-0 w-full h-1/2 bg-stone-900 rounded-b-lg overflow-hidden border-t border-white/5 z-10 origin-top backface-hidden flex justify-center items-start ${
           isFlipping ? "animate-flip-up" : "hidden"
@@ -73,7 +82,7 @@ const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => 
         style={{ transform: "rotateX(180deg)" }}
       >
         <span className={`text-2xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
-          {digitToRender}
+          {bottomFlapDigit}
         </span>
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
       </div>
