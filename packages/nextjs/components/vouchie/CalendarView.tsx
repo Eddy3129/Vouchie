@@ -485,14 +485,15 @@ const CalendarView = ({ tasks, verificationGoals = [], onClaim }: CalendarViewPr
                 const isVouchieRole = task.claimRole === "vouchie";
 
                 // Determine claim eligibility
-                // Creator claims: successful goals where stake > 0 and not claimed
-                // Vouchie claims: failed squad goals where stake > 0 and not claimed
+                // Creator claims: successful goals where contract stake > 0 and not claimed
+                // Vouchie claims: failed squad goals where contract stake > 0 and not claimed
+                // Note: Use task.stake (current contract value), not getOriginalStake
                 const canClaim =
                   task.resolved &&
                   !task.userHasClaimed &&
-                  stake > 0 &&
+                  task.stake > 0 && // Current stake on contract (0 if already claimed)
                   onClaim &&
-                  // Solo failures have no payout
+                  // Solo failures have no payout (treasury takes all)
                   !(task.status === "failed" && task.mode === "Solo" && task.claimRole === "creator");
 
                 return (

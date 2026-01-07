@@ -16,35 +16,42 @@ const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => 
   const [isFlipping, setIsFlipping] = useState(false);
   const prevDigit = usePrevious(val);
 
+  const digitToRender = val;
+  const prevDigitToRender = prevDigit !== undefined ? prevDigit : val;
+
+  // Trigger animation when digit changes
   useEffect(() => {
-    if (prevDigit !== undefined && val !== prevDigit) {
+    if (val !== prevDigit && prevDigit !== undefined) {
       setIsFlipping(true);
       const timer = setTimeout(() => {
         setIsFlipping(false);
-      }, 600); // Matches CSS duration
+      }, 600); // Duration matches CSS animation
       return () => clearTimeout(timer);
     }
   }, [val, prevDigit]);
 
-  const digitToRender = val;
-  const prevToRender = prevDigit !== undefined ? prevDigit : val;
-
   return (
-    <div className="relative w-8 h-12 perspective-[400px]" style={{ perspective: "400px" }}>
-      {/* STATIC LAYER (Behind) - Top shows PREVIOUS (revealed after top flap flips away), Bottom shows NEW (revealed when bottom flap flips up) */}
+    <div className="relative w-8 h-12" style={{ perspective: "400px" }}>
+      {/* --- STATIC LAYER (Behind) --- */}
+      {/* Top Half (Shows Current Digit - Revealed when flip starts) */}
       <div className="absolute top-0 left-0 w-full h-1/2 bg-stone-900 rounded-t-lg overflow-hidden border-b border-black/40 z-0 flex justify-center items-end">
         <span className={`text-2xl font-black font-mono tracking-tighter translate-y-[50%] ${colorClass}`}>
-          {prevToRender}
-        </span>
-      </div>
-
-      <div className="absolute bottom-0 left-0 w-full h-1/2 bg-stone-900 rounded-b-lg overflow-hidden border-t border-white/5 z-0 flex justify-center items-start shadow-xl">
-        <span className={`text-2xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
           {digitToRender}
         </span>
+        <div className="absolute inset-0 bg-black/10" />
       </div>
 
-      {/* ANIMATION LAYERS (Front) */}
+      {/* Bottom Half (Shows Previous Digit - Covered when flip ends) */}
+      <div className="absolute bottom-0 left-0 w-full h-1/2 bg-stone-900 rounded-b-lg overflow-hidden border-t border-white/5 z-0 flex justify-center items-start shadow-xl">
+        <span className={`text-2xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
+          {prevDigitToRender}
+        </span>
+        <div className="absolute inset-0 bg-black/10" />
+      </div>
+
+      {/* --- ANIMATION LAYERS (Front) --- */}
+      {/* 1. Top Flipping Card (Front Face) -> Starts at 0deg, flips to -180deg */}
+      {/* Shows Previous Digit Top Half */}
       <div
         className={`absolute top-0 left-0 w-full h-1/2 bg-stone-900 rounded-t-lg overflow-hidden border-b border-black/40 z-10 origin-bottom backface-hidden flex justify-center items-end ${
           isFlipping ? "animate-flip-down" : ""
@@ -52,10 +59,13 @@ const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => 
         style={{ transformStyle: "preserve-3d" }}
       >
         <span className={`text-2xl font-black font-mono tracking-tighter translate-y-[50%] ${colorClass}`}>
-          {prevToRender}
+          {prevDigitToRender}
         </span>
+        <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
       </div>
 
+      {/* 2. Bottom Flipping Card (Back Face) -> Starts at 180deg (hidden), ends at 0deg */}
+      {/* Shows Current Digit Bottom Half */}
       <div
         className={`absolute top-1/2 left-0 w-full h-1/2 bg-stone-900 rounded-b-lg overflow-hidden border-t border-white/5 z-10 origin-top backface-hidden flex justify-center items-start ${
           isFlipping ? "animate-flip-up" : "hidden"
@@ -65,12 +75,8 @@ const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => 
         <span className={`text-2xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
           {digitToRender}
         </span>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
       </div>
-
-      {/* Subtle urgent glow */}
-      {colorClass.includes("text-red-500") && (
-        <div className="absolute inset-0 bg-red-500/5 animate-pulse pointer-events-none rounded-lg" />
-      )}
     </div>
   );
 };
