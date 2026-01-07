@@ -6,6 +6,7 @@ import { useScaffoldReadContract } from "~~/hooks/scaffold-eth";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth/useTargetNetwork";
 import { FarcasterUser, useFarcasterUser } from "~~/hooks/vouchie/useFarcasterUser";
 import { Goal, Vouchie } from "~~/types/vouchie";
+import { fetchProofCasts } from "~~/utils/neynar";
 
 // Helper to determine status
 const getStatus = (goal: any): "pending" | "in_progress" | "verifying" | "done" | "failed" => {
@@ -32,6 +33,7 @@ export const useVouchieData = () => {
   const [loading, setLoading] = useState(true);
   const [farcasterUsers, setFarcasterUsers] = useState<Map<string, FarcasterUser | null>>(new Map());
   const [userVerifiedAddresses, setUserVerifiedAddresses] = useState<string[]>([]);
+  const [proofs, setProofs] = useState<Map<number, { text: string; hash: string }>>(new Map());
 
   // Fetch all verified addresses for current user's FID
   useEffect(() => {
@@ -253,11 +255,46 @@ export const useVouchieData = () => {
     context.user?.primaryAddress,
   ]);
 
-  // Update goals with Farcaster usernames when lookup completes
+  // Fetch proofs for active Squad goals
   useEffect(() => {
-    if (farcasterUsers.size === 0) return;
+    const checkProofs = async () => {
+      const apiKey = process.env.NEXT_PUBLIC_NEYNAR_API_KEY;
+      if (!apiKey || farcasterUsers.size === 0 || goals.length === 0) return;
 
-    const updateGoalsWithUsernames = (goalList: Goal[]): Goal[] => {
+      const newProofs = new Map(proofs);
+      let hasNew = false;
+
+      await Promise.all(
+        goals.map(async goal => {
+          // Only check for: Squad mode, Unresolved, Not in proofs map yet, Has creator FID
+          if (goal.mode === "Squad" && !goal.resolved && !proofs.has(goal.id)) {
+            const creatorUser = goal.creator ? farcasterUsers.get(goal.creator.toLowerCase()) : null;
+            if (creatorUser?.fid) {
+              const proof = await fetchProofCasts(goal.id, creatorUser.fid, apiKey);
+              if (proof) {
+                newProofs.set(goal.id, proof);
+                hasNew = true;
+              }
+            }
+          }
+        }),
+      );
+
+      if (hasNew) {
+        setProofs(newProofs);
+      }
+    };
+
+    checkProofs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [farcasterUsers, goals.length]); // Check when users or goals count changes
+
+  // Update goals with Farcaster usernames AND proofs when lookup completes or proofs found
+  useEffect(() => {
+    // We run this if users loaded OR proofs loaded
+    if (farcasterUsers.size === 0 && proofs.size === 0) return;
+
+    const updateGoalsWithData = (goalList: Goal[]): Goal[] => {
       return goalList.map(goal => {
         // Update creator info
         const creatorUser = goal.creator ? farcasterUsers.get(goal.creator.toLowerCase()) : null;
@@ -277,18 +314,29 @@ export const useVouchieData = () => {
           return v;
         });
 
-        return {
-          ...goal,
+        // Merge proof data if available
+        const proof = proofs.get(goal.id);
+        const newData: Partial<Goal> = {
           creatorUsername: creatorUser?.username,
           creatorAvatar: creatorUser?.pfpUrl,
           vouchies: updatedVouchies,
         };
+
+        if (proof) {
+          newData.proofText = proof.text;
+          newData.status = "verifying"; // Override status
+        }
+
+        return {
+          ...goal,
+          ...newData,
+        };
       });
     };
 
-    setGoals(prev => updateGoalsWithUsernames(prev));
-    setVerificationGoals(prev => updateGoalsWithUsernames(prev));
-  }, [farcasterUsers]);
+    setGoals(prev => updateGoalsWithData(prev));
+    setVerificationGoals(prev => updateGoalsWithData(prev));
+  }, [farcasterUsers, proofs]);
 
   const refresh = () => {
     refetchCount();
