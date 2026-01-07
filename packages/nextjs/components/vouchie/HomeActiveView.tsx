@@ -1,7 +1,7 @@
 import React, { useState } from "react";
+import Image from "next/image";
 import { Goal } from "../../types/vouchie";
 import { ArrowRight, CheckCircle, Clock } from "@phosphor-icons/react";
-import { formatUnits } from "viem";
 
 interface HomeActiveViewProps {
   activeGoal: Goal | undefined;
@@ -68,7 +68,20 @@ const HomeActiveView = ({
 
             {/* Creator Info (for Verification Goals) */}
             {activeGoal.creatorUsername && (
-              <div className="flex items-center gap-2 mb-6">
+              <div className="flex items-center gap-2 mb-6 bg-stone-50 dark:bg-stone-800/50 px-4 py-2 rounded-2xl border border-stone-100 dark:border-stone-700/50">
+                {activeGoal.creatorAvatar ? (
+                  <Image
+                    src={activeGoal.creatorAvatar}
+                    alt={activeGoal.creatorUsername}
+                    width={20}
+                    height={20}
+                    className="w-5 h-5 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="w-5 h-5 rounded-full bg-stone-200 dark:bg-stone-700 flex items-center justify-center text-[10px] text-stone-500">
+                    👤
+                  </div>
+                )}
                 <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Created by</span>
                 <span className="text-sm font-black text-[#8B5A2B] dark:text-[#FFA726]">
                   @{activeGoal.creatorUsername}
@@ -80,7 +93,7 @@ const HomeActiveView = ({
             <div className="flex items-center gap-6 mb-8 text-stone-500 dark:text-stone-400">
               <div className="flex items-center gap-2 bg-white/50 dark:bg-stone-800/50 px-4 py-2 rounded-xl border border-stone-100 dark:border-stone-700/50">
                 <span className="text-2xl font-bold text-stone-800 dark:text-white">
-                  ${formatUnits(BigInt(activeGoal.stake), 6)}
+                  ${activeGoal.stake.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                 </span>
                 <span className="text-[10px] font-bold uppercase tracking-wider">At Risk</span>
               </div>
@@ -166,7 +179,7 @@ const HomeActiveView = ({
                 </div>
                 <div className="text-right">
                   <span className="block font-bold text-stone-800 dark:text-stone-300">
-                    ${formatUnits(BigInt(goal.stake), 6)}
+                    ${goal.stake.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
                   </span>
                 </div>
               </div>

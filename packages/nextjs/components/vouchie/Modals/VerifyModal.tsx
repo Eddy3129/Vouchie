@@ -63,7 +63,9 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote }: VerifyModalProps) => {
                 <span className="px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
                   Verification Required
                 </span>
-                <span className="text-[10px] font-bold text-stone-400 ml-auto">${goal.stake} USDC</span>
+                <span className="text-[10px] font-bold text-stone-400 ml-auto">
+                  ${goal.stake.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC
+                </span>
               </div>
 
               <h3 className="text-xl font-bold text-stone-800 dark:text-white leading-tight mb-3">{goal.title}</h3>
@@ -147,7 +149,10 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote }: VerifyModalProps) => {
             {/* Goal reminder */}
             <div className="bg-stone-50 dark:bg-stone-800/50 rounded-2xl p-4 mb-4 border-2 border-stone-200 dark:border-stone-700">
               <p className="text-sm text-stone-600 dark:text-stone-300 font-semibold">&ldquo;{goal.title}&rdquo;</p>
-              <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">${goal.stake} USDC will be slashed</p>
+              <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+                ${goal.stake.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })} USDC
+                will be slashed
+              </p>
             </div>
 
             {/* Reason textarea */}

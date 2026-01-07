@@ -156,10 +156,6 @@ const VouchieApp = () => {
 
   const hasBlockingSettle = maturedGoals.length > 0;
 
-  const maturedVerificationGoals = React.useMemo(() => {
-    return verificationGoals.filter(g => !g.resolved && g.deadline < Date.now());
-  }, [verificationGoals]);
-
   // Quotes
   useFamousQuotes();
 
@@ -624,15 +620,9 @@ const VouchieApp = () => {
                     return (
                       <HomeActiveView
                         activeGoal={
-                          maturedGoals.length > 0
-                            ? maturedGoals.sort((a, b) => a.deadline - b.deadline)[0]
-                            : maturedVerificationGoals.length > 0
-                              ? maturedVerificationGoals.sort((a, b) => a.deadline - b.deadline)[0]
-                              : activeGoal
+                          maturedGoals.length > 0 ? maturedGoals.sort((a, b) => a.deadline - b.deadline)[0] : activeGoal
                         }
-                        upcomingGoals={
-                          maturedGoals.length > 0 || maturedVerificationGoals.length > 0 ? activeGoals : upcomingGoals
-                        }
+                        upcomingGoals={maturedGoals.length > 0 ? activeGoals : upcomingGoals}
                         completedGoals={completedGoals}
                         onVerify={(g: Goal) => setSelectedTaskForDetails(g)}
                         onStart={(g: Goal) => setSelectedTaskForStart(g)}
@@ -737,7 +727,13 @@ const VouchieApp = () => {
                                   </div>
                                 </div>
                                 <div className="text-right ml-3">
-                                  <p className="text-lg font-bold text-green-600 dark:text-green-400">${task.stake}</p>
+                                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
+                                    $
+                                    {task.stake.toLocaleString(undefined, {
+                                      minimumFractionDigits: 0,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </p>
                                   <p className="text-[10px] text-stone-400 uppercase">USDC</p>
                                 </div>
                               </div>
