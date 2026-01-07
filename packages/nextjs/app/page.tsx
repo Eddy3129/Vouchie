@@ -149,6 +149,17 @@ const VouchieApp = () => {
     return rawGoals.filter(g => g.creator?.toLowerCase() === userAddr.toLowerCase());
   }, [rawGoals, context?.user?.primaryAddress, address]);
 
+  // Settlement Restriction Logic
+  const maturedGoals = React.useMemo(() => {
+    return goals.filter(g => !g.resolved && g.deadline < Date.now());
+  }, [goals]);
+
+  const hasBlockingSettle = maturedGoals.length > 0;
+
+  const maturedVerificationGoals = React.useMemo(() => {
+    return verificationGoals.filter(g => !g.resolved && g.deadline < Date.now());
+  }, [verificationGoals]);
+
   // Quotes
   useFamousQuotes();
 
@@ -509,33 +520,7 @@ const VouchieApp = () => {
                 {/* Action Required Section */}
                 {!loading && (
                   <div className="space-y-3">
-                    {/* 1. Settle Actions (for Creators or Vouchies) */}
-                    {goals
-                      .filter(g => !g.resolved && g.deadline < Date.now())
-                      .map(g => (
-                        <div
-                          key={`settle-${g.id}`}
-                          className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800/40 rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-top-2 duration-300"
-                        >
-                          <div className="bg-orange-400 p-2 rounded-full text-white">
-                            <Clock size={20} weight="fill" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-orange-900 dark:text-orange-200 font-bold text-sm">
-                              Action Required: Settle Goal
-                            </h4>
-                            <p className="text-orange-800/70 dark:text-orange-300/60 text-xs mt-0.5 line-clamp-1">
-                              &quot;{g.title}&quot; expired. Settle to finalize.
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleSettle(g.id)}
-                            className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
-                          >
-                            Settle <ArrowRight size={14} weight="bold" />
-                          </button>
-                        </div>
-                      ))}
+                    {/* 1. Settle Actions - REMOVED (Moved to Hero) */}
 
                     {/* 2. Claim Payouts (for Vouchies on failed goals) */}
                     {verificationGoals
@@ -638,12 +623,22 @@ const VouchieApp = () => {
 
                     return (
                       <HomeActiveView
-                        activeGoal={activeGoal}
-                        upcomingGoals={upcomingGoals}
+                        activeGoal={
+                          maturedGoals.length > 0
+                            ? maturedGoals.sort((a, b) => a.deadline - b.deadline)[0]
+                            : maturedVerificationGoals.length > 0
+                              ? maturedVerificationGoals.sort((a, b) => a.deadline - b.deadline)[0]
+                              : activeGoal
+                        }
+                        upcomingGoals={
+                          maturedGoals.length > 0 || maturedVerificationGoals.length > 0 ? activeGoals : upcomingGoals
+                        }
                         completedGoals={completedGoals}
                         onVerify={(g: Goal) => setSelectedTaskForDetails(g)}
                         onStart={(g: Goal) => setSelectedTaskForStart(g)}
+                        onSettle={handleSettle}
                         onCreate={() => setAddModalOpen(true)}
+                        isBlockingSettle={hasBlockingSettle}
                       />
                     );
                   })()}
@@ -664,89 +659,116 @@ const VouchieApp = () => {
 
                     {/* Verification Cards */}
                     {!loading &&
-                      verificationGoals.map(task => {
-                        const isExpired = task.deadline < Date.now();
-                        const canVerify = isExpired || task.proofText;
-
-                        // Time calculation
-                        const timeLeft = Math.max(0, task.deadline - Date.now());
-                        const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-                        const mins = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-                        const secs = Math.floor((timeLeft % (1000 * 60)) / 1000);
-
-                        return (
-                          <div
-                            key={task.id}
-                            className={`bg-white dark:bg-stone-800 rounded-2xl p-4 border transition-all ${
-                              isExpired
-                                ? "border-amber-200 dark:border-amber-800/40 bg-amber-50/30 dark:bg-amber-900/10"
-                                : "border-stone-200 dark:border-stone-700 shadow-sm"
-                            }`}
+                      (hasBlockingSettle ? (
+                        <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
+                          <div className="text-4xl mb-4">🔒</div>
+                          <p className="text-stone-400 font-bold text-lg mb-2">Verification Locked</p>
+                          <p className="text-stone-400 text-sm">
+                            You must settle your own matured goals before you can verify for others.
+                          </p>
+                          <button
+                            onClick={() => {
+                              setDashboardTab("tasks");
+                              setActiveTab("dashboard");
+                            }}
+                            className="mt-6 px-6 py-2 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl font-bold text-sm transition-all border border-stone-200 dark:border-stone-700"
                           >
-                            {/* Header */}
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex items-center gap-3 flex-1">
-                                {/* Creator Avatar */}
-                                {task.creatorAvatar ? (
-                                  <Image
-                                    src={task.creatorAvatar}
-                                    alt={task.creatorUsername || "Creator"}
-                                    width={40}
-                                    height={40}
-                                    className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-stone-800"
-                                  />
-                                ) : (
-                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#8B5A2B] to-[#FFA726] flex items-center justify-center text-white font-bold ring-2 ring-white dark:ring-stone-800">
-                                    {task.creator?.charAt(0).toUpperCase() || "?"}
-                                  </div>
-                                )}
+                            Go to My Tasks
+                          </button>
+                        </div>
+                      ) : (
+                        verificationGoals.map(task => {
+                          const isExpired = task.deadline < Date.now();
+                          const canVerify = isExpired || task.proofText;
 
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    {isExpired ? (
-                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
-                                        Expired - Ready to Settle
-                                      </span>
-                                    ) : (
-                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                                        {hours}h {mins}m {secs}s remaining
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <h4 className="font-bold text-stone-800 dark:text-white text-base leading-tight truncate">
-                                      {task.title}
-                                    </h4>
-                                  </div>
-                                  <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                                    by @{task.creatorUsername || formatAddress(task.creator)}
-                                  </p>
-                                </div>
-                              </div>
-                              <div className="text-right ml-3">
-                                <p className="text-lg font-bold text-green-600 dark:text-green-400">${task.stake}</p>
-                                <p className="text-[10px] text-stone-400 uppercase">USDC</p>
-                              </div>
-                            </div>
+                          // Time calculation
+                          const timeLeft = Math.max(0, task.deadline - Date.now());
+                          const hours = Math.floor(timeLeft / (1000 * 60 * 60));
+                          const mins = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+                          const secs = Math.floor((timeLeft % (1000 * 60)) / 1000);
 
-                            {/* Action Button */}
-                            <button
-                              onClick={() => {
-                                setSelectedVerificationGoal(task);
-                                setIsVerifyModalOpen(true);
-                              }}
-                              className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md ${
-                                canVerify
-                                  ? "bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900"
-                                  : "bg-stone-100 dark:bg-stone-800 text-stone-400 cursor-not-allowed shadow-none border border-stone-200 dark:border-stone-700"
+                          return (
+                            <div
+                              key={task.id}
+                              className={`bg-white dark:bg-stone-800 rounded-2xl p-4 border transition-all ${
+                                isExpired
+                                  ? "border-amber-200 dark:border-amber-800/40 bg-amber-50/30 dark:bg-amber-900/10"
+                                  : "border-stone-200 dark:border-stone-700 shadow-sm"
                               }`}
                             >
-                              <ShieldCheck size={18} weight="fill" />
-                              {canVerify ? "Verify" : "Verification Locked"}
-                            </button>
-                          </div>
-                        );
-                      })}
+                              {/* Header */}
+                              <div className="flex items-start justify-between mb-3">
+                                <div className="flex items-center gap-3 flex-1">
+                                  {/* Creator Avatar */}
+                                  {task.creatorAvatar ? (
+                                    <Image
+                                      src={task.creatorAvatar}
+                                      alt={task.creatorUsername || "Creator"}
+                                      width={40}
+                                      height={40}
+                                      className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-stone-800"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#8B5A2B] to-[#FFA726] flex items-center justify-center text-white font-bold ring-2 ring-white dark:ring-stone-800">
+                                      {task.creator?.charAt(0).toUpperCase() || "?"}
+                                    </div>
+                                  )}
+
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2 mb-1">
+                                      {isExpired ? (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
+                                          Expired - Ready to Settle
+                                        </span>
+                                      ) : (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                                          {hours}h {mins}m {secs}s remaining
+                                        </span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <h4 className="font-bold text-stone-800 dark:text-white text-base leading-tight truncate">
+                                        {task.title}
+                                      </h4>
+                                    </div>
+                                    <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
+                                      by @{task.creatorUsername || formatAddress(task.creator)}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="text-right ml-3">
+                                  <p className="text-lg font-bold text-green-600 dark:text-green-400">${task.stake}</p>
+                                  <p className="text-[10px] text-stone-400 uppercase">USDC</p>
+                                </div>
+                              </div>
+
+                              {/* Action Button */}
+                              <button
+                                onClick={() => {
+                                  if (isExpired) {
+                                    handleSettle(task.id);
+                                  } else {
+                                    setSelectedVerificationGoal(task);
+                                    setIsVerifyModalOpen(true);
+                                  }
+                                }}
+                                className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md ${
+                                  canVerify
+                                    ? "bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900"
+                                    : "bg-stone-100 dark:bg-stone-800 text-stone-400 cursor-not-allowed shadow-none border border-stone-200 dark:border-stone-700"
+                                }`}
+                              >
+                                {isExpired ? (
+                                  <Clock size={18} weight="fill" />
+                                ) : (
+                                  <ShieldCheck size={18} weight="fill" />
+                                )}
+                                {isExpired ? "Settle Goal" : canVerify ? "Verify" : "Verification Locked"}
+                              </button>
+                            </div>
+                          );
+                        })
+                      ))}
                   </div>
                 )}
               </div>
@@ -762,10 +784,19 @@ const VouchieApp = () => {
         {/* Desktop FAB */}
         <div className="hidden lg:block fixed bottom-10 right-10 z-50">
           <button
-            onClick={() => setAddModalOpen(true)}
-            className="relative w-16 h-16 rounded-2xl overflow-hidden hover:scale-110 transition-all duration-300 shadow-[0_0_15px_rgba(255,167,38,0.3)] group"
+            onClick={() => !hasBlockingSettle && setAddModalOpen(true)}
+            disabled={hasBlockingSettle}
+            className={`relative w-16 h-16 rounded-2xl overflow-hidden transition-all duration-300 shadow-[0_0_15px_rgba(255,167,38,0.3)] group ${
+              hasBlockingSettle ? "opacity-50 grayscale cursor-not-allowed" : "hover:scale-110"
+            }`}
           >
-            <div className="absolute inset-[-100%] bg-[conic-gradient(from_90deg_at_50%_50%,#1F1F1F_0%,#FFA726_50%,#1F1F1F_100%)] animate-[spin_2s_linear_infinite]" />
+            <div
+              className={`absolute inset-[-100%] ${
+                hasBlockingSettle
+                  ? "bg-stone-400"
+                  : "bg-[conic-gradient(from_90deg_at_50%_50%,#1F1F1F_0%,#FFA726_50%,#1F1F1F_100%)] animate-[spin_2s_linear_infinite]"
+              }`}
+            />
             <div className="absolute inset-[2px] bg-white dark:bg-[#1F1F1F] rounded-[14px] flex items-center justify-center z-10">
               <Plus size={32} weight="bold" className="text-[#8B5A2B] dark:text-[#FFA726]" />
             </div>
@@ -790,10 +821,19 @@ const VouchieApp = () => {
           </button>
           {/* Center FAB in nav */}
           <button
-            onClick={() => setAddModalOpen(true)}
-            className="relative w-14 h-14 rounded-xl overflow-hidden hover:scale-105 transition-all duration-300 shadow-[0_0_15px_rgba(255,167,38,0.3)] -mt-4 group"
+            onClick={() => !hasBlockingSettle && setAddModalOpen(true)}
+            disabled={hasBlockingSettle}
+            className={`relative w-14 h-14 rounded-xl overflow-hidden transition-all duration-300 shadow-[0_0_15px_rgba(255,167,38,0.3)] -mt-4 group ${
+              hasBlockingSettle ? "opacity-50 grayscale cursor-not-allowed" : "hover:scale-105"
+            }`}
           >
-            <div className="absolute inset-[-100%] bg-[conic-gradient(from_90deg_at_50%_50%,#1F1F1F_0%,#FFA726_50%,#1F1F1F_100%)] animate-[spin_2s_linear_infinite]" />
+            <div
+              className={`absolute inset-[-100%] ${
+                hasBlockingSettle
+                  ? "bg-stone-400"
+                  : "bg-[conic-gradient(from_90deg_at_50%_50%,#1F1F1F_0%,#FFA726_50%,#1F1F1F_100%)] animate-[spin_2s_linear_infinite]"
+              }`}
+            />
             <div className="absolute inset-[2px] bg-white dark:bg-[#1F1F1F] rounded-[10px] flex items-center justify-center z-10">
               <Plus size={28} weight="bold" className="text-[#8B5A2B] dark:text-[#FFA726]" />
             </div>

@@ -9,7 +9,9 @@ interface HomeActiveViewProps {
   completedGoals: Goal[];
   onVerify: (goal: Goal) => void;
   onStart: (goal: Goal) => void;
+  onSettle: (goalId: number) => void;
   onCreate: () => void;
+  isBlockingSettle?: boolean;
 }
 
 const HomeActiveView = ({
@@ -18,7 +20,9 @@ const HomeActiveView = ({
   completedGoals,
   onVerify,
   onStart,
+  onSettle,
   onCreate,
+  isBlockingSettle = false,
 }: HomeActiveViewProps) => {
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -31,7 +35,8 @@ const HomeActiveView = ({
     return `${hours}h ${minutes}m`;
   };
 
-  const isUrgent = activeGoal ? activeGoal.deadline - Date.now() < 1000 * 60 * 60 * 4 : false;
+  const isUrgent = activeGoal ? activeGoal.deadline - Date.now() < 1000 * 60 * 60 * 4 && !activeGoal.resolved : false;
+  const isMatured = activeGoal ? activeGoal.deadline < Date.now() && !activeGoal.resolved : false;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500 pb-8 px-6 pt-6">
@@ -48,16 +53,28 @@ const HomeActiveView = ({
           <div className="relative z-10 flex flex-col items-center">
             {/* Status Pill */}
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-stone-100 dark:bg-stone-800 mb-6 border border-stone-200 dark:border-stone-700 backdrop-blur-md">
-              <div className={`w-2 h-2 rounded-full animate-pulse ${isUrgent ? "bg-red-500" : "bg-green-500"}`} />
+              <div
+                className={`w-2 h-2 rounded-full animate-pulse ${isMatured ? "bg-amber-500" : isUrgent ? "bg-red-500" : "bg-green-500"}`}
+              />
               <span className="text-xs font-bold text-stone-500 dark:text-stone-300 uppercase tracking-widest">
-                Active Commitment
+                {isMatured ? "Matured / Pending Settle" : "Active Commitment"}
               </span>
             </div>
 
             {/* Task Title */}
-            <h1 className="text-4xl md:text-5xl font-black text-stone-800 dark:text-stone-50 mb-4 leading-tight">
+            <h1 className="text-4xl md:text-5xl font-black text-stone-800 dark:text-stone-50 mb-2 leading-tight">
               {activeGoal.title}
             </h1>
+
+            {/* Creator Info (for Verification Goals) */}
+            {activeGoal.creatorUsername && (
+              <div className="flex items-center gap-2 mb-6">
+                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Created by</span>
+                <span className="text-sm font-black text-[#8B5A2B] dark:text-[#FFA726]">
+                  @{activeGoal.creatorUsername}
+                </span>
+              </div>
+            )}
 
             {/* Stakes & Time */}
             <div className="flex items-center gap-6 mb-8 text-stone-500 dark:text-stone-400">
@@ -78,7 +95,14 @@ const HomeActiveView = ({
             </div>
 
             {/* Primary Action Button */}
-            {activeGoal.status === "in_progress" ? (
+            {isMatured ? (
+              <button
+                onClick={() => onSettle(activeGoal.id)}
+                className="w-full max-w-sm py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-amber-500/20 transition-all flex items-center justify-center gap-3 transform active:scale-95"
+              >
+                Settle Task & Finalize <ArrowRight size={20} weight="bold" />
+              </button>
+            ) : activeGoal.status === "in_progress" ? (
               <button
                 onClick={() => onVerify(activeGoal)}
                 className="w-full max-w-sm py-4 bg-[#FF8C00] hover:bg-[#EF6C00] text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-orange-500/20 transition-all flex items-center justify-center gap-3 transform active:scale-95"
@@ -107,9 +131,14 @@ const HomeActiveView = ({
           </p>
           <button
             onClick={onCreate}
-            className="px-8 py-4 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900 rounded-2xl font-bold shadow-lg hover:shadow-lg transition-all transform active:scale-95"
+            disabled={isBlockingSettle}
+            className={`px-8 py-4 rounded-2xl font-bold shadow-lg transition-all transform active:scale-95 ${
+              isBlockingSettle
+                ? "bg-stone-200 dark:bg-stone-800 text-stone-400 cursor-not-allowed opacity-75"
+                : "bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900"
+            }`}
           >
-            Create New Commitment
+            {isBlockingSettle ? "Settle Matured Goals to Create" : "Create New Commitment"}
           </button>
         </div>
       )}
