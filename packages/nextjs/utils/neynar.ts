@@ -20,7 +20,7 @@ export const fetchProofCasts = async (
       method: "GET",
       headers: {
         accept: "application/json",
-        api_key: apiKey,
+        "x-api-key": apiKey,
       },
     });
 

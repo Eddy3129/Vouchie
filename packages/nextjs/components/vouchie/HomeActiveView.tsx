@@ -290,6 +290,14 @@ const HomeActiveView = ({
                   Forfeit
                 </button>
               </div>
+            ) : activeGoal.status === "verifying" ? (
+              <button
+                disabled
+                className="w-full max-w-sm py-4 bg-indigo-500 text-white rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 cursor-not-allowed opacity-90"
+              >
+                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                Verifying...
+              </button>
             ) : activeGoal.status === "in_progress" ? (
               <button
                 onClick={() => onVerify(activeGoal)}

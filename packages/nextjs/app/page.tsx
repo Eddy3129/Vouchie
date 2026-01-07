@@ -727,6 +727,10 @@ const VouchieApp = () => {
                                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
                                             Expired - Ready to Settle
                                           </span>
+                                        ) : task.proofText ? (
+                                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
+                                            Proof Submitted
+                                          </span>
                                         ) : (
                                           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
                                             {hours}h {mins}m {secs}s remaining
