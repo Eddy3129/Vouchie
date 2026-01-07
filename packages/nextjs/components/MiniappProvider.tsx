@@ -283,6 +283,31 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
         setContext(fullContext);
         setIsMiniApp(inMiniApp);
         setIsReady(true);
+
+        // Prompt to add miniapp if not already added (production only)
+        // Note: addMiniApp() requires production domain matching manifest
+        if (inMiniApp && !sdkContext?.client?.added) {
+          const isProduction =
+            typeof window !== "undefined" &&
+            !window.location.hostname.includes("localhost") &&
+            !window.location.hostname.includes("127.0.0.1") &&
+            !window.location.hostname.includes("ngrok") &&
+            !window.location.hostname.includes("localtunnel");
+
+          if (isProduction) {
+            try {
+              await sdk.actions.addMiniApp();
+              console.log("MiniApp added successfully");
+            } catch (addErr: any) {
+              // User rejected or domain mismatch - not critical, just log
+              if (addErr?.message?.includes("RejectedByUser")) {
+                console.log("User declined to add MiniApp");
+              } else {
+                console.warn("addMiniApp failed:", addErr?.message || addErr);
+              }
+            }
+          }
+        }
       } catch (error) {
         console.error("MiniApp SDK initialization error:", error);
 

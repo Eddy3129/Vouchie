@@ -46,7 +46,10 @@ const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => 
       {/* --- STATIC LAYER (Behind) --- */}
       {/* Top Half - Shows digit that will be revealed (next digit during flip) */}
       <div className="absolute top-0 left-0 w-full h-1/2 bg-stone-900 rounded-t-lg overflow-hidden border-b border-black/40 z-0 flex justify-center items-end">
-        <span className={`text-2xl font-black font-mono tracking-tighter translate-y-[50%] ${colorClass}`}>
+        <span
+          className={`text-2xl font-black tracking-tighter translate-y-[50%] ${colorClass}`}
+          style={{ fontFamily: "'Pixelify Sans', monospace" }}
+        >
           {topStaticDigit}
         </span>
         <div className="absolute inset-0 bg-black/10" />
@@ -54,7 +57,10 @@ const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => 
 
       {/* Bottom Half - Shows current/old digit (will be covered by flip) */}
       <div className="absolute bottom-0 left-0 w-full h-1/2 bg-stone-900 rounded-b-lg overflow-hidden border-t border-white/5 z-0 flex justify-center items-start shadow-xl">
-        <span className={`text-2xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
+        <span
+          className={`text-2xl font-black tracking-tighter -translate-y-[50%] ${colorClass}`}
+          style={{ fontFamily: "'Pixelify Sans', monospace" }}
+        >
           {bottomStaticDigit}
         </span>
         <div className="absolute inset-0 bg-black/10" />
@@ -68,7 +74,10 @@ const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => 
         }`}
         style={{ transformStyle: "preserve-3d" }}
       >
-        <span className={`text-2xl font-black font-mono tracking-tighter translate-y-[50%] ${colorClass}`}>
+        <span
+          className={`text-2xl font-black tracking-tighter translate-y-[50%] ${colorClass}`}
+          style={{ fontFamily: "'Pixelify Sans', monospace" }}
+        >
           {topFlapDigit}
         </span>
         <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent" />
@@ -81,7 +90,10 @@ const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => 
         }`}
         style={{ transform: "rotateX(180deg)" }}
       >
-        <span className={`text-2xl font-black font-mono tracking-tighter -translate-y-[50%] ${colorClass}`}>
+        <span
+          className={`text-2xl font-black tracking-tighter -translate-y-[50%] ${colorClass}`}
+          style={{ fontFamily: "'Pixelify Sans', monospace" }}
+        >
           {bottomFlapDigit}
         </span>
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
@@ -172,7 +184,7 @@ const HomeActiveView = ({
   }, [completedGoals]);
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-8 px-6 pt-6">
+    <div className="space-y-4 animate-in fade-in duration-500 pb-8 px-6 pt-6">
       <style>{`
         .backface-hidden {
           backface-visibility: hidden;
