@@ -10,8 +10,6 @@
 
 ## Goal Lifecycle
 
-![alt text](bacxkend_flowchart.svg)
-
 ```mermaid
 sequenceDiagram
     participant C as Creator

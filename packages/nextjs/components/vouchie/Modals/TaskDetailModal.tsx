@@ -389,7 +389,8 @@ const TaskDetailModal = ({
               <Camera size={16} weight="bold" className="text-stone-400" /> Submit Proof
             </h4>
             <p className="text-stone-500 dark:text-stone-400 text-xs mb-3">
-              Your proof will be shared via Farcaster cast. Add a message below!
+              Your proof will be shared via Farcaster cast. Attach a photo in the next screen to improve validity and
+              keep a record of your achievement!
             </p>
             <textarea
               rows={2}

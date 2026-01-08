@@ -348,24 +348,6 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
               </div>
             </div>
           )}
-
-          <div className="px-4 py-4 bg-stone-50 dark:bg-stone-800/50 rounded-2xl mx-2 border border-stone-100 dark:border-stone-800">
-            <h3 className="text-xs font-bold text-stone-400 uppercase tracking-widest mb-2">Legend</h3>
-            <div className="flex gap-4">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-green-500" />{" "}
-                <span className="text-xs text-stone-500">Completed</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-red-500" />{" "}
-                <span className="text-xs text-stone-500">Failed</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-amber-400" />{" "}
-                <span className="text-xs text-stone-500">Scheduled</span>
-              </div>
-            </div>
-          </div>
         </>
       ) : (
         /* PNL HISTORY TAB */
@@ -538,11 +520,12 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                 const isLoss = !isVouchieRole && task.status === "failed";
                 const sign = isProfit ? "+" : isLoss ? "-" : "+";
 
-                // Calculate fund distribution for expanded view
+                // Calculate fund distribution for expanded view (for BOTH creator and vouchie views)
                 const numVouchies = task.vouchies?.length || 1;
                 const protocolTaxRate = 0.1; // 10% protocol tax
-                const protocolAmount = isLoss && task.mode === "Squad" ? stake * protocolTaxRate : 0;
-                const vouchiePool = isLoss && task.mode === "Squad" ? stake - protocolAmount : 0;
+                const isFailed = task.status === "failed";
+                const protocolAmount = isFailed && task.mode === "Squad" ? stake * protocolTaxRate : 0;
+                const vouchiePool = isFailed && task.mode === "Squad" ? stake - protocolAmount : 0;
                 const perVouchieShare = vouchiePool / numVouchies;
 
                 // Determine claim eligibility
@@ -684,18 +667,39 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                               ${stake.toFixed(2)} refunded to @{task.creatorUsername || "you"}
                             </span>
                           </div>
-                        ) : task.mode === "Squad" ? (
+                        ) : task.mode === "Squad" && isFailed ? (
                           <div className="space-y-2">
-                            {/* Vouchie Pool */}
+                            {/* Vouchie Pool with avatars */}
                             <div className="flex items-center justify-between text-sm">
                               <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
                                 <HandCoins size={16} weight="fill" />
-                                <span>
-                                  To {numVouchies} Vouchie{numVouchies > 1 ? "s" : ""}
-                                </span>
+                                <span>To Vouchie{numVouchies > 1 ? "s" : ""}</span>
+                                {/* Vouchie avatars (up to 5) */}
+                                <div className="flex -space-x-2 ml-1">
+                                  {(task.vouchies || []).slice(0, 5).map((v, idx) => (
+                                    <div
+                                      key={idx}
+                                      className="w-6 h-6 rounded-full bg-stone-200 dark:bg-stone-700 border-2 border-white dark:border-stone-900 flex items-center justify-center text-[8px] font-bold text-stone-600 dark:text-stone-300 overflow-hidden"
+                                      title={v.username || v.name || v.address || "Vouchie"}
+                                    >
+                                      {v.avatar ? (
+                                        <img src={v.avatar} alt={v.name} className="w-full h-full object-cover" />
+                                      ) : (
+                                        (v.name || v.username || v.address?.slice(2, 4) || "V")
+                                          .slice(0, 2)
+                                          .toUpperCase()
+                                      )}
+                                    </div>
+                                  ))}
+                                  {numVouchies > 5 && (
+                                    <div className="w-6 h-6 rounded-full bg-stone-300 dark:bg-stone-600 border-2 border-white dark:border-stone-900 flex items-center justify-center text-[8px] font-bold text-stone-600 dark:text-stone-300">
+                                      +{numVouchies - 5}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                               <span className="font-bold text-stone-700 dark:text-stone-300">
-                                ${vouchiePool.toFixed(2)} (${perVouchieShare.toFixed(2)} each)
+                                ${vouchiePool.toFixed(2)} (${perVouchieShare.toFixed(2)} ea)
                               </span>
                             </div>
                             {/* Protocol Treasury */}

@@ -4,12 +4,13 @@
 
 ## System Architecture Overview
 
-![alt text](image-2.png)
+<img src="image-2.png" width="500" alt="System Architecture" />
 
 ---
 ## Data Flow
 
-![alt text](image-3.png)
+<img src="image-3.png" width="500" alt="Data Flow" />
+
 ---
 
 ## Key Components
