@@ -227,94 +227,120 @@ const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, on
               <p className="text-sm font-normal mt-1">You&apos;re all caught up.</p>
             </div>
           ) : (
-            notifications.map(notification => (
-              <div
-                key={notification.id}
-                className={`card-vouchie relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99] ${
-                  notification.type === "verify_request"
-                    ? "border-l-4 border-l-purple-500"
-                    : notification.type === "claim_available"
-                      ? "border-l-4 border-l-green-500"
-                      : "border-l-4 border-l-blue-500"
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  {/* Icon */}
-                  <div
-                    className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      notification.type === "verify_request"
-                        ? "bg-purple-100 dark:bg-purple-900/30 text-purple-600"
-                        : notification.type === "claim_available"
-                          ? "bg-green-100 dark:bg-green-900/30 text-green-600"
-                          : "bg-blue-100 dark:bg-blue-900/30 text-blue-600"
-                    }`}
-                  >
-                    {notification.type === "verify_request" ? (
-                      <ShieldCheck size={20} weight="fill" />
-                    ) : notification.type === "claim_available" ? (
-                      <HandCoins size={20} weight="fill" />
-                    ) : notification.type === "view" || notification.type === "goal_resolved" ? (
-                      <CheckCircle size={20} weight="fill" />
-                    ) : (
-                      <Plus size={20} weight="bold" />
-                    )}
-                  </div>
+            notifications.map(notification => {
+              // Determine styles based on type
+              let icon, iconBg, borderClass;
 
-                  {/* Content */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-stone-900 dark:text-white text-sm">{notification.title}</span>
-                      {notification.amount && (
-                        <span
-                          className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            notification.type === "claim_available"
-                              ? "bg-green-100 text-green-600 dark:bg-green-900/30"
-                              : "bg-stone-100 text-stone-600 dark:bg-stone-800"
-                          }`}
-                        >
-                          ${notification.amount.toFixed(2)}
-                        </span>
-                      )}
+              switch (notification.type) {
+                case "verify_request":
+                  icon = <ShieldCheck size={20} weight="fill" />;
+                  iconBg = "bg-purple-100 dark:bg-purple-900/30 text-purple-600";
+                  borderClass = "border-l-4 border-l-purple-500";
+                  break;
+                case "claim_available":
+                  icon = <HandCoins size={20} weight="fill" />;
+                  iconBg = "bg-green-100 dark:bg-green-900/30 text-green-600";
+                  borderClass = "border-l-4 border-l-green-500";
+                  break;
+                case "history_success":
+                case "view": // verified
+                case "goal_resolved":
+                  icon = <CheckCircle size={20} weight="fill" />;
+                  iconBg = "bg-green-100 dark:bg-green-900/30 text-green-600";
+                  borderClass = "border-l-4 border-l-transparent hover:border-l-green-400";
+                  break;
+                case "history_failure":
+                  icon = <X size={20} weight="bold" />;
+                  iconBg = "bg-red-100 dark:bg-red-900/30 text-red-600";
+                  borderClass = "border-l-4 border-l-transparent hover:border-l-red-400";
+                  break;
+                default:
+                  icon = <Plus size={20} weight="bold" />;
+                  iconBg = "bg-blue-100 dark:bg-blue-900/30 text-blue-600";
+                  borderClass = "border-l-4 border-l-transparent";
+              }
+
+              return (
+                <div
+                  key={notification.id}
+                  className={`card-vouchie relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99] ${borderClass}`}
+                >
+                  <div className="flex items-start gap-3">
+                    {/* Icon */}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${iconBg}`}>
+                      {icon}
                     </div>
-                    <p className="text-xs text-stone-500 dark:text-stone-400 line-clamp-2 mb-2">
-                      {notification.description}
-                    </p>
 
-                    {/* Action Buttons */}
-                    <div className="flex items-center gap-2">
-                      {notification.type === "verify_request" && onVerify && (
-                        <button
-                          onClick={() => onVerify(notification.goal)}
-                          className="flex-1 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
-                        >
-                          <ShieldCheck size={14} weight="bold" />
-                          Verify Now
-                        </button>
-                      )}
-                      {notification.type === "claim_available" && onClaim && (
-                        <button
-                          onClick={() => onClaim(notification.goalId, notification.goal.currentUserVouchieIndex || 0)}
-                          className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
-                        >
-                          <HandCoins size={14} weight="bold" />
-                          Claim ${notification.amount?.toFixed(2)}
-                        </button>
-                      )}
-                      {notification.castHash && (
-                        <a
-                          href={`https://warpcast.com/~/conversations/${notification.castHash}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 text-stone-400 hover:text-purple-500 transition-colors"
-                        >
-                          <ArrowSquareOut size={16} weight="bold" />
-                        </a>
-                      )}
+                    {/* Content */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="font-bold text-stone-900 dark:text-white text-sm">{notification.title}</span>
+                        {notification.amount && notification.amount > 0 && (
+                          <span
+                            className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                              notification.type === "claim_available" || notification.type === "history_success"
+                                ? "bg-green-100 text-green-600 dark:bg-green-900/30"
+                                : notification.type === "history_failure"
+                                  ? "bg-red-100 text-red-600 dark:bg-red-900/30"
+                                  : "bg-stone-100 text-stone-600 dark:bg-stone-800"
+                            }`}
+                          >
+                            ${notification.amount.toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-stone-500 dark:text-stone-400 line-clamp-2 mb-2">
+                        {notification.description}
+                      </p>
+
+                      {/* Action Buttons */}
+                      <div className="flex items-center gap-2">
+                        {notification.action === "verify" && onVerify && (
+                          <button
+                            onClick={() => onVerify(notification.goal)}
+                            className="flex-1 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                          >
+                            <ShieldCheck size={14} weight="bold" />
+                            Verify Now
+                          </button>
+                        )}
+                        {notification.action === "claim" && onClaim && (
+                          <button
+                            onClick={() => onClaim(notification.goalId, notification.goal.currentUserVouchieIndex || 0)}
+                            className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                          >
+                            <HandCoins size={14} weight="bold" />
+                            Claim ${notification.amount?.toFixed(2)}
+                          </button>
+                        )}
+
+                        {/* History Status / Disabled Claim */}
+                        {notification.type === "history_success" && (
+                          <div className="px-3 py-1.5 bg-stone-100 dark:bg-stone-800 rounded-lg text-xs font-bold text-stone-500 flex items-center gap-2">
+                            <Check size={14} weight="bold" /> Claimed
+                          </div>
+                        )}
+
+                        {notification.castHash && (
+                          <a
+                            href={
+                              notification.castHash.startsWith("0x")
+                                ? `https://warpcast.com/~/conversations/${notification.castHash}`
+                                : notification.castHash
+                            }
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-stone-400 hover:text-purple-500 transition-colors ml-auto"
+                          >
+                            <ArrowSquareOut size={16} weight="bold" />
+                          </a>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       )}
@@ -335,11 +361,6 @@ const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, on
               const fcUser = farcasterUsers.get(activity.user.toLowerCase());
               const displayName = fcUser?.displayName || fcUser?.username || formatAddress(activity.user);
               const avatarUrl = fcUser?.pfpUrl || getAvatarUrl(activity.user);
-
-              // Warpcast Profile URL
-              const warpcastUrl = fcUser?.username
-                ? `https://warpcast.com/${fcUser.username}`
-                : `https://warpcast.com/~/profiles/${fcUser?.fid}`;
 
               // Amount Formatting - formatUnits already converts from wei/base units
               const rawAmount = Number(formatUnits(BigInt(activity.stakeAmount || 0), decimals)).toFixed(2);
@@ -444,8 +465,8 @@ const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, on
                           )}
                         </div>
 
-                        {/* Integrated Warpcast Link */}
-                        {fcUser && (
+                        {/* Integrated Warpcast Link - Removed as per request */}
+                        {/* {fcUser && (
                           <a
                             href={warpcastUrl}
                             target="_blank"
@@ -456,7 +477,7 @@ const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, on
                           >
                             <ArrowSquareOut size={16} weight="bold" />
                           </a>
-                        )}
+                        )} */}
                       </div>
                     </div>
                   </div>

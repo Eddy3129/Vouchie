@@ -2,19 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import {
-  ArrowRight,
-  CalendarBlank,
-  CheckCircle,
-  Clock,
-  Compass,
-  HandCoins,
-  House,
-  Plus,
-  ShieldCheck,
-  User,
-  Users,
-} from "@phosphor-icons/react";
+import { CalendarBlank, Clock, Compass, HandCoins, House, Plus, ShieldCheck, User, Users } from "@phosphor-icons/react";
 import { toast } from "react-hot-toast";
 import { parseUnits } from "viem";
 import { erc20Abi } from "viem";
@@ -536,79 +524,6 @@ const VouchieApp = () => {
                 {/* Hero Quote Section */}
                 {/* Hero Quote Section Removed - Moved to Profile // */}
 
-                {/* Action Required Section */}
-                {!loading && (
-                  <div className="space-y-3">
-                    {/* 1. Settle Actions - REMOVED (Moved to Hero) */}
-
-                    {/* 2. Claim Payouts (for Vouchies on failed myCreatorGoals) */}
-                    {vouchieGoals
-                      .filter(g => g.resolved && !g.successful && !g.userHasClaimed && g.stake > 0)
-                      .map(g => (
-                        <div
-                          key={`claim-${g.id}`}
-                          className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/40 rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-top-2 duration-300"
-                        >
-                          <div className="bg-green-400 p-2 rounded-full text-white">
-                            <CheckCircle size={20} weight="fill" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-green-900 dark:text-green-200 font-bold text-sm">
-                              Action Required: Claim Pot
-                            </h4>
-                            <p className="text-green-800/70 dark:text-green-300/60 text-xs mt-0.5 line-clamp-1">
-                              Goal failed! Claim your share of{" "}
-                              {g.stake.toLocaleString(undefined, {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 2,
-                              })}{" "}
-                              {g.currency}.
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleClaim(g.id, g.currentUserVouchieIndex || 0)}
-                            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
-                          >
-                            Claim <ArrowRight size={14} weight="bold" />
-                          </button>
-                        </div>
-                      ))}
-
-                    {/* 3. Claim Refunds (for Creators on successful myCreatorGoals) */}
-                    {myCreatorGoals
-                      .filter(g => g.resolved && g.successful && g.stake > 0)
-                      .map(g => (
-                        <div
-                          key={`refund-${g.id}`}
-                          className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800/40 rounded-2xl p-4 flex items-center gap-4 animate-in slide-in-from-top-2 duration-300"
-                        >
-                          <div className="bg-blue-400 p-2 rounded-full text-white">
-                            <CheckCircle size={20} weight="fill" />
-                          </div>
-                          <div className="flex-1">
-                            <h4 className="text-blue-900 dark:text-blue-200 font-bold text-sm">
-                              Action Required: Claim Refund
-                            </h4>
-                            <p className="text-blue-800/70 dark:text-blue-300/60 text-xs mt-0.5 line-clamp-1">
-                              Goal successful! Claim your{" "}
-                              {g.stake.toLocaleString(undefined, {
-                                minimumFractionDigits: 0,
-                                maximumFractionDigits: 2,
-                              })}{" "}
-                              {g.currency} refund.
-                            </p>
-                          </div>
-                          <button
-                            onClick={() => handleClaim(g.id, 0)}
-                            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shadow-sm"
-                          >
-                            Claim <ArrowRight size={14} weight="bold" />
-                          </button>
-                        </div>
-                      ))}
-                  </div>
-                )}
-
                 {/* Dashboard Tabs */}
                 <SlidingTabs
                   tabs={[
@@ -618,11 +533,40 @@ const VouchieApp = () => {
                       label: (
                         <>
                           Verifications
-                          {vouchieGoals.length > 0 && (
-                            <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-red-500 text-white">
-                              {vouchieGoals.length}
-                            </span>
-                          )}
+                          {(() => {
+                            // Debug logging for Verification Badge
+                            const pendingCount = vouchieGoals.filter(g => !g.resolved).length;
+                            const actionableCount = vouchieGoals.filter(
+                              g => !g.resolved && (g.proofText || g.deadline < Date.now()),
+                            ).length;
+
+                            if (pendingCount > 0) {
+                              console.log("[BADGE DEBUG] Verification Badge Calculation:", {
+                                totalVouchieGoals: vouchieGoals.length,
+                                unresolved: pendingCount,
+                                actionable: actionableCount,
+                                details: vouchieGoals
+                                  .filter(g => !g.resolved)
+                                  .map(g => ({
+                                    id: g.id,
+                                    title: g.title,
+                                    resolved: g.resolved,
+                                    hasProof: !!g.proofText,
+                                    isExpired: g.deadline < Date.now(),
+                                    timeLeft: (g.deadline - Date.now()) / 1000,
+                                  })),
+                              });
+                            }
+
+                            // Use actionable count instead of just unresolved count
+                            return (
+                              actionableCount > 0 && (
+                                <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-red-500 text-white">
+                                  {actionableCount}
+                                </span>
+                              )
+                            );
+                          })()}
                         </>
                       ),
                     },

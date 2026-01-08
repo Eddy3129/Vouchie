@@ -151,7 +151,14 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
 
   const netResult = historyItems.reduce((acc, t) => {
     const stake = getOriginalStake(t.id, t.stake);
-    if (t.status === "failed") return acc - stake;
+    const isVouchieRole = t.claimRole === "vouchie";
+    if (t.status === "failed") {
+      if (isVouchieRole) {
+        const share = stake / (t.vouchies?.length || 1);
+        return acc + share;
+      }
+      return acc - stake;
+    }
     return acc;
   }, 0);
   // Define tabs for SlidingTabs
@@ -409,7 +416,15 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                           Math.abs(
                             historyItems.slice(idx).reduce((acc, t) => {
                               const stake = getOriginalStake(t.id, t.stake);
-                              return t.status === "failed" ? acc - stake : acc;
+                              const isVouchieRole = t.claimRole === "vouchie";
+                              if (t.status === "failed") {
+                                if (isVouchieRole) {
+                                  const share = stake / (t.vouchies?.length || 1);
+                                  return acc + share;
+                                }
+                                return acc - stake;
+                              }
+                              return acc;
                             }, 0),
                           ),
                         ),
@@ -422,7 +437,15 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                         .map((item, i) => {
                           const cumulative = historyItems.slice(historyItems.length - i - 1).reduce((acc, t) => {
                             const stake = getOriginalStake(t.id, t.stake);
-                            return t.status === "failed" ? acc - stake : acc;
+                            const isVouchieRole = t.claimRole === "vouchie";
+                            if (t.status === "failed") {
+                              if (isVouchieRole) {
+                                const share = stake / (t.vouchies?.length || 1);
+                                return acc + share;
+                              }
+                              return acc - stake;
+                            }
+                            return acc;
                           }, 0);
                           return {
                             x: (i / Math.max(historyItems.length - 1, 1)) * 100,
@@ -509,11 +532,15 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                 const stake = getOriginalStake(task.id, task.stake);
                 const isDone = task.status === "done";
                 const isVouchieRole = task.claimRole === "vouchie";
+                const share = isVouchieRole ? stake / (task.vouchies?.length || 1) : stake;
+
+                // Determine display amount
+                const displayAmount = isVouchieRole ? share : stake;
+                const isProfit = isVouchieRole && task.status === "failed";
+                const isLoss = !isVouchieRole && task.status === "failed";
+                const sign = isProfit ? "+" : isLoss ? "-" : "+";
 
                 // Determine claim eligibility
-                // Creator claims: successful goals where contract stake > 0 and not claimed
-                // Vouchie claims: failed squad goals where contract stake > 0 and not claimed
-                // Note: Use task.stake (current contract value), not getOriginalStake
                 const canClaim =
                   task.resolved &&
                   !task.userHasClaimed &&
@@ -522,12 +549,17 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                   // Solo failures have no payout (treasury takes all)
                   !(task.status === "failed" && task.mode === "Solo" && task.claimRole === "creator");
 
+                // Actually need new state for expansion. Let's use local state key hack or add state.
+                // Since I can't add state easily in replace_file_content without changing top of file, I'll use a local disclosure detail element or similar?
+                // Or I can replace the whole functional component to add state.
+                // Trying native <details> element for simplicity.
+
                 return (
-                  <div
+                  <details
                     key={`${task.id}-${task.claimRole}`}
-                    className="card-vouchie relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99]"
+                    className="card-vouchie relative overflow-hidden transition-all group"
                   >
-                    <div className="flex gap-3 relative z-10">
+                    <summary className="flex gap-3 relative z-10 cursor-pointer list-none items-center p-0 outline-none">
                       {/* Avatar with Status Badge Overlay */}
                       <div className="relative flex-shrink-0 w-11 h-11">
                         <div
@@ -598,15 +630,15 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                             {/* Amount Display */}
                             <span
                               className={`text-xs font-bold px-2 py-1 rounded-lg ${
-                                isDone
+                                isProfit
                                   ? "text-green-600 bg-green-50 dark:bg-green-900/20"
-                                  : isVouchieRole
-                                    ? "text-green-600 bg-green-50 dark:bg-green-900/20"
-                                    : "text-red-600 bg-red-50 dark:bg-red-900/20"
+                                  : isLoss
+                                    ? "text-red-600 bg-red-50 dark:bg-red-900/20"
+                                    : "text-stone-500 bg-stone-100 dark:bg-stone-800"
                               }`}
                               style={{ fontFamily: "Playfair Display, serif" }}
                             >
-                              {isDone || isVouchieRole ? `+$${stake.toFixed(2)}` : `−$${stake.toFixed(2)}`}
+                              {sign}${displayAmount.toFixed(2)}
                             </span>
 
                             {/* Status text */}
@@ -617,7 +649,7 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                               {task.userHasClaimed
                                 ? "Claimed"
                                 : isDone
-                                  ? "Refundable"
+                                  ? "Refunded"
                                   : isVouchieRole
                                     ? "Claimable"
                                     : "Lost"}
@@ -629,6 +661,7 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                             <button
                               onClick={e => {
                                 e.stopPropagation();
+                                e.preventDefault(); // Prevent details toggle
                                 onClaim(task.id, task.currentUserVouchieIndex || 0);
                               }}
                               className="px-3 py-1.5 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900 rounded-lg text-xs font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
@@ -636,24 +669,47 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                               {isDone ? "Claim Refund" : "Claim Share"}
                             </button>
                           )}
+                        </div>
+                      </div>
 
-                          {/* Warpcast Proof Link */}
-                          {task.proofCastHash && (
+                      {/* Dropdown caret indication */}
+                      <div className="ml-2 text-stone-300 group-open:rotate-180 transition-transform">
+                        <CaretRight size={14} weight="bold" className="rotate-90 group-open:-rotate-90" />
+                      </div>
+                    </summary>
+
+                    {/* Expandable Details */}
+                    <div className="mt-3 pt-3 border-t border-stone-100 dark:border-stone-800 pl-[52px]">
+                      <div className="space-y-2 text-xs text-stone-500">
+                        {task.proofCastHash && (
+                          <div className="flex items-center gap-2">
+                            <ArrowSquareOut size={14} />
                             <a
                               href={`https://warpcast.com/~/conversations/${task.proofCastHash}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={e => e.stopPropagation()}
-                              className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-purple-500 hover:text-purple-600 border border-purple-200 dark:border-purple-800 rounded-lg transition-colors"
+                              className="hover:text-purple-500 underline"
                             >
-                              <ArrowSquareOut size={12} weight="bold" />
-                              Proof
+                              View Verification Proof
                             </a>
-                          )}
+                          </div>
+                        )}
+                        {!isDone && task.status === "failed" && (
+                          <div className="text-red-500 flex items-center gap-2">
+                            <X size={14} /> Goal failed. Stake forfeited.
+                          </div>
+                        )}
+                        {isDone && (
+                          <div className="text-green-500 flex items-center gap-2">
+                            <Check size={14} /> Verified Successfully
+                          </div>
+                        )}
+                        <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider opacity-60">
+                          {task.mode === "Squad" ? "Squad Verification" : "Self-Commitment"}
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </details>
                 );
               })
             )}

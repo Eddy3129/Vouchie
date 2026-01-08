@@ -3,7 +3,14 @@ import { Goal } from "~~/types/vouchie";
 
 export interface PersonalNotification {
   id: string;
-  type: "verify_request" | "claim_available" | "vouchie_invite" | "goal_resolved" | "view";
+  type:
+    | "verify_request"
+    | "claim_available"
+    | "vouchie_invite"
+    | "goal_resolved"
+    | "view"
+    | "history_success"
+    | "history_failure";
   title: string;
   description: string;
   timestamp: number;
@@ -31,73 +38,76 @@ export const usePersonalActivities = ({ creatorGoals, vouchieGoals }: UsePersona
   const notifications = useMemo(() => {
     const items: PersonalNotification[] = [];
 
-    // 1. Pending verifications (vouchie duties with proof submitted)
-    vouchieGoals
-      .filter(g => !g.resolved && (g.proofText || g.deadline < Date.now()))
-      .forEach(goal => {
-        const totalVotes = (goal.votesValid || 0) + (goal.votesInvalid || 0);
-        const allVoted = goal.vouchies.length > 0 && totalVotes >= goal.vouchies.length;
+    // --- 1. Vouchie Actions (Verify & History) ---
+    vouchieGoals.forEach(goal => {
+      const totalVotes = (goal.votesValid || 0) + (goal.votesInvalid || 0);
+      const allVoted = goal.vouchies.length > 0 && totalVotes >= goal.vouchies.length;
 
-        // If proof exists and NOT all voted, it's a verify request (Badge +1)
-        // Otherwise (all voted or expired), it's just a view/settle item (No Badge)
-        const isVerifyRequest = goal.proofText && !allVoted;
-
+      // A. Verify Request (Pending)
+      if (!goal.resolved && (goal.proofText || goal.deadline < Date.now()) && !allVoted) {
         items.push({
           id: `verify-${goal.id}`,
-          type: isVerifyRequest ? "verify_request" : "view", // Changed from always "verify_request"
-          title: goal.proofText ? (allVoted ? "Verification Complete" : "Proof Submitted") : "Ready to Settle",
-          description: allVoted
-            ? `All votes cast for "${goal.title}". Ready to settle.`
-            : `${goal.creatorUsername || "Someone"} needs your verification for "${goal.title}"`,
+          type: "verify_request",
+          title: goal.proofText ? "Proof Submitted" : "Ready to Settle",
+          description: `${goal.creatorUsername || "Someone"} needs your verification for "${goal.title}"`,
           timestamp: goal.createdAt || Date.now(),
           goalId: goal.id,
           goal,
-          action: isVerifyRequest ? "verify" : "view",
+          action: "verify",
           amount: goal.stake,
           castHash: goal.proofCastHash,
         });
-      });
+      }
 
-    // 2. Pending claims (claimable funds from resolved goals)
-    // As creator - successful goals with stake > 0
-    creatorGoals
-      .filter(g => g.resolved && g.successful && g.stake > 0 && !g.userHasClaimed)
-      .forEach(goal => {
-        items.push({
-          id: `claim-creator-${goal.id}`,
-          type: "claim_available",
-          title: "Claim Your Refund",
-          description: `Goal "${goal.title}" succeeded! Claim your $${goal.stake.toFixed(2)} USDC`,
-          timestamp: goal.deadline,
-          goalId: goal.id,
-          goal,
-          action: "claim",
-          amount: goal.stake,
-        });
-      });
-
-    // As vouchie - failed squad goals with stake > 0
-    vouchieGoals
-      .filter(g => g.resolved && !g.successful && g.stake > 0 && !g.userHasClaimed && g.mode === "Squad")
-      .forEach(goal => {
+      // B. Vouchie Claims (Goal Failed -> Earn Share)
+      // Check if goal is resolved, failed, and I haven't claimed yet (and I'm entitled to stake)
+      if (goal.resolved && !goal.successful && goal.stake > 0 && goal.mode === "Squad") {
         const share = goal.stake / (goal.vouchies.length || 1);
+        if (!goal.userHasClaimed) {
+          items.push({
+            id: `claim-vouchie-${goal.id}`,
+            type: "claim_available",
+            title: "Claim Your Share",
+            description: `Goal "${goal.title}" failed. Claim your $${share.toFixed(2)} share!`,
+            timestamp: goal.deadline,
+            goalId: goal.id,
+            goal,
+            action: "claim",
+            amount: share,
+          });
+        } else {
+          // History: Claimed
+          items.push({
+            id: `history-vouchie-${goal.id}`,
+            type: "history_success",
+            title: "Share Claimed",
+            description: `You earned $${share.toFixed(2)} from "${goal.title}" failure.`,
+            timestamp: goal.deadline,
+            goalId: goal.id,
+            goal,
+            action: "view",
+            amount: share,
+          });
+        }
+      }
+
+      // C. Vouchie Verified (Goal Successful -> History)
+      if (goal.resolved && goal.successful) {
         items.push({
-          id: `claim-vouchie-${goal.id}`,
-          type: "claim_available",
-          title: "Claim Your Share",
-          description: `Goal "${goal.title}" failed. Claim your $${share.toFixed(2)} USDC share`,
+          id: `history-verified-${goal.id}`,
+          type: "view",
+          title: "Verification Successful",
+          description: `You verified "${goal.title}". Goal completed!`,
           timestamp: goal.deadline,
           goalId: goal.id,
           goal,
-          action: "claim",
-          amount: share,
+          action: "view",
+          castHash: goal.proofCastHash, // Link to proof
         });
-      });
+      }
 
-    // 3. Vouchie invitations (pending goals where you're a vouchie but no proof yet)
-    vouchieGoals
-      .filter(g => !g.resolved && !g.proofText && g.deadline >= Date.now())
-      .forEach(goal => {
+      // D. Invite (Pending, No Proof Yet)
+      if (!goal.resolved && !goal.proofText && goal.deadline >= Date.now()) {
         items.push({
           id: `invite-${goal.id}`,
           type: "vouchie_invite",
@@ -109,7 +119,58 @@ export const usePersonalActivities = ({ creatorGoals, vouchieGoals }: UsePersona
           action: "view",
           amount: goal.stake,
         });
-      });
+      }
+    });
+
+    // --- 2. Creator Actions (Claims & History) ---
+    creatorGoals.forEach(goal => {
+      // A. Creator Claims (Goal Successful -> Refund)
+      if (goal.resolved && goal.successful && goal.stake > 0) {
+        if (!goal.userHasClaimed) {
+          items.push({
+            id: `claim-creator-${goal.id}`,
+            type: "claim_available",
+            title: "Claim Your Refund",
+            description: `Squad approved "${goal.title}"! Claim your $${goal.stake.toFixed(2)} refund.`,
+            timestamp: goal.deadline,
+            goalId: goal.id,
+            goal,
+            action: "claim",
+            amount: goal.stake,
+          });
+        } else {
+          // History: Refunded
+          items.push({
+            id: `history-refund-${goal.id}`,
+            type: "history_success",
+            title: "Refund Claimed",
+            description: `You reclaimed $${goal.stake.toFixed(2)} from "${goal.title}".`,
+            timestamp: goal.deadline,
+            goalId: goal.id,
+            goal,
+            action: "view",
+            amount: goal.stake,
+            castHash: goal.proofCastHash,
+          });
+        }
+      }
+
+      // B. Creator Failure (Goal Failed -> Lost Stake)
+      if (goal.resolved && !goal.successful) {
+        items.push({
+          id: `history-failed-${goal.id}`,
+          type: "history_failure",
+          title: "Goal Failed",
+          description: `Goal "${goal.title}" was rejected. Stake of $${(goal.stake || 0).toFixed(2)} lost.`,
+          timestamp: goal.deadline,
+          goalId: goal.id,
+          goal,
+          action: "view",
+          amount: goal.stake,
+          castHash: goal.proofCastHash,
+        });
+      }
+    });
 
     // Sort by timestamp (newest first)
     items.sort((a, b) => b.timestamp - a.timestamp);
@@ -117,13 +178,9 @@ export const usePersonalActivities = ({ creatorGoals, vouchieGoals }: UsePersona
     return items;
   }, [creatorGoals, vouchieGoals]);
 
-  // Count actionable (unread) notifications - only goals with PROOF submitted, not just expired
+  // Count actionable (unread) notifications
   const unreadCount = useMemo(() => {
-    return notifications.filter(
-      n =>
-        (n.type === "verify_request" && n.goal.proofText) || // Only count verify requests with proof
-        n.type === "claim_available",
-    ).length;
+    return notifications.filter(n => n.type === "verify_request" || n.type === "claim_available").length;
   }, [notifications]);
 
   return {
