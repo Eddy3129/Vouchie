@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import Image from "next/image";
 import { Goal } from "../../types/vouchie";
 import Card from "./Helper/Card";
 import SlidingTabs from "./SlidingTabs";
@@ -63,7 +62,8 @@ interface CalendarViewProps {
 const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) => {
   const [activeTab, setActiveTab] = useState<"timeline" | "history">("timeline");
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  // Default to today's date when in current month
+  const [selectedDay, setSelectedDay] = useState<number | null>(() => new Date().getDate());
   const { data: activities } = useActivities(100);
   const { targetNetwork } = useTargetNetwork();
   const { address: connectedAddress } = useAccount();
@@ -111,26 +111,6 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
       failed: dayTasks.filter(t => t.status === "failed"),
       active: dayTasks.filter(t => t.status === "verifying" || t.status === "in_progress"),
     };
-  };
-
-  const renderSymbols = (count: number, color: "green" | "red" | "amber") => {
-    const stars = Math.floor(count / 5);
-    const dots = count % 5;
-    const colorClass = color === "green" ? "text-green-500" : color === "red" ? "text-red-500" : "text-amber-400";
-    return (
-      <div className={`flex flex-wrap justify-center items-center gap-0.5 max-w-[32px] overflow-hidden`}>
-        {Array.from({ length: stars }).map((_, i) => (
-          <span key={`star-${i}`} className={`text-[10px] ${colorClass} leading-none`}>
-            ★
-          </span>
-        ))}
-        {Array.from({ length: dots }).map((_, i) => (
-          <span key={`dot-${i}`} className={`text-[10px] ${colorClass} leading-none`}>
-            •
-          </span>
-        ))}
-      </div>
-    );
   };
 
   // Combine creator goals and vouchie claims (failed squad goals where user is vouchie)
@@ -260,16 +240,17 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                         >
                           {day}
                         </span>
-                        <div className="flex flex-col gap-0.5 items-center w-full px-0.5 overflow-hidden">
-                          {activity?.success &&
-                            activity.success.length > 0 &&
-                            renderSymbols(activity.success.length, "green")}
-                          {activity?.failed &&
-                            activity.failed.length > 0 &&
-                            renderSymbols(activity.failed.length, "red")}
-                          {activity?.active &&
-                            activity.active.length > 0 &&
-                            renderSymbols(activity.active.length, "amber")}
+                        {/* Dots on single row */}
+                        <div className="flex gap-0.5 items-center justify-center flex-wrap max-w-[36px]">
+                          {activity?.success?.map((_, idx) => (
+                            <span key={`s-${idx}`} className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                          ))}
+                          {activity?.failed?.map((_, idx) => (
+                            <span key={`f-${idx}`} className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                          ))}
+                          {activity?.active?.map((_, idx) => (
+                            <span key={`a-${idx}`} className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                          ))}
                         </div>
                       </>
                     )}
@@ -282,6 +263,22 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
           {/* Activity List for Selected Day */}
           {selectedDay && (
             <div className="mx-2 space-y-3 animate-in fade-in slide-in-from-top-4 duration-300">
+              {/* Legend */}
+              <div className="flex items-center justify-center gap-4 py-2 bg-stone-50 dark:bg-stone-800/50 rounded-xl">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-green-500" />
+                  <span className="text-[10px] font-medium text-stone-500">Completed</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-red-500" />
+                  <span className="text-[10px] font-medium text-stone-500">Failed</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  <span className="text-[10px] font-medium text-stone-500">In Progress</span>
+                </div>
+              </div>
+
               <div className="flex items-center justify-between px-2">
                 <h3 className="text-sm font-bold text-stone-800 dark:text-stone-200">
                   Tasks for {currentDate.toLocaleString("default", { month: "short" })} {selectedDay}
@@ -539,136 +536,99 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                 const displayAmount = isVouchieRole ? share : stake;
                 const isProfit = isVouchieRole && task.status === "failed";
                 const isLoss = !isVouchieRole && task.status === "failed";
-                const isSlashed = isVouchieRole && task.status === "failed";
                 const sign = isProfit ? "+" : isLoss ? "-" : "+";
+
+                // Calculate fund distribution for expanded view
+                const numVouchies = task.vouchies?.length || 1;
+                const protocolTaxRate = 0.1; // 10% protocol tax
+                const protocolAmount = isLoss && task.mode === "Squad" ? stake * protocolTaxRate : 0;
+                const vouchiePool = isLoss && task.mode === "Squad" ? stake - protocolAmount : 0;
+                const perVouchieShare = vouchiePool / numVouchies;
 
                 // Determine claim eligibility
                 const canClaim =
                   task.resolved &&
                   !task.userHasClaimed &&
-                  task.stake > 0 && // Current stake on contract (0 if already claimed)
+                  task.stake > 0 &&
                   onClaim &&
-                  // Ensure we only show claim for valid cases:
-                  // 1. Goal Failed AND User is Vouchie (Share of stake)
-                  // 2. Goal Successful AND User is Creator (Refund)
-                  // AND strict check that we haven't already claimed (some indexers might be slow, so rely on optimistic check if possible or strict status)
                   ((task.status === "failed" && isVouchieRole) || (task.status === "done" && !isVouchieRole));
 
-                // Actually need new state for expansion. Let's use local state key hack or add state.
-                // Since I can't add state easily in replace_file_content without changing top of file, I'll use a local disclosure detail element or similar?
-                // Or I can replace the whole functional component to add state.
-                // Trying native <details> element for simplicity.
+                // Determine border and icon styles
+                let borderClass, iconBg, icon;
+                if (isDone) {
+                  borderClass = "border-l-4 border-l-green-500";
+                  iconBg = "bg-green-100 dark:bg-green-900/30 text-green-600";
+                  icon = <HandCoins size={20} weight="fill" />;
+                } else if (isVouchieRole) {
+                  borderClass = "border-l-4 border-l-orange-500";
+                  iconBg = "bg-orange-100 dark:bg-orange-900/30 text-orange-600";
+                  icon = <HandCoins size={20} weight="fill" />;
+                } else {
+                  borderClass = "border-l-4 border-l-red-500";
+                  iconBg = "bg-red-100 dark:bg-red-900/30 text-red-600";
+                  icon = <Bank size={20} weight="fill" />;
+                }
 
                 return (
                   <details
                     key={`${task.id}-${task.claimRole}`}
-                    className="card-vouchie relative overflow-hidden transition-all group"
+                    className={`card-base p-4 relative overflow-hidden transition-all group ${borderClass}`}
                   >
-                    <summary className="flex gap-3 relative z-10 cursor-pointer list-none items-center p-0 outline-none">
-                      {/* Avatar with Status Badge Overlay */}
-                      <div className="relative flex-shrink-0 w-11 h-11">
-                        <div
-                          className={`w-11 h-11 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-stone-800 overflow-hidden relative ${
-                            !isDone && !isSlashed ? "bg-red-100 dark:bg-red-900/30" : "bg-stone-100 dark:bg-stone-800"
-                          }`}
-                        >
-                          {isDone ? (
-                            <div className="w-full h-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                              <HandCoins size={20} weight="fill" className="text-green-600 dark:text-green-400" />
-                            </div>
-                          ) : isSlashed ? (
-                            task.creatorAvatar ? (
-                              <Image src={task.creatorAvatar} fill className="object-cover" alt="Creator" />
-                            ) : (
-                              <div className="w-full h-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 font-bold text-xs">
-                                {(task.creatorUsername || task.creator || "??").slice(0, 2).toUpperCase()}
-                              </div>
-                            )
-                          ) : (
-                            <Bank size={20} weight="fill" className="text-red-600 dark:text-red-400" />
-                          )}
-                        </div>
-                        {/* Status Badge Overlay */}
-                        <div
-                          className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-stone-800 shadow-sm ${
-                            isDone
-                              ? "bg-green-500 dark:bg-green-600"
-                              : isSlashed
-                                ? "bg-orange-500 dark:bg-orange-600"
-                                : "bg-red-500 dark:bg-red-600"
-                          }`}
-                        >
-                          {isDone ? (
-                            <Check size={12} weight="bold" className="text-white" />
-                          ) : isSlashed ? (
-                            <HandCoins size={12} weight="bold" className="text-white" />
-                          ) : (
-                            <X size={12} weight="bold" className="text-white" />
-                          )}
-                        </div>
+                    <summary className="flex items-start gap-3 cursor-pointer list-none outline-none">
+                      {/* Icon */}
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${iconBg}`}
+                      >
+                        {icon}
                       </div>
 
                       {/* Content */}
-                      <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
-                        {/* Top Row: Date + Status Pill */}
-                        <div className="flex justify-between items-center">
-                          <span
-                            className="text-stone-400 font-normal text-xs"
-                            style={{ fontFamily: "Playfair Display, serif" }}
-                          >
-                            {new Date(task.deadline).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between mb-1">
+                          {/* Title */}
+                          <span className="font-bold text-stone-900 dark:text-white text-sm line-clamp-1">
+                            {task.title}
                           </span>
-
-                          {/* Status Pill */}
+                          {/* Status Badge - top right */}
                           <span
-                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border ${
+                            className={`ml-2 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 ${
                               isDone
-                                ? "bg-green-50 text-green-600 border-green-100 dark:bg-green-900/20 dark:border-green-900/30"
-                                : isSlashed
-                                  ? "bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-900/20 dark:border-orange-900/30"
-                                  : "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:border-red-900/30"
+                                ? "bg-green-100 text-green-600 dark:bg-green-900/30"
+                                : isVouchieRole
+                                  ? "bg-orange-100 text-orange-600 dark:bg-orange-900/30"
+                                  : "bg-red-100 text-red-600 dark:bg-red-900/30"
                             }`}
-                            style={{ fontFamily: "Playfair Display, serif" }}
                           >
-                            {isDone ? "Completed" : isSlashed ? "Slashed" : "Failed"}
-                            {isVouchieRole && !isSlashed && " (Vouchie)"}
+                            {isDone ? "Completed" : isVouchieRole ? "Slashed" : "Failed"}
                           </span>
                         </div>
 
-                        {/* Goal Title */}
-                        <div
-                          className="text-base font-bold text-stone-800 dark:text-stone-100 leading-tight line-clamp-2"
-                          style={{ fontFamily: "Playfair Display, serif" }}
-                        >
-                          {task.title}
-                        </div>
+                        {/* Description Row */}
+                        <p className="text-xs text-stone-500 dark:text-stone-400 mb-2">
+                          {isDone
+                            ? "Goal verified successfully. Stake refunded."
+                            : isVouchieRole
+                              ? `You slashed @${task.creatorUsername || "creator"} for failing this goal.`
+                              : "Goal failed. Stake was forfeited to vouchies."}
+                        </p>
 
-                        {/* Footer Row: Amount + Claim Button */}
-                        <div className="flex items-center justify-between mt-1">
+                        {/* Footer Row: Amount + Timestamp */}
+                        <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            {/* Amount Display */}
+                            {/* Amount Badge */}
                             <span
-                              className={`text-xs font-bold px-2 py-1 rounded-lg ${
+                              className={`text-xs font-bold px-2 py-0.5 rounded-full ${
                                 isProfit
-                                  ? "text-green-600 bg-green-50 dark:bg-green-900/20"
+                                  ? "bg-green-100 text-green-600 dark:bg-green-900/30"
                                   : isLoss
-                                    ? "text-red-600 bg-red-50 dark:bg-red-900/20"
-                                    : "text-stone-500 bg-stone-100 dark:bg-stone-800"
+                                    ? "bg-red-100 text-red-600 dark:bg-red-900/30"
+                                    : "bg-green-100 text-green-600 dark:bg-green-900/30"
                               }`}
-                              style={{ fontFamily: "Playfair Display, serif" }}
                             >
                               {sign}${displayAmount.toFixed(2)}
                             </span>
-
                             {/* Status text */}
-                            <span
-                              className="text-[10px] font-bold text-stone-400 uppercase tracking-wide"
-                              style={{ fontFamily: "Playfair Display, serif" }}
-                            >
+                            <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wide">
                               {task.userHasClaimed
                                 ? "Claimed"
                                 : isDone
@@ -679,33 +639,89 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                             </span>
                           </div>
 
-                          {/* Claim Button */}
-                          {canClaim && (
-                            <button
-                              onClick={e => {
-                                e.stopPropagation();
-                                e.preventDefault(); // Prevent details toggle
-                                onClaim(task.id, task.currentUserVouchieIndex || 0);
-                              }}
-                              className="px-3 py-1.5 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900 rounded-lg text-xs font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
-                            >
-                              {isDone ? "Claim Refund" : "Claim Share"}
-                            </button>
-                          )}
+                          {/* Date */}
+                          <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wide">
+                            {new Date(task.deadline).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                            })}
+                          </span>
                         </div>
+
+                        {/* Claim Button */}
+                        {canClaim && (
+                          <button
+                            onClick={e => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              onClaim(task.id, task.currentUserVouchieIndex || 0);
+                            }}
+                            className="mt-3 w-full px-3 py-2 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900 rounded-lg text-xs font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
+                          >
+                            {isDone ? "Claim Refund" : "Claim Share"}
+                          </button>
+                        )}
                       </div>
 
-                      {/* Dropdown caret indication */}
-                      <div className="ml-2 text-stone-300 group-open:rotate-180 transition-transform">
+                      {/* Dropdown caret */}
+                      <div className="ml-2 text-stone-300 group-open:rotate-180 transition-transform flex-shrink-0">
                         <CaretRight size={14} weight="bold" className="rotate-90 group-open:-rotate-90" />
                       </div>
                     </summary>
 
-                    {/* Expandable Details */}
-                    <div className="mt-3 pt-3 border-t border-stone-100 dark:border-stone-800 pl-[52px]">
-                      <div className="space-y-2 text-xs text-stone-500">
+                    {/* Expandable Details - Fund Distribution */}
+                    <div className="mt-4 pt-4 border-t border-stone-100 dark:border-stone-800 ml-[52px]">
+                      <div className="space-y-3">
+                        {/* Fund Distribution Breakdown */}
+                        <div className="text-[11px] font-bold text-stone-400 uppercase tracking-wider mb-2">
+                          Fund Distribution
+                        </div>
+
+                        {isDone ? (
+                          <div className="flex items-center gap-2 text-sm text-green-600 dark:text-green-400">
+                            <HandCoins size={16} weight="fill" />
+                            <span className="font-medium">
+                              ${stake.toFixed(2)} refunded to @{task.creatorUsername || "you"}
+                            </span>
+                          </div>
+                        ) : task.mode === "Squad" ? (
+                          <div className="space-y-2">
+                            {/* Vouchie Pool */}
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2 text-orange-600 dark:text-orange-400">
+                                <HandCoins size={16} weight="fill" />
+                                <span>
+                                  To {numVouchies} Vouchie{numVouchies > 1 ? "s" : ""}
+                                </span>
+                              </div>
+                              <span className="font-bold text-stone-700 dark:text-stone-300">
+                                ${vouchiePool.toFixed(2)} (${perVouchieShare.toFixed(2)} each)
+                              </span>
+                            </div>
+                            {/* Protocol Treasury */}
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-2 text-stone-500">
+                                <Bank size={16} weight="fill" />
+                                <span>Protocol Treasury (10%)</span>
+                              </div>
+                              <span className="font-bold text-stone-700 dark:text-stone-300">
+                                ${protocolAmount.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-between text-sm">
+                            <div className="flex items-center gap-2 text-red-600 dark:text-red-400">
+                              <Bank size={16} weight="fill" />
+                              <span>To Protocol Treasury</span>
+                            </div>
+                            <span className="font-bold text-stone-700 dark:text-stone-300">${stake.toFixed(2)}</span>
+                          </div>
+                        )}
+
+                        {/* Proof Link */}
                         {task.proofCastHash && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 text-xs text-stone-500 pt-2 border-t border-stone-100 dark:border-stone-700">
                             <ArrowSquareOut size={14} />
                             <a
                               href={`https://warpcast.com/~/conversations/${task.proofCastHash}`}
@@ -717,18 +733,11 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                             </a>
                           </div>
                         )}
-                        {!isDone && task.status === "failed" && (
-                          <div className="text-red-500 flex items-center gap-2">
-                            <X size={14} /> Goal failed. Stake forfeited.
-                          </div>
-                        )}
-                        {isDone && (
-                          <div className="text-green-500 flex items-center gap-2">
-                            <Check size={14} /> Verified Successfully
-                          </div>
-                        )}
-                        <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider opacity-60">
-                          {task.mode === "Squad" ? "Squad Verification" : "Self-Commitment"}
+
+                        {/* Mode Badge */}
+                        <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider text-stone-400 pt-2">
+                          <Clock size={12} />
+                          {task.mode === "Squad" ? "Squad Verification" : "Solo Commitment"}
                         </div>
                       </div>
                     </div>

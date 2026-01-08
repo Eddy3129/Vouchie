@@ -170,7 +170,10 @@ const HomeActiveView = ({
     return `${hours}h ${minutes}m`;
   };
 
-  const isUrgent = activeGoal ? activeGoal.deadline - now < 1000 * 60 * 60 * 4 && !activeGoal.resolved : false;
+  // Urgency levels based on time remaining
+  const timeRemaining = activeGoal ? activeGoal.deadline - now : 0;
+  const isCritical = activeGoal ? timeRemaining < 1000 * 60 * 60 * 1 && !activeGoal.resolved : false; // < 1 hour
+  const isWarning = activeGoal ? timeRemaining < 1000 * 60 * 60 * 12 && !isCritical && !activeGoal.resolved : false; // < 12 hours
   const isMatured = activeGoal ? activeGoal.deadline < now && !activeGoal.resolved : false;
 
   // Filter completed goals to only show those from TODAY
@@ -183,6 +186,15 @@ const HomeActiveView = ({
     });
   }, [completedGoals]);
 
+  // Determine glow color based on urgency
+  const glowColor = isCritical
+    ? "bg-red-500 animate-pulse"
+    : isWarning
+      ? "bg-amber-400 animate-pulse"
+      : isMatured
+        ? "bg-amber-500"
+        : "bg-green-500";
+
   return (
     <div className="space-y-4 animate-in fade-in duration-500 pb-8 px-6">
       {/* 1. HERO SECTION: Active Commitment */}
@@ -190,16 +202,14 @@ const HomeActiveView = ({
         <div className="card-hero group hover:shadow-2xl hover:scale-[1.01] animate-cycle-pulse">
           {/* Background Glow & Urgent Pulse */}
           <div
-            className={`absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-[100px] opacity-40 pointer-events-none transition-all duration-1000 ${
-              isUrgent ? "bg-red-500 animate-pulse" : isMatured ? "bg-amber-500" : "bg-orange-500"
-            }`}
+            className={`absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-[100px] opacity-40 pointer-events-none transition-all duration-1000 ${glowColor}`}
           />
 
           <div className="relative z-10 flex flex-col items-center">
             {/* Status Pill */}
             <div className="status-pill mb-6">
               <div
-                className={`w-2 h-2 rounded-full animate-pulse ${isMatured ? "bg-amber-500" : isUrgent ? "bg-red-500" : "bg-green-500"}`}
+                className={`w-2 h-2 rounded-full animate-pulse ${isMatured ? "bg-amber-500" : isCritical ? "bg-red-500" : isWarning ? "bg-amber-400" : "bg-green-500"}`}
               />
               <span className="text-xs font-bold text-stone-500 dark:text-stone-300 uppercase tracking-widest">
                 {isMatured ? "Pending Resolve" : "Active"}

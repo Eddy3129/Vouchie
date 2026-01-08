@@ -1,79 +1,188 @@
-# 🎯 Vouchie: Turn your Group Chat into a Growth Loop
+# Vouchie
 
-> **"Transform social streaks into an endless stream of willpower"**
+> A Social Staking Protocol where Your Network Vouches for Your Goals
 
-Vouchie is the first **Social Staking Protocol** built on **Base** and **Farcaster**. We turn your personal goals into high-stakes social games. 
+![Thumbnail](vouchie-thumbnail.png)
 
-Don't just *say* you're going to the gym. Lock $50 on it, tag your best friends as vouchies, and tell them: **"If I didn't make it, lunch on me."**
+Vouchie transforms personal commitments into verifiable on-chain agreements. Users stake USDC against their goals and designate "Vouchies"—trusted friends who serve as decentralized verifiers. The protocol creates asymmetric incentives: succeed and claim your full stake back, fail and your Vouchies split the pot. This mechanism converts social pressure into economic alignment.
 
----
-
-## ⚡ The Vibe
-
-Most habit apps are boring spreadsheets. Vouchie is productivity with skin in the game. Bet on yourself: achieve your goals to keep your stake, or slack off and let your friends take it all.
-
-*   **Win the Day:** Get your money back + earn a **"Verified Vouchie" NFT Badge**.
-*   **Flake Out:** Your locked funds get liquidated and **sent directly to your friends' wallets**.
-
-It transforms failure from a shameful secret into "Pizza night is on Alice."
+**Live on Base Mainnet. Experience made for Farcaster & Base App**
 
 ---
 
-## 🎮 How It Plays
+## Core Innovation
 
-### 1. The Call Out (Stake)
-Alice wants to ship a side project in 7 days.
-*   She locks **$100 USDC** in the Vouchie Vault.
-*   She invites Bob and Charlie to be her **Vouchies** (Verifiers).
+### The Accountability Primitive
 
-### 2. The Grind (Prove)
-Alice posts updates via a Farcaster Frame.
-*   Bob and Charlie vote: **"Legit"** or **"Cap"**.
-*   Real-time notifications keep the pressure on.
+Traditional habit apps rely on intrinsic motivation—a weak forcing function. Vouchie introduces **extrinsic economic consequences** backed by social verification:
 
-### 3. The Verdict (Settle)
-*   **Success:** Alice gets her $100 back. She mints a **Vouchie Badge** (Proof of Consistency). Bob and Charlie gain on-chain reputation.
-*   **Failure:** The protocol takes a small **Lazy Tax (10%)**. The remaining **$90 is split instantly between Bob and Charlie**.
+1. **Stake-to-Commit**: Lock USDC in an escrow contract. No commitment without capital.
+2. **Social Verification**: Friends vote on task completion. Farcaster's social graph replaces centralized moderators.
+3. **Automatic Settlement**: Smart contract handles fund distribution. No admin keys, no trust assumptions.
 
----
+### Why This Works
 
-## 💸 Monetization & Mechanics
+The protocol exploits three behavioral mechanisms:
 
-We've gamified accountability with three core levers:
-
-### 🩸 The Lazy Tax
-If you fail, the protocol takes a **10% cut** before paying out your friends.
-*   *Why?* Because failure shouldn't be free.
-
-### 🧊 Streak Freeze
-Life happens. Missed a deadline?
-*   Pay a **Protocol Fee** to extend your deadline by 12 hours.
-*   *Why?* Cheaper than losing the whole pot. Keeps you in the game.
-
-### 🏆 Status Badges
-Winning feels good. Showing off feels better.
-*   Mint a **Vouchie Badge** upon success.
-*   These are **Soulbound Proof-of-Work** artifacts. "I ran 5km for 30 days, verified by 3 humans."
+| Mechanism | Traditional Apps | Vouchie |
+|-----------|-----------------|---------|
+| Loss Aversion | None | Real financial loss on failure |
+| Social Pressure | Weak (notifications) | Strong (friends profit from your failure) |
+| Commitment Devices | Absent | On-chain, irrevocable stake |
 
 ---
 
-## 🏗️ Under the Hood
+## Protocol Mechanics
 
-Vouchie is a "Headless Marketplace" living entirely in your social feed.
+### Goal Modes
 
-*   **Smart Contracts:** `VouchieVault.sol` (Escrow & Voting), `VouchieBadge.sol` (NFTs).
-*   **Network:** **Base** (Fast, cheap, perfectly suited for micro-stakes).
-*   **Interface:** **Farcaster Frames** (No new apps to install. Just cast and commit).
+**Solo Mode**: Self-verification for personal accountability. Stake goes to protocol treasury on failure.
+
+**Squad Mode**: Designate 1-5 vouchies as verifiers. On failure:
+- 90% distributed equally among vouchies
+- 10% protocol fee ("Lazy Tax")
+
+### Lifecycle
+
+```
+CREATE → [Grace Period: 10 min] → ACTIVE → [Deadline] → VOTING → RESOLUTION → SETTLEMENT
+```
+
+| Phase | Description |
+|-------|-------------|
+| Grace Period | Full refund cancellation window |
+| Active | User works toward goal, posts proof |
+| Voting | Vouchies cast valid/invalid votes |
+| Resolution | Majority determines success (ties favor creator) |
+| Settlement | Automatic fund distribution |
 
 ---
 
-## 🔮 Roadmap
+## Smart Contracts
 
-*   **v1 (Current):** Single goals, USDC staking, Friend-verifiers.
-*   **v2 (Vouchie Wars):** Team vs Team. 5 people running vs 5 people running. Winner takes the combined pot.
-*   **v3 (Public Markets):** Let strangers bet on your success (Prediction Markets for Habits).
+Deployed on **Base Mainnet** (Chain ID: 8453)
+
+| Contract | Address | Status |
+|----------|---------|--------|
+| VouchieVault | [`0xe92c78b00a4c4de034a38f156fea05276e9d90c7`](https://basescan.org/address/0xe92c78b00a4c4de034a38f156fea05276e9d90c7) | ✅ Live |
+| VouchieBadge | [`0x511271d8a7e5a799936127ebfe8fe7b0674341e3`](https://basescan.org/address/0x511271d8a7e5a799936127ebfe8fe7b0674341e3) | ✅ Live |
+
+### VouchieVault
+
+Core escrow and voting logic. Key parameters:
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| Lazy Tax | 10% | Protocol fee on failed goals (Squad) |
+| Extension Fee | 5 USDC | Streak freeze cost |
+| Extension Duration | 12 hours | Time added per freeze |
+| Grace Period | 10 minutes | Free cancellation window |
 
 ---
 
-**Ready to lock in?**
-[Launch App] | [Read Docs] | [Follow on Farcaster]
+## Architecture
+
+```mermaid
+graph LR
+    subgraph Client["Farcaster MiniApp"]
+        UI[Next.js Frontend]
+        SDK[MiniKit SDK]
+    end
+    
+    subgraph Chain["Base L2"]
+        Vault[VouchieVault]
+        Token[USDC]
+    end
+    
+    subgraph Indexer
+        Ponder[Ponder GraphQL]
+    end
+    
+    UI --> |wagmi| Vault
+    UI --> |read| Ponder
+    SDK --> |social graph| UI
+    Vault --> |events| Ponder
+    Vault --> |escrow| Token
+```
+
+### Stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 14, TypeScript, TailwindCSS |
+| Web3 | Wagmi, Viem, Scaffold-ETH 2 |
+| Social | Farcaster MiniKit SDK |
+| Contracts | Solidity 0.8.19, Foundry |
+| Indexer | Ponder (event indexing + GraphQL) |
+
+---
+
+## Documentation
+
+- [Frontend Architecture](docs/FRONTEND.md) — Component hierarchy, hooks, state management
+- [Backend Architecture](docs/BACKEND.md) — Contract internals, lifecycle diagrams, Ponder schema
+
+---
+
+## Development
+
+### Prerequisites
+
+- Node.js ≥ 22.11.0
+- Yarn
+- Foundry
+
+### Local Setup
+
+```bash
+# Install dependencies
+yarn install
+
+# Start local chain
+yarn chain
+
+# Deploy contracts
+yarn deploy
+
+# Start indexer
+yarn ponder:dev
+
+# Launch frontend
+yarn start
+```
+
+### Testing
+
+```bash
+yarn foundry:test    # Contract tests
+yarn typecheck       # TypeScript validation
+```
+
+---
+
+## Roadmap
+
+### v1 (Current)
+- Single goal staking
+- USDC on Base
+- Friend verification via Farcaster
+- Flip-clock countdown UI
+- PnL history tracking
+
+### v2 — Vouchie Wars
+- Team vs Team challenges
+- Combined stake pools
+- Leaderboards and streaks
+
+### v3 — Protocol Extensions
+- **ERC-7702 Integration**: Batch approve + stake in single transaction, reducing UX friction for first-time users
+- **x402 Payment Rails**: HTTP-native micropayments for automated stake deposits
+- **Calendar Sync**: Google Calendar / Outlook integration for deadline imports
+- **Agentic Workflows**: AI-assisted goal creation and verification scheduling
+- **VouchieBadge NFTs**: Soulbound proof-of-achievement credentials
+
+---
+
+## License
+
+MIT — see [LICENCE](LICENCE)

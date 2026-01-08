@@ -43,7 +43,6 @@ export const usePersonalActivities = ({
   creatorGoals,
   vouchieGoals,
   activities = [],
-  userAddress,
   decimals = 6,
 }: UsePersonalActivitiesProps) => {
   const notifications = useMemo(() => {
@@ -126,7 +125,6 @@ export const usePersonalActivities = ({
           goalId: goal.id,
           goal,
           action: "view",
-          amount: originalStake, // Show the stake amount for context
           castHash: goal.proofCastHash,
         });
       }
@@ -204,7 +202,7 @@ export const usePersonalActivities = ({
     items.sort((a, b) => b.timestamp - a.timestamp);
 
     return items;
-  }, [creatorGoals, vouchieGoals, activities, userAddress, decimals]);
+  }, [creatorGoals, vouchieGoals, activities, decimals]);
 
   // Count actionable (unread) notifications
   const unreadCount = useMemo(() => {
