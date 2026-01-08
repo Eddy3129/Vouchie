@@ -232,22 +232,36 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote, onSettle }: VerifyModalPro
               </div>
             )}
 
-            {goal.deadline < Date.now() && (
-              <div className="mb-4 pt-2 border-t border-stone-100 dark:border-stone-800">
-                <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest text-center mb-2">
-                  Deadline Passed
-                </p>
-                <button
-                  onClick={() => {
-                    onSettle(goal.id);
-                    onClose();
-                  }}
-                  className="w-full py-3 bg-stone-800 dark:bg-white text-white dark:text-stone-900 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95"
-                >
-                  Settle with Current Votes
-                </button>
-              </div>
-            )}
+            {goal.deadline < Date.now() &&
+              (() => {
+                // For Squad mode: require at least 1 vote before allowing settle
+                const isSquad = goal.mode === "Squad" && goal.vouchies && goal.vouchies.length > 0;
+                const totalVotes = (goal.votesValid || 0) + (goal.votesInvalid || 0);
+                const canSettle = !isSquad || totalVotes > 0;
+
+                return (
+                  <div className="mb-4 pt-2 border-t border-stone-100 dark:border-stone-800">
+                    <p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest text-center mb-2">
+                      Deadline Passed
+                    </p>
+                    {canSettle ? (
+                      <button
+                        onClick={() => {
+                          onSettle(goal.id);
+                          onClose();
+                        }}
+                        className="w-full py-3 bg-stone-800 dark:bg-white text-white dark:text-stone-900 rounded-xl font-bold text-xs shadow-md transition-all active:scale-95"
+                      >
+                        Settle with Current Votes
+                      </button>
+                    ) : (
+                      <div className="w-full py-3 bg-amber-500/80 text-white rounded-xl font-bold text-xs text-center">
+                        ⏳ Awaiting at least 1 vote to settle
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
             <button
               onClick={handleClose}

@@ -245,14 +245,41 @@ const HomeActiveView = ({
 
             {/* Primary Action Button */}
             {isMatured ? (
-              <div className="w-full max-w-sm space-y-3">
-                <button onClick={() => onSettle(activeGoal.id)} className="btn-primary-lg">
-                  Settle <ArrowRight size={20} weight="bold" />
-                </button>
-                <button onClick={() => onForfeit(activeGoal.id)} className="btn-secondary-lg">
-                  Forfeit
-                </button>
-              </div>
+              (() => {
+                // For Squad mode: require at least 1 vote before allowing settle
+                const isSquad = activeGoal.mode === "Squad" && activeGoal.vouchies && activeGoal.vouchies.length > 0;
+                const totalVotes = (activeGoal.votesValid || 0) + (activeGoal.votesInvalid || 0);
+                const canSettle = !isSquad || totalVotes > 0;
+
+                return (
+                  <div className="w-full max-w-sm space-y-3">
+                    {canSettle ? (
+                      <button onClick={() => onSettle(activeGoal.id)} className="btn-primary-lg">
+                        Settle <ArrowRight size={20} weight="bold" />
+                      </button>
+                    ) : (
+                      <button
+                        disabled
+                        className="w-full py-3 bg-amber-600/80 text-white rounded-2xl font-bold text-lg shadow-lg flex flex-col items-center justify-center gap-2 cursor-not-allowed opacity-90"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                          <span>Awaiting Verification</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {Array.from({ length: activeGoal.vouchies?.length || 0 }).map((_, i) => (
+                            <User key={i} weight="bold" className="w-4 h-4 text-white/50" />
+                          ))}
+                        </div>
+                        <span className="text-xs text-white/70">0/{activeGoal.vouchies?.length} vouchies voted</span>
+                      </button>
+                    )}
+                    <button onClick={() => onForfeit(activeGoal.id)} className="btn-secondary-lg">
+                      Forfeit
+                    </button>
+                  </div>
+                );
+              })()
             ) : activeGoal.status === "verifying" ? (
               <button
                 disabled

@@ -340,14 +340,27 @@ const TaskDetailModal = ({
         )}
 
         {/* Settlement / Claiming Actions */}
-        {!goal.resolved && now > goal.deadline && (
-          <button
-            onClick={() => onSettle?.(goal.id)}
-            className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-orange-500/20 mb-4"
-          >
-            Settle Goal Now <ArrowRight size={18} weight="bold" />
-          </button>
-        )}
+        {!goal.resolved &&
+          now > goal.deadline &&
+          (() => {
+            // For Squad mode: require at least 1 vote before allowing settle
+            const isSquadMode = goal.mode === "Squad" && goal.vouchies && goal.vouchies.length > 0;
+            const totalVotes = (goal.votesValid || 0) + (goal.votesInvalid || 0);
+            const canSettle = !isSquadMode || totalVotes > 0;
+
+            return canSettle ? (
+              <button
+                onClick={() => onSettle?.(goal.id)}
+                className="w-full py-3.5 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-orange-500/20 mb-4"
+              >
+                Settle Goal Now <ArrowRight size={18} weight="bold" />
+              </button>
+            ) : (
+              <div className="w-full py-3.5 bg-amber-500/80 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm mb-4">
+                ⏳ Awaiting verification ({totalVotes}/{goal.vouchies?.length} voted)
+              </div>
+            );
+          })()}
 
         {goal.resolved && !goal.userHasClaimed && goal.stake > 0 && (
           <button
