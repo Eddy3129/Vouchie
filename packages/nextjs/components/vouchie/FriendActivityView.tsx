@@ -260,6 +260,26 @@ const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, on
                   borderClass = "border-l-4 border-l-transparent";
               }
 
+              // Override for Slashed goals (Vouchie viewing Creator's failure)
+              const isSlashed =
+                notification.goal.status === "failed" &&
+                notification.goal.creator?.toLowerCase() !== userAddress?.toLowerCase();
+
+              if (isSlashed && (notification.type === "claim_available" || notification.type === "history_success")) {
+                icon = (
+                  <div className="w-full h-full relative">
+                    {notification.goal.creatorAvatar ? (
+                      <Image src={notification.goal.creatorAvatar} fill className="object-cover" alt="Creator" />
+                    ) : (
+                      <div className="w-full h-full bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-xs">
+                        {(notification.goal.creatorUsername || "??").slice(0, 2).toUpperCase()}
+                      </div>
+                    )}
+                  </div>
+                );
+                iconBg = "bg-stone-100 dark:bg-stone-800 p-0 overflow-hidden ring-2 ring-white dark:ring-stone-700";
+              }
+
               return (
                 <div
                   key={notification.id}
@@ -465,19 +485,19 @@ const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, on
                           )}
                         </div>
 
-                        {/* Integrated Warpcast Link - Removed as per request */}
-                        {/* {fcUser && (
+                        {/* BaseScan Link */}
+                        {activity.transactionHash && (
                           <a
-                            href={warpcastUrl}
+                            href={`${targetNetwork.blockExplorers?.default.url}/tx/${activity.transactionHash}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-stone-400 hover:text-[#8B5A2B] dark:hover:text-[#FFA726] transition-colors"
+                            className="text-stone-300 hover:text-purple-500 transition-colors"
                             onClick={e => e.stopPropagation()}
-                            title="View on Farcaster"
+                            title="View on Explorer"
                           >
-                            <ArrowSquareOut size={16} weight="bold" />
+                            <ArrowSquareOut size={14} weight="bold" />
                           </a>
-                        )} */}
+                        )}
                       </div>
                     </div>
                   </div>

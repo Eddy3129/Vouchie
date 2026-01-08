@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Image from "next/image";
 import { Goal } from "../../types/vouchie";
 import Card from "./Helper/Card";
 import SlidingTabs from "./SlidingTabs";
@@ -538,6 +539,7 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                 const displayAmount = isVouchieRole ? share : stake;
                 const isProfit = isVouchieRole && task.status === "failed";
                 const isLoss = !isVouchieRole && task.status === "failed";
+                const isSlashed = isVouchieRole && task.status === "failed";
                 const sign = isProfit ? "+" : isLoss ? "-" : "+";
 
                 // Determine claim eligibility
@@ -563,12 +565,22 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                       {/* Avatar with Status Badge Overlay */}
                       <div className="relative flex-shrink-0 w-11 h-11">
                         <div
-                          className={`w-11 h-11 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-stone-800 ${
-                            isDone ? "bg-green-100 dark:bg-green-900/30" : "bg-red-100 dark:bg-red-900/30"
+                          className={`w-11 h-11 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-stone-800 overflow-hidden relative ${
+                            !isDone && !isSlashed ? "bg-red-100 dark:bg-red-900/30" : "bg-stone-100 dark:bg-stone-800"
                           }`}
                         >
                           {isDone ? (
-                            <HandCoins size={20} weight="fill" className="text-green-600 dark:text-green-400" />
+                            <div className="w-full h-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
+                              <HandCoins size={20} weight="fill" className="text-green-600 dark:text-green-400" />
+                            </div>
+                          ) : isSlashed ? (
+                            task.creatorAvatar ? (
+                              <Image src={task.creatorAvatar} fill className="object-cover" alt="Creator" />
+                            ) : (
+                              <div className="w-full h-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 font-bold text-xs">
+                                {(task.creatorUsername || task.creator || "??").slice(0, 2).toUpperCase()}
+                              </div>
+                            )
                           ) : (
                             <Bank size={20} weight="fill" className="text-red-600 dark:text-red-400" />
                           )}
@@ -576,11 +588,17 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                         {/* Status Badge Overlay */}
                         <div
                           className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-stone-800 shadow-sm ${
-                            isDone ? "bg-green-500 dark:bg-green-600" : "bg-red-500 dark:bg-red-600"
+                            isDone
+                              ? "bg-green-500 dark:bg-green-600"
+                              : isSlashed
+                                ? "bg-orange-500 dark:bg-orange-600"
+                                : "bg-red-500 dark:bg-red-600"
                           }`}
                         >
                           {isDone ? (
                             <Check size={12} weight="bold" className="text-white" />
+                          ) : isSlashed ? (
+                            <HandCoins size={12} weight="bold" className="text-white" />
                           ) : (
                             <X size={12} weight="bold" className="text-white" />
                           )}
@@ -607,12 +625,14 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border ${
                               isDone
                                 ? "bg-green-50 text-green-600 border-green-100 dark:bg-green-900/20 dark:border-green-900/30"
-                                : "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:border-red-900/30"
+                                : isSlashed
+                                  ? "bg-orange-50 text-orange-600 border-orange-100 dark:bg-orange-900/20 dark:border-orange-900/30"
+                                  : "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:border-red-900/30"
                             }`}
                             style={{ fontFamily: "Playfair Display, serif" }}
                           >
-                            {isDone ? "Completed" : "Failed"}
-                            {isVouchieRole && " (Vouchie)"}
+                            {isDone ? "Completed" : isSlashed ? "Slashed" : "Failed"}
+                            {isVouchieRole && !isSlashed && " (Vouchie)"}
                           </span>
                         </div>
 
