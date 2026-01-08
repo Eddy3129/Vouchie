@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Image from "next/image";
-import { ArrowLeft, CheckCircle, Warning, XCircle } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowSquareOut, CheckCircle, Warning, XCircle } from "@phosphor-icons/react";
 import { Goal } from "~~/types/vouchie";
 
 interface VerifyModalProps {
@@ -93,9 +93,20 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote, onSettle }: VerifyModalPro
             {/* Proof Text Section */}
             {goal.proofText && (
               <div className="mb-5">
-                <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-1.5 px-1">
-                  Submitted Proof
-                </p>
+                <div className="flex items-center justify-between mb-1.5 px-1">
+                  <p className="text-[10px] font-bold text-stone-400 uppercase tracking-widest">Submitted Proof</p>
+                  {goal.proofCastHash && (
+                    <a
+                      href={`https://warpcast.com/~/conversations/${goal.proofCastHash}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-1 text-[10px] font-bold text-purple-500 hover:text-purple-600 transition-colors"
+                    >
+                      <ArrowSquareOut size={12} weight="bold" />
+                      View on Farcaster
+                    </a>
+                  )}
+                </div>
                 <div className="bg-white dark:bg-stone-800 p-3 rounded-xl border border-stone-200 dark:border-stone-700 italic text-sm text-stone-700 dark:text-stone-200 leading-relaxed shadow-sm">
                   &ldquo;{goal.proofText}&rdquo;
                 </div>

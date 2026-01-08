@@ -2,7 +2,17 @@ import React, { useState } from "react";
 import { Goal } from "../../types/vouchie";
 import Card from "./Helper/Card";
 import SlidingTabs from "./SlidingTabs";
-import { Bank, CalendarPlus, CaretLeft, CaretRight, Check, Clock, HandCoins, X } from "@phosphor-icons/react";
+import {
+  ArrowSquareOut,
+  Bank,
+  CalendarPlus,
+  CaretLeft,
+  CaretRight,
+  Check,
+  Clock,
+  HandCoins,
+  X,
+} from "@phosphor-icons/react";
 import { formatUnits } from "viem";
 import { useAccount } from "wagmi";
 import { useMiniapp } from "~~/components/MiniappProvider";
@@ -609,6 +619,20 @@ const CalendarView = ({ tasks, verificationGoals = [], onClaim }: CalendarViewPr
                             >
                               {isDone ? "Claim Refund" : "Claim Share"}
                             </button>
+                          )}
+
+                          {/* Warpcast Proof Link */}
+                          {task.proofCastHash && (
+                            <a
+                              href={`https://warpcast.com/~/conversations/${task.proofCastHash}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={e => e.stopPropagation()}
+                              className="flex items-center gap-1 px-2 py-1 text-[10px] font-bold text-purple-500 hover:text-purple-600 border border-purple-200 dark:border-purple-800 rounded-lg transition-colors"
+                            >
+                              <ArrowSquareOut size={12} weight="bold" />
+                              Proof
+                            </a>
                           )}
                         </div>
                       </div>

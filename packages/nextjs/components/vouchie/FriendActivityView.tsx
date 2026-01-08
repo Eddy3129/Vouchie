@@ -9,8 +9,10 @@ import {
   Clock,
   Coins,
   Fire,
+  HandCoins,
   Medal,
   Plus,
+  ShieldCheck,
   Spinner,
   Trophy,
   X,
@@ -20,7 +22,9 @@ import { useAccount } from "wagmi";
 import { useMiniapp } from "~~/components/MiniappProvider";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { FarcasterUser, useFarcasterUser } from "~~/hooks/vouchie/useFarcasterUser";
+import { usePersonalActivities } from "~~/hooks/vouchie/usePersonalActivities";
 import { Activity, useActivities } from "~~/hooks/vouchie/usePonderData";
+import { Goal } from "~~/types/vouchie";
 
 // Helper to format address
 const formatAddress = (address: string) => {
@@ -116,15 +120,29 @@ const truncateTitle = (title: string | null, maxLength: number = 40) => {
   return title.slice(0, maxLength) + "...";
 };
 
-const FriendActivityView = () => {
+interface FriendActivityViewProps {
+  goals?: Goal[];
+  verificationGoals?: Goal[];
+  onVerify?: (goal: Goal) => void;
+  onClaim?: (goalId: number, vouchieIndex: number) => void;
+}
+
+const FriendActivityView = ({ goals = [], verificationGoals = [], onVerify, onClaim }: FriendActivityViewProps) => {
   const { data: activities, isLoading, error } = useActivities(50);
-  const { address: userAddress } = useAccount(); // Get current user address
+  const { address: userAddress } = useAccount();
   const { targetNetwork } = useTargetNetwork();
   const { openProfile } = useMiniapp();
   const { lookupBatch } = useFarcasterUser();
   const [farcasterUsers, setFarcasterUsers] = useState<Map<string, FarcasterUser | null>>(new Map());
-  const [activeTab, setActiveTab] = useState<"global" | "you">("global");
+  const [activeTab, setActiveTab] = useState<"personal" | "global">("personal");
   const decimals = targetNetwork.id === 31337 ? 18 : 6;
+
+  // Personal activities from goals
+  const { notifications, unreadCount } = usePersonalActivities({
+    goals,
+    verificationGoals,
+    userAddress,
+  });
 
   // Lookup Farcaster users for activity addresses
   useEffect(() => {
@@ -172,7 +190,19 @@ const FriendActivityView = () => {
       : allActivities.filter(a => a.user.toLowerCase() === userAddress?.toLowerCase());
 
   const tabs = [
-    { id: "you", label: "Personal" },
+    {
+      id: "personal",
+      label: (
+        <>
+          Personal
+          {unreadCount > 0 && (
+            <span className="ml-1.5 px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-red-500 text-white min-w-[18px] text-center">
+              {unreadCount > 9 ? "9+" : unreadCount}
+            </span>
+          )}
+        </>
+      ),
+    },
     { id: "global", label: "Global" },
   ];
 
@@ -182,138 +212,97 @@ const FriendActivityView = () => {
       <SlidingTabs
         tabs={tabs}
         activeTab={activeTab}
-        onChange={id => setActiveTab(id as "global" | "you")}
+        onChange={id => setActiveTab(id as "personal" | "global")}
         className="mb-6"
       />
 
-      {filteredActivities.length === 0 ? (
-        <div className="p-8 text-center text-stone-400 font-bold border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
-          {activeTab === "you" ? "You haven't done anything yet!" : "No activities yet."}
-        </div>
-      ) : (
+      {/* Personal Tab - Actionable Notifications */}
+      {activeTab === "personal" && (
         <div className="space-y-3">
-          {filteredActivities.map(activity => {
-            const style = getActivityStyle(activity);
-            const goalTitle = truncateTitle(activity.goalTitle);
-
-            // Get Farcaster user data if available
-            const fcUser = farcasterUsers.get(activity.user.toLowerCase());
-            const displayName = fcUser?.displayName || fcUser?.username || formatAddress(activity.user);
-            const avatarUrl = fcUser?.pfpUrl || getAvatarUrl(activity.user);
-
-            // Warpcast Profile URL
-            const warpcastUrl = fcUser?.username
-              ? `https://warpcast.com/${fcUser.username}`
-              : `https://warpcast.com/~/profiles/${fcUser?.fid}`;
-
-            // Amount Formatting - formatUnits already converts from wei/base units
-            const rawAmount = Number(formatUnits(BigInt(activity.stakeAmount || 0), decimals)).toFixed(2);
-            let amountDisplay = "";
-            let amountClass = "";
-
-            if (activity.type === "goal_created") {
-              amountDisplay = `-$${rawAmount}`;
-              amountClass = "text-red-600 bg-red-50 dark:bg-red-900/20";
-            } else if (activity.type === "goal_resolved") {
-              if (activity.successful) {
-                amountDisplay = `+$${rawAmount}`;
-                amountClass = "text-green-600 bg-green-50 dark:bg-green-900/20";
-              } else {
-                amountDisplay = `-$${rawAmount}`;
-                amountClass = "text-red-600 bg-red-50 dark:bg-red-900/20";
-              }
-            }
-
-            // Timestamp Logic
-            const timeAgo = formatPreciseDate(activity.timestamp);
-
-            return (
+          {notifications.length === 0 ? (
+            <div className="p-8 text-center text-stone-400 font-bold border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
+              <div className="text-4xl mb-3">✨</div>
+              <p>No pending actions!</p>
+              <p className="text-sm font-normal mt-1">You&apos;re all caught up.</p>
+            </div>
+          ) : (
+            notifications.map(notification => (
               <div
-                key={activity.id}
-                className="card-vouchie relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99]"
+                key={notification.id}
+                className={`card-vouchie relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99] ${
+                  notification.type === "verify_request"
+                    ? "border-l-4 border-l-purple-500"
+                    : notification.type === "claim_available"
+                      ? "border-l-4 border-l-green-500"
+                      : "border-l-4 border-l-blue-500"
+                }`}
               >
-                <div className="flex gap-3 relative z-10">
-                  {/* Avatar */}
+                <div className="flex items-start gap-3">
+                  {/* Icon */}
                   <div
-                    className="relative flex-shrink-0 w-11 h-11 cursor-pointer"
-                    onClick={() => fcUser?.fid && openProfile({ fid: fcUser.fid })}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${
+                      notification.type === "verify_request"
+                        ? "bg-purple-100 dark:bg-purple-900/30 text-purple-600"
+                        : notification.type === "claim_available"
+                          ? "bg-green-100 dark:bg-green-900/30 text-green-600"
+                          : "bg-blue-100 dark:bg-blue-900/30 text-blue-600"
+                    }`}
                   >
-                    <div className="w-11 h-11 rounded-full overflow-hidden bg-stone-100 dark:bg-stone-700 ring-2 ring-white dark:ring-stone-800">
-                      <Image
-                        src={avatarUrl}
-                        alt={displayName}
-                        width={44}
-                        height={44}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                    {/* Small Action Icon Overlay */}
-                    <div
-                      className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ${style.iconBg} ring-2 ring-white dark:ring-stone-800 shadow-sm`}
-                    >
-                      {React.cloneElement(style.icon as React.ReactElement, { size: 12 } as any)}
-                    </div>
+                    {notification.type === "verify_request" ? (
+                      <ShieldCheck size={20} weight="fill" />
+                    ) : notification.type === "claim_available" ? (
+                      <HandCoins size={20} weight="fill" />
+                    ) : (
+                      <Plus size={20} weight="bold" />
+                    )}
                   </div>
 
                   {/* Content */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
-                    {/* Top Row: Name + Time */}
-                    <div className="flex justify-between items-center">
-                      <span
-                        className="font-bold text-stone-900 dark:text-stone-100 text-sm truncate cursor-pointer hover:underline"
-                        onClick={() => fcUser?.fid && openProfile({ fid: fcUser.fid })}
-                      >
-                        {displayName} <span className="text-stone-400 font-normal mx-1">•</span>{" "}
-                        <span className="text-stone-400 font-normal text-xs">{timeAgo}</span>
-                      </span>
-
-                      {/* Valid Action Pill (Created/Completed) */}
-                      <span
-                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border ${
-                          activity.type === "goal_created"
-                            ? "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-900/30"
-                            : activity.successful
-                              ? "bg-green-50 text-green-600 border-green-100 dark:bg-green-900/20 dark:border-green-900/30"
-                              : "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:border-red-900/30"
-                        }`}
-                      >
-                        {style.action}
-                      </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-stone-900 dark:text-white text-sm">{notification.title}</span>
+                      {notification.amount && (
+                        <span
+                          className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                            notification.type === "claim_available"
+                              ? "bg-green-100 text-green-600 dark:bg-green-900/30"
+                              : "bg-stone-100 text-stone-600 dark:bg-stone-800"
+                          }`}
+                        >
+                          ${notification.amount.toFixed(2)}
+                        </span>
+                      )}
                     </div>
+                    <p className="text-xs text-stone-500 dark:text-stone-400 line-clamp-2 mb-2">
+                      {notification.description}
+                    </p>
 
-                    {/* Goal Title */}
-                    <div className="text-sm font-bold text-stone-800 dark:text-stone-100 leading-tight line-clamp-2">
-                      {goalTitle}
-                    </div>
-
-                    {/* Footer Row: Details */}
-                    <div className="flex items-center justify-between mt-1">
-                      <div className="flex items-center gap-2">
-                        {/* Amount - Only show for resolved goals */}
-                        {activity.type === "goal_resolved" && amountDisplay && (
-                          <span className={`text-xs font-bold px-2 py-1 rounded-lg ${amountClass}`}>
-                            {amountDisplay}
-                          </span>
-                        )}
-
-                        {/* Deadline Pill (Only if active and exists) */}
-                        {activity.type === "goal_created" && activity.deadline && Number(activity.deadline) > 0 && (
-                          <span className="text-[10px] font-bold text-stone-500 bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded-lg flex items-center gap-1">
-                            <Calendar size={12} weight="fill" />
-                            Due {formatPreciseDate(activity.deadline)}
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Integrated Warpcast Link */}
-                      {fcUser && (
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-2">
+                      {notification.type === "verify_request" && onVerify && (
+                        <button
+                          onClick={() => onVerify(notification.goal)}
+                          className="flex-1 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <ShieldCheck size={14} weight="bold" />
+                          Verify Now
+                        </button>
+                      )}
+                      {notification.type === "claim_available" && onClaim && (
+                        <button
+                          onClick={() => onClaim(notification.goalId, notification.goal.currentUserVouchieIndex || 0)}
+                          className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                        >
+                          <HandCoins size={14} weight="bold" />
+                          Claim ${notification.amount?.toFixed(2)}
+                        </button>
+                      )}
+                      {notification.castHash && (
                         <a
-                          href={warpcastUrl}
+                          href={`https://warpcast.com/~/conversations/${notification.castHash}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-stone-400 hover:text-[#8B5A2B] dark:hover:text-[#FFA726] transition-colors"
-                          onClick={e => e.stopPropagation()}
-                          title="View on Warpcast"
+                          className="p-2 text-stone-400 hover:text-purple-500 transition-colors"
                         >
                           <ArrowSquareOut size={16} weight="bold" />
                         </a>
@@ -322,8 +311,152 @@ const FriendActivityView = () => {
                   </div>
                 </div>
               </div>
-            );
-          })}
+            ))
+          )}
+        </div>
+      )}
+
+      {/* Global Tab - All Activities */}
+      {activeTab === "global" && (
+        <div className="space-y-3">
+          {filteredActivities.length === 0 ? (
+            <div className="p-8 text-center text-stone-400 font-bold border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
+              No activities yet.
+            </div>
+          ) : (
+            filteredActivities.map(activity => {
+              const style = getActivityStyle(activity);
+              const goalTitle = truncateTitle(activity.goalTitle);
+
+              // Get Farcaster user data if available
+              const fcUser = farcasterUsers.get(activity.user.toLowerCase());
+              const displayName = fcUser?.displayName || fcUser?.username || formatAddress(activity.user);
+              const avatarUrl = fcUser?.pfpUrl || getAvatarUrl(activity.user);
+
+              // Warpcast Profile URL
+              const warpcastUrl = fcUser?.username
+                ? `https://warpcast.com/${fcUser.username}`
+                : `https://warpcast.com/~/profiles/${fcUser?.fid}`;
+
+              // Amount Formatting - formatUnits already converts from wei/base units
+              const rawAmount = Number(formatUnits(BigInt(activity.stakeAmount || 0), decimals)).toFixed(2);
+              let amountDisplay = "";
+              let amountClass = "";
+
+              if (activity.type === "goal_created") {
+                amountDisplay = `-$${rawAmount}`;
+                amountClass = "text-red-600 bg-red-50 dark:bg-red-900/20";
+              } else if (activity.type === "goal_resolved") {
+                if (activity.successful) {
+                  amountDisplay = `+$${rawAmount}`;
+                  amountClass = "text-green-600 bg-green-50 dark:bg-green-900/20";
+                } else {
+                  amountDisplay = `-$${rawAmount}`;
+                  amountClass = "text-red-600 bg-red-50 dark:bg-red-900/20";
+                }
+              }
+
+              // Timestamp Logic
+              const timeAgo = formatPreciseDate(activity.timestamp);
+
+              return (
+                <div
+                  key={activity.id}
+                  className="card-vouchie relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99]"
+                >
+                  <div className="flex gap-3 relative z-10">
+                    {/* Avatar */}
+                    <div
+                      className="relative flex-shrink-0 w-11 h-11 cursor-pointer"
+                      onClick={() => fcUser?.fid && openProfile({ fid: fcUser.fid })}
+                    >
+                      <div className="w-11 h-11 rounded-full overflow-hidden bg-stone-100 dark:bg-stone-700 ring-2 ring-white dark:ring-stone-800">
+                        <Image
+                          src={avatarUrl}
+                          alt={displayName}
+                          width={44}
+                          height={44}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      {/* Small Action Icon Overlay */}
+                      <div
+                        className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center ${style.iconBg} ring-2 ring-white dark:ring-stone-800 shadow-sm`}
+                      >
+                        {React.cloneElement(style.icon as React.ReactElement, { size: 12 } as any)}
+                      </div>
+                    </div>
+
+                    {/* Content */}
+                    <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+                      {/* Top Row: Name + Time */}
+                      <div className="flex justify-between items-center">
+                        <span
+                          className="font-bold text-stone-900 dark:text-stone-100 text-sm truncate cursor-pointer hover:underline"
+                          onClick={() => fcUser?.fid && openProfile({ fid: fcUser.fid })}
+                        >
+                          {displayName} <span className="text-stone-400 font-normal mx-1">•</span>{" "}
+                          <span className="text-stone-400 font-normal text-xs">{timeAgo}</span>
+                        </span>
+
+                        {/* Valid Action Pill (Created/Completed) */}
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide border ${
+                            activity.type === "goal_created"
+                              ? "bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-900/20 dark:border-blue-900/30"
+                              : activity.successful
+                                ? "bg-green-50 text-green-600 border-green-100 dark:bg-green-900/20 dark:border-green-900/30"
+                                : "bg-red-50 text-red-600 border-red-100 dark:bg-red-900/20 dark:border-red-900/30"
+                          }`}
+                        >
+                          {style.action}
+                        </span>
+                      </div>
+
+                      {/* Goal Title */}
+                      <div className="text-sm font-bold text-stone-800 dark:text-stone-100 leading-tight line-clamp-2">
+                        {goalTitle}
+                      </div>
+
+                      {/* Footer Row: Details */}
+                      <div className="flex items-center justify-between mt-1">
+                        <div className="flex items-center gap-2">
+                          {/* Amount - Only show for resolved goals */}
+                          {activity.type === "goal_resolved" && amountDisplay && (
+                            <span className={`text-xs font-bold px-2 py-1 rounded-lg ${amountClass}`}>
+                              {amountDisplay}
+                            </span>
+                          )}
+
+                          {/* Deadline Pill (Only if active and exists) */}
+                          {activity.type === "goal_created" && activity.deadline && Number(activity.deadline) > 0 && (
+                            <span className="text-[10px] font-bold text-stone-500 bg-stone-100 dark:bg-stone-800 px-2 py-1 rounded-lg flex items-center gap-1">
+                              <Calendar size={12} weight="fill" />
+                              Due {formatPreciseDate(activity.deadline)}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Integrated Warpcast Link */}
+                        {fcUser && (
+                          <a
+                            href={warpcastUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-stone-400 hover:text-[#8B5A2B] dark:hover:text-[#FFA726] transition-colors"
+                            onClick={e => e.stopPropagation()}
+                            title="View on Farcaster"
+                          >
+                            <ArrowSquareOut size={16} weight="bold" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       )}
     </div>

@@ -324,6 +324,7 @@ export const useVouchieData = () => {
 
         if (proof) {
           newData.proofText = proof.text;
+          newData.proofCastHash = proof.hash;
           newData.status = "verifying"; // Override status
         }
 
