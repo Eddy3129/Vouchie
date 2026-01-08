@@ -185,33 +185,9 @@ const HomeActiveView = ({
 
   return (
     <div className="space-y-4 animate-in fade-in duration-500 pb-8 px-6">
-      <style>{`
-        .backface-hidden {
-          backface-visibility: hidden;
-          -webkit-backface-visibility: hidden;
-        }
-        
-        @keyframes flip-down {
-          0% { transform: rotateX(0deg); }
-          100% { transform: rotateX(-180deg); }
-        }
-        
-        @keyframes flip-up {
-          0% { transform: rotateX(180deg); }
-          100% { transform: rotateX(0deg); }
-        }
-        
-        .animate-flip-down {
-          animation: flip-down 0.6s cubic-bezier(0.455, 0.030, 0.515, 0.955) forwards;
-        }
-        
-        .animate-flip-up {
-          animation: flip-up 0.6s cubic-bezier(0.455, 0.030, 0.515, 0.955) forwards;
-        }
-      `}</style>
       {/* 1. HERO SECTION: Active Commitment */}
       {activeGoal ? (
-        <div className="relative overflow-hidden rounded-[2rem] bg-white dark:bg-stone-900 shadow-xl border-2 border-stone-100 dark:border-stone-800 p-6 text-center group transition-all hover:shadow-2xl hover:scale-[1.01]">
+        <div className="card-hero group hover:shadow-2xl hover:scale-[1.01] animate-cycle-pulse">
           {/* Background Glow & Urgent Pulse */}
           <div
             className={`absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-[100px] opacity-40 pointer-events-none transition-all duration-1000 ${
@@ -219,14 +195,9 @@ const HomeActiveView = ({
             }`}
           />
 
-          {/* Animated Glow Border for Urgency */}
-          {isUrgent && (
-            <div className="absolute inset-0 rounded-[2rem] border-2 border-red-500/20 animate-pulse pointer-events-none" />
-          )}
-
           <div className="relative z-10 flex flex-col items-center">
             {/* Status Pill */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-stone-100 dark:bg-stone-800 mb-6 border border-stone-200 dark:border-stone-700 backdrop-blur-md">
+            <div className="status-pill mb-6">
               <div
                 className={`w-2 h-2 rounded-full animate-pulse ${isMatured ? "bg-amber-500" : isUrgent ? "bg-red-500" : "bg-green-500"}`}
               />
@@ -236,9 +207,7 @@ const HomeActiveView = ({
             </div>
 
             {/* Task Title */}
-            <h1 className="text-3xl font-black text-stone-900 dark:text-white mb-6 leading-[1.1] font-serif">
-              {activeGoal.title}
-            </h1>
+            <h1 className="text-hero mb-6">{activeGoal.title}</h1>
 
             {/* Refined Countdown Display */}
             <div className="flex flex-col items-center w-full max-w-[320px] mb-8">
@@ -277,16 +246,10 @@ const HomeActiveView = ({
             {/* Primary Action Button */}
             {isMatured ? (
               <div className="w-full max-w-sm space-y-3">
-                <button
-                  onClick={() => onSettle(activeGoal.id)}
-                  className="w-full py-4 bg-amber-500 hover:bg-amber-600 text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-amber-500/20 transition-all flex items-center justify-center gap-3 transform active:scale-95"
-                >
+                <button onClick={() => onSettle(activeGoal.id)} className="btn-primary-lg">
                   Settle <ArrowRight size={20} weight="bold" />
                 </button>
-                <button
-                  onClick={() => onForfeit(activeGoal.id)}
-                  className="w-full py-3 bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 rounded-xl font-bold text-sm hover:text-red-500 dark:hover:text-red-400 transition-colors"
-                >
+                <button onClick={() => onForfeit(activeGoal.id)} className="btn-secondary-lg">
                   Forfeit
                 </button>
               </div>
@@ -326,7 +289,7 @@ const HomeActiveView = ({
             ) : activeGoal.status === "in_progress" ? (
               <button
                 onClick={() => onVerify(activeGoal)}
-                className="w-full max-w-sm py-4 bg-[#FF8C00] hover:bg-[#EF6C00] text-white rounded-2xl font-bold text-lg shadow-lg hover:shadow-orange-500/20 transition-all flex items-center justify-center gap-3 transform active:scale-95"
+                className="btn-primary-lg bg-[#FF8C00] hover:bg-[#EF6C00] hover:shadow-orange-500/20"
               >
                 Complete <ArrowRight size={20} weight="bold" />
               </button>
@@ -342,7 +305,7 @@ const HomeActiveView = ({
         </div>
       ) : (
         /* Empty State */
-        <div className="flex flex-col items-center justify-center py-16 px-6 text-center rounded-[2rem] bg-stone-50 dark:bg-stone-900 border-2 border-dashed border-stone-200 dark:border-stone-800">
+        <div className="card-empty">
           <div className="w-20 h-20 bg-orange-100 dark:bg-orange-900/20 rounded-full flex items-center justify-center mb-6 text-orange-500">
             <span className="text-4xl">🧘</span>
           </div>

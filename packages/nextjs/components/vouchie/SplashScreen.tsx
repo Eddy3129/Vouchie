@@ -40,7 +40,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   if (!isVisible) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-[#FAF7F2] to-[#E8E1D5] dark:from-stone-900 dark:to-stone-800 animate-out fade-out duration-300">
+    <div className="splash-bg">
       <div className="flex flex-col items-center space-y-8 animate-in zoom-in-95 duration-700">
         {/* Logo */}
         <div className="relative">
@@ -58,11 +58,8 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
 
         {/* Progress Bar */}
         <div className="w-48 space-y-2">
-          <div className="h-2 bg-stone-300 dark:bg-stone-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-[#8B5A2B] to-[#A67B5B] dark:from-[#FFA726] dark:to-[#FF9800] rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${progress}%` }}
-            />
+          <div className="progress-track">
+            <div className="progress-fill" style={{ width: `${progress}%` }} />
           </div>
           <p className="text-center text-xs font-semibold text-stone-500 dark:text-stone-400">Loading...</p>
         </div>

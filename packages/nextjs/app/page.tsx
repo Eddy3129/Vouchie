@@ -1,8 +1,6 @@
-"use client";
-
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
-import { CalendarBlank, Clock, Compass, HandCoins, House, Plus, ShieldCheck, User, Users } from "@phosphor-icons/react";
+import { CalendarBlank, Compass, House, Plus, User, Users } from "@phosphor-icons/react";
 import { toast } from "react-hot-toast";
 import { parseUnits } from "viem";
 import { erc20Abi } from "viem";
@@ -18,7 +16,6 @@ import StartTaskModal from "~~/components/vouchie/Modals/StartTaskModal";
 import TaskDetailModal from "~~/components/vouchie/Modals/TaskDetailModal";
 import VerifyModal from "~~/components/vouchie/Modals/VerifyModal";
 import ProfileView from "~~/components/vouchie/ProfileView";
-import SlidingTabs from "~~/components/vouchie/SlidingTabs";
 import VouchieView from "~~/components/vouchie/VouchieView";
 import {
   useDeployedContractInfo,
@@ -32,17 +29,10 @@ import { useVouchieData } from "~~/hooks/vouchie/useVouchieData";
 import { CANCEL_GRACE_PERIOD_MS, Goal } from "~~/types/vouchie";
 import { buildGoalCreatedCast } from "~~/utils/castHelpers";
 
-// Helper to format address
-const formatAddress = (address?: string) => {
-  if (!address) return "unknown";
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-};
-
 const VouchieApp = () => {
   const { address } = useAccount();
   const { context, composeCast } = useMiniapp();
   const [activeTab, setActiveTab] = useState("dashboard");
-  const [dashboardTab, setDashboardTab] = useState<"tasks" | "verify">("tasks");
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -127,7 +117,7 @@ const VouchieApp = () => {
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
 
   // Data Hook - creatorGoals = myCreatorGoals where user is creator, vouchieGoals = myCreatorGoals where user is vouchie
-  const { creatorGoals, vouchieGoals, loading, refresh, updateGoal } = useVouchieData();
+  const { creatorGoals, vouchieGoals, refresh, updateGoal } = useVouchieData();
 
   // Personal activities for badge count (uses vouchieGoals for verification notifications)
   const { unreadCount } = usePersonalActivities({
@@ -524,260 +514,39 @@ const VouchieApp = () => {
                 {/* Hero Quote Section */}
                 {/* Hero Quote Section Removed - Moved to Profile // */}
 
-                {/* Dashboard Tabs */}
-                <SlidingTabs
-                  tabs={[
-                    { id: "tasks", label: <> To Dos</> },
-                    {
-                      id: "verify",
-                      label: (
-                        <>
-                          Verifications
-                          {(() => {
-                            // Debug logging for Verification Badge
-                            const pendingCount = vouchieGoals.filter(g => !g.resolved).length;
-                            const actionableCount = vouchieGoals.filter(
-                              g => !g.resolved && (g.proofText || g.deadline < Date.now()),
-                            ).length;
+                {/* Task List -> Home Active View */}
+                {(() => {
+                  const activeGoals = myCreatorGoals
+                    .filter(t => t.status !== "done" && t.status !== "failed")
+                    .sort((a, b) => a.deadline - b.deadline);
 
-                            if (pendingCount > 0) {
-                              console.log("[BADGE DEBUG] Verification Badge Calculation:", {
-                                totalVouchieGoals: vouchieGoals.length,
-                                unresolved: pendingCount,
-                                actionable: actionableCount,
-                                details: vouchieGoals
-                                  .filter(g => !g.resolved)
-                                  .map(g => ({
-                                    id: g.id,
-                                    title: g.title,
-                                    resolved: g.resolved,
-                                    hasProof: !!g.proofText,
-                                    isExpired: g.deadline < Date.now(),
-                                    timeLeft: (g.deadline - Date.now()) / 1000,
-                                  })),
-                              });
-                            }
+                  // The most urgent goal (earliest deadline) is the active one
+                  const activeGoal = activeGoals[0];
 
-                            // Use actionable count instead of just unresolved count
-                            return (
-                              actionableCount > 0 && (
-                                <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-red-500 text-white">
-                                  {actionableCount}
-                                </span>
-                              )
-                            );
-                          })()}
-                        </>
-                      ),
-                    },
-                  ]}
-                  activeTab={dashboardTab}
-                  onChange={id => setDashboardTab(id as "tasks" | "verify")}
-                  className="mb-6"
-                />
+                  // Upcoming are the rest
+                  const upcomingGoals = activeGoals.slice(1);
 
-                {/* Task List Tab -> Now Home Active View */}
-                {dashboardTab === "tasks" &&
-                  // We need to pass data to HomeActiveView
-                  // Logic: Find the single most "active" goal.
-                  // Priority: Earliest deadline (most urgent)
-                  (() => {
-                    const activeGoals = myCreatorGoals
-                      .filter(t => t.status !== "done" && t.status !== "failed")
-                      .sort((a, b) => a.deadline - b.deadline);
+                  const completedGoals = myCreatorGoals.filter(t => t.status === "done");
 
-                    // The most urgent goal (earliest deadline) is the active one
-                    const activeGoal = activeGoals[0];
-
-                    // Upcoming are the rest
-                    const upcomingGoals = activeGoals.slice(1);
-
-                    const completedGoals = myCreatorGoals.filter(t => t.status === "done");
-
-                    return (
-                      <HomeActiveView
-                        activeGoal={
-                          maturedGoals.length > 0 ? maturedGoals.sort((a, b) => a.deadline - b.deadline)[0] : activeGoal
-                        }
-                        upcomingGoals={maturedGoals.length > 0 ? activeGoals : upcomingGoals}
-                        completedGoals={completedGoals}
-                        onVerify={(g: Goal) => setSelectedTaskForDetails(g)}
-                        onStart={(g: Goal) => setSelectedTaskForStart(g)}
-                        onSettle={handleSettle}
-                        onForfeit={(id: number) => {
-                          const goal = myCreatorGoals.find(g => g.id === id);
-                          if (goal) setSelectedTaskForGiveUp(goal);
-                        }}
-                        onCreate={() => setAddModalOpen(true)}
-                        isBlockingSettle={hasBlockingSettle}
-                      />
-                    );
-                  })()}
-
-                {/* Verify Tab */}
-                {dashboardTab === "verify" && (
-                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4 px-6 pb-24">
-                    {/* Empty State */}
-                    {!loading && vouchieGoals.length === 0 && (
-                      <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
-                        <div className="text-4xl mb-4">🛡️</div>
-                        <p className="text-stone-400 font-bold text-lg mb-2">No verifications pending</p>
-                        <p className="text-stone-400 text-sm">
-                          When someone adds you as a vouchie, their myCreatorGoals will appear here for you to verify.
-                        </p>
-                      </div>
-                    )}
-
-                    {/* Verification Cards */}
-                    {!loading &&
-                      (() => {
-                        // Filter myCreatorGoals that can be verified (proof submitted OR expired)
-                        const verifiableGoals = vouchieGoals
-                          .filter(g => !g.resolved)
-                          .filter(g => g.proofText || g.deadline < Date.now());
-
-                        // If user has blocking settle AND no verifiable myCreatorGoals, show lock
-                        if (hasBlockingSettle && verifiableGoals.length === 0) {
-                          return (
-                            <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
-                              <div className="text-4xl mb-4">🔒</div>
-                              <p className="text-stone-400 font-bold text-lg mb-2">Verification Locked</p>
-                              <p className="text-stone-400 text-sm">
-                                You must settle your own matured myCreatorGoals before you can verify for others.
-                              </p>
-                              <button
-                                onClick={() => {
-                                  setDashboardTab("tasks");
-                                  setActiveTab("dashboard");
-                                }}
-                                className="mt-6 px-6 py-2 bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 rounded-xl font-bold text-sm transition-all border border-stone-200 dark:border-stone-700"
-                              >
-                                Go to My Tasks
-                              </button>
-                            </div>
-                          );
-                        }
-
-                        // Show verifiable myCreatorGoals (or all unresolved if no blocking settle)
-                        const goalsToShow = hasBlockingSettle ? verifiableGoals : vouchieGoals.filter(g => !g.resolved);
-
-                        return goalsToShow.map(task => {
-                          const isExpired = task.deadline < Date.now();
-                          const canVerify = isExpired || task.proofText;
-
-                          // Time calculation
-                          const timeLeft = Math.max(0, task.deadline - Date.now());
-                          const hours = Math.floor(timeLeft / (1000 * 60 * 60));
-                          const mins = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-                          const secs = Math.floor((timeLeft % (1000 * 60)) / 1000);
-
-                          return (
-                            <div
-                              key={task.id}
-                              className={`bg-white dark:bg-stone-800 rounded-2xl p-4 border transition-all ${
-                                isExpired
-                                  ? "border-amber-200 dark:border-amber-800/40 bg-amber-50/30 dark:bg-amber-900/10"
-                                  : "border-stone-200 dark:border-stone-700 shadow-sm"
-                              }`}
-                            >
-                              {/* Header */}
-                              <div className="flex items-start justify-between mb-3">
-                                <div className="flex items-center gap-3 flex-1">
-                                  {/* Creator Avatar */}
-                                  {task.creatorAvatar ? (
-                                    <Image
-                                      src={task.creatorAvatar}
-                                      alt={task.creatorUsername || "Creator"}
-                                      width={40}
-                                      height={40}
-                                      className="w-10 h-10 rounded-full object-cover ring-2 ring-white dark:ring-stone-800"
-                                    />
-                                  ) : (
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#8B5A2B] to-[#FFA726] flex items-center justify-center text-white font-bold ring-2 ring-white dark:ring-stone-800">
-                                      {task.creator?.charAt(0).toUpperCase() || "?"}
-                                    </div>
-                                  )}
-
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 mb-1">
-                                      {isExpired ? (
-                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">
-                                          Expired - Ready to Settle
-                                        </span>
-                                      ) : task.proofText ? (
-                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400">
-                                          Proof Submitted
-                                        </span>
-                                      ) : (
-                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
-                                          {hours}h {mins}m {secs}s remaining
-                                        </span>
-                                      )}
-                                    </div>
-                                    <div className="flex items-center gap-2">
-                                      <h4 className="font-bold text-stone-800 dark:text-white text-base leading-tight truncate">
-                                        {task.title}
-                                      </h4>
-                                    </div>
-                                    <p className="text-xs text-stone-500 dark:text-stone-400 mt-1">
-                                      by @{task.creatorUsername || formatAddress(task.creator)}
-                                    </p>
-                                  </div>
-                                </div>
-                                <div className="text-right ml-3">
-                                  <p className="text-lg font-bold text-green-600 dark:text-green-400">
-                                    $
-                                    {task.stake.toLocaleString(undefined, {
-                                      minimumFractionDigits: 2,
-                                      maximumFractionDigits: 2,
-                                    })}
-                                  </p>
-                                  <p className="text-[10px] text-stone-400 uppercase">USDC</p>
-                                </div>
-                              </div>
-
-                              {/* Action Button */}
-                              {task.resolved && !task.userHasClaimed && task.stake > 0 ? (
-                                <button
-                                  onClick={() => handleClaim(task.id, task.currentUserVouchieIndex || 0)}
-                                  className="w-full py-3.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold flex items-center justify-center gap-2 text-sm shadow-lg shadow-green-500/20"
-                                >
-                                  Claim {task.successful ? "Refund" : "Share"} (+$
-                                  {task.stake.toLocaleString(undefined, {
-                                    minimumFractionDigits: 0,
-                                    maximumFractionDigits: 2,
-                                  })}
-                                  ) <HandCoins size={18} weight="bold" />
-                                </button>
-                              ) : (
-                                <button
-                                  onClick={() => {
-                                    if (canVerify || isExpired) {
-                                      setSelectedVerificationGoal(task);
-                                      setIsVerifyModalOpen(true);
-                                    }
-                                  }}
-                                  disabled={!canVerify && !isExpired}
-                                  className={`w-full py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md ${
-                                    canVerify || isExpired
-                                      ? "bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900"
-                                      : "bg-stone-100 dark:bg-stone-800 text-stone-400 cursor-not-allowed shadow-none border border-stone-200 dark:border-stone-700"
-                                  }`}
-                                >
-                                  {isExpired ? (
-                                    <Clock size={18} weight="fill" />
-                                  ) : (
-                                    <ShieldCheck size={18} weight="fill" />
-                                  )}
-                                  {isExpired ? "Review & Settle" : canVerify ? "Verify" : "Verification Locked"}
-                                </button>
-                              )}
-                            </div>
-                          );
-                        });
-                      })()}
-                  </div>
-                )}
+                  return (
+                    <HomeActiveView
+                      activeGoal={
+                        maturedGoals.length > 0 ? maturedGoals.sort((a, b) => a.deadline - b.deadline)[0] : activeGoal
+                      }
+                      upcomingGoals={maturedGoals.length > 0 ? activeGoals : upcomingGoals}
+                      completedGoals={completedGoals}
+                      onVerify={(g: Goal) => setSelectedTaskForDetails(g)}
+                      onStart={(g: Goal) => setSelectedTaskForStart(g)}
+                      onSettle={handleSettle}
+                      onForfeit={(id: number) => {
+                        const goal = myCreatorGoals.find(g => g.id === id);
+                        if (goal) setSelectedTaskForGiveUp(goal);
+                      }}
+                      onCreate={() => setAddModalOpen(true)}
+                      isBlockingSettle={hasBlockingSettle}
+                    />
+                  );
+                })()}
               </div>
             )}
 

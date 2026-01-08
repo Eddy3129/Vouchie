@@ -99,7 +99,7 @@ const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, on
             return (
               <div
                 key={notification.id}
-                className={`card-vouchie relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99] ${borderClass}`}
+                className={`card-base p-4 relative overflow-hidden transition-all hover:scale-[1.01] active:scale-[0.99] ${borderClass}`}
               >
                 <div className="flex items-start gap-3">
                   {/* Icon */}
@@ -132,10 +132,7 @@ const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, on
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2">
                       {notification.action === "verify" && onVerify && (
-                        <button
-                          onClick={() => onVerify(notification.goal)}
-                          className="flex-1 py-2 bg-purple-500 hover:bg-purple-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
-                        >
+                        <button onClick={() => onVerify(notification.goal)} className="btn-action-verify">
                           <ShieldCheck size={14} weight="bold" />
                           Verify Now
                         </button>
@@ -143,7 +140,7 @@ const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, on
                       {notification.action === "claim" && onClaim && (
                         <button
                           onClick={() => onClaim(notification.goalId, notification.goal.currentUserVouchieIndex || 0)}
-                          className="flex-1 py-2 bg-green-500 hover:bg-green-600 text-white rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors"
+                          className="btn-action-claim"
                         >
                           <HandCoins size={14} weight="bold" />
                           Claim ${notification.amount?.toFixed(2)}
