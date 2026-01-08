@@ -381,7 +381,12 @@ const HomeActiveView = ({
                   <div>
                     <h4 className="font-bold text-stone-700 dark:text-stone-200 text-sm">{goal.title}</h4>
                     <p className="text-[10px] font-bold text-stone-400 uppercase mt-0.5">
-                      Starts in {getTimeRemaining(goal.startTime || Date.now())}
+                      {goal.status === "verifying"
+                        ? "Verifying..."
+                        : (() => {
+                            const timeStr = getTimeRemaining(goal.deadline);
+                            return timeStr === "Expired" ? "Expired" : `Due in ${timeStr}`;
+                          })()}
                     </p>
                   </div>
                 </div>

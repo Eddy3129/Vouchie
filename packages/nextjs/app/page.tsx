@@ -519,7 +519,7 @@ const VouchieApp = () => {
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto scroll-smooth pb-8 lg:pb-8">
           <div className="max-w-4xl mx-auto">
             {activeTab === "dashboard" && (
-              <div className="space-y-6 animate-in fade-in duration-500 px-8">
+              <div className="space-y-6 animate-in fade-in duration-500 px-8 pt-6">
                 {/* Hero Quote Section */}
                 {/* Hero Quote Section */}
                 {/* Hero Quote Section Removed - Moved to Profile // */}
