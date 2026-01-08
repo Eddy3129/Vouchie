@@ -46,8 +46,10 @@ export const useVouchieData = () => {
   const [farcasterUsers, setFarcasterUsers] = useState<Map<string, FarcasterUser | null>>(new Map());
   /** All verified ETH addresses for the current user's Farcaster FID */
   const [userVerifiedAddresses, setUserVerifiedAddresses] = useState<string[]>([]);
-  /** Map of goalId → proof cast data (text + hash) from Farcaster */
-  const [proofCastsMap, setProofCastsMap] = useState<Map<number, { text: string; hash: string }>>(new Map());
+  /** Map of goalId → proof cast data (text + hash + timestamp) from Farcaster */
+  const [proofCastsMap, setProofCastsMap] = useState<Map<number, { text: string; hash: string; timestamp?: string }>>(
+    new Map(),
+  );
 
   // Fetch all verified addresses for current user's FID
   useEffect(() => {
@@ -378,6 +380,7 @@ export const useVouchieData = () => {
         if (proof) {
           newData.proofText = proof.text;
           newData.proofCastHash = proof.hash;
+          newData.proofTimestamp = proof.timestamp ? new Date(proof.timestamp).getTime() : undefined;
           newData.status = "verifying"; // Override status
         }
 

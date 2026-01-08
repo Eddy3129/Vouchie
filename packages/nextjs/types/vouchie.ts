@@ -24,6 +24,7 @@ export interface Goal {
   currentUserVouchieIndex?: number;
   proofText?: string;
   proofCastHash?: string; // Warpcast cast hash for linking to proof
+  proofTimestamp?: number; // Actual proof submission timestamp (from Farcaster cast)
   votesValid?: number;
   votesInvalid?: number;
 }
