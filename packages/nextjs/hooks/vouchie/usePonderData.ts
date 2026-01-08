@@ -40,7 +40,6 @@ export interface Activity {
   claimAmount: string | null;
   timestamp: string;
   blockNumber: string;
-  transactionHash: string;
 }
 
 export interface UserStats {
@@ -79,7 +78,6 @@ export function useActivities(limitCount: number = 20) {
               claimAmount
               timestamp
               blockNumber
-              transactionHash
             }
           }
         }
@@ -191,7 +189,6 @@ export function useUserActivities(address: string | undefined, limitCount: numbe
               claimAmount
               timestamp
               blockNumber
-              transactionHash
             }
           }
         }

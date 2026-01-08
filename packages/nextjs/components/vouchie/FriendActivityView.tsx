@@ -484,20 +484,6 @@ const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, on
                             </span>
                           )}
                         </div>
-
-                        {/* BaseScan Link */}
-                        {activity.transactionHash && (
-                          <a
-                            href={`${targetNetwork.blockExplorers?.default.url}/tx/${activity.transactionHash}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-stone-300 hover:text-purple-500 transition-colors"
-                            onClick={e => e.stopPropagation()}
-                            title="View on Explorer"
-                          >
-                            <ArrowSquareOut size={14} weight="bold" />
-                          </a>
-                        )}
                       </div>
                     </div>
                   </div>
