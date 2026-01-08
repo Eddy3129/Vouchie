@@ -15,6 +15,9 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote, onSettle }: VerifyModalPro
   const [isVoting, setIsVoting] = useState(false);
   const [showDenyStep, setShowDenyStep] = useState(false);
   const [denyReason, setDenyReason] = useState("");
+  /** Selected vote: null = no selection, true = approve, false = reject */
+  const [selectedVote, setSelectedVote] = useState<boolean | null>(null);
+  const [showConfirmation, setShowConfirmation] = useState(false);
 
   if (!isOpen || !goal) return null;
 
@@ -46,6 +49,8 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote, onSettle }: VerifyModalPro
   const handleClose = () => {
     setShowDenyStep(false);
     setDenyReason("");
+    setSelectedVote(null);
+    setShowConfirmation(false);
     onClose();
   };
 
@@ -114,31 +119,118 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote, onSettle }: VerifyModalPro
             )}
 
             {/* Action Grid (Horizontal for compactness) */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
-              <button
-                onClick={handleVerify}
-                disabled={isVoting}
-                className="flex flex-col items-center justify-center p-3 py-4 bg-gradient-to-b from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900 border border-stone-200 dark:border-stone-700 rounded-2xl hover:border-green-400 dark:hover:border-green-500 group transition-all"
-              >
-                <div className="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600 dark:text-green-400 mb-2 group-hover:scale-110 transition-transform">
-                  <CheckCircle size={24} weight="fill" />
-                </div>
-                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-0.5">Approve</span>
-                <span className="text-xs font-bold text-stone-800 dark:text-white">Yes, Verified</span>
-              </button>
+            {!showConfirmation ? (
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <button
+                  onClick={() => {
+                    setSelectedVote(true);
+                    setShowConfirmation(true);
+                  }}
+                  disabled={isVoting}
+                  className={`flex flex-col items-center justify-center p-3 py-4 rounded-2xl transition-all ${
+                    selectedVote === true
+                      ? "bg-green-500 border-2 border-green-600"
+                      : "bg-gradient-to-b from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900 border border-stone-200 dark:border-stone-700 hover:border-green-400 dark:hover:border-green-500"
+                  } group`}
+                >
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform ${
+                      selectedVote === true
+                        ? "bg-white/20 text-white"
+                        : "bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                    }`}
+                  >
+                    <CheckCircle size={24} weight="fill" />
+                  </div>
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-widest mb-0.5 ${
+                      selectedVote === true ? "text-green-100" : "text-stone-400"
+                    }`}
+                  >
+                    Approve
+                  </span>
+                  <span
+                    className={`text-xs font-bold ${
+                      selectedVote === true ? "text-white" : "text-stone-800 dark:text-white"
+                    }`}
+                  >
+                    Yes, Verified
+                  </span>
+                </button>
 
-              <button
-                onClick={() => setShowDenyStep(true)}
-                disabled={isVoting}
-                className="flex flex-col items-center justify-center p-3 py-4 bg-gradient-to-b from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900 border border-stone-200 dark:border-stone-700 rounded-2xl hover:border-red-400 dark:hover:border-red-500 group transition-all"
-              >
-                <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 dark:text-red-400 mb-2 group-hover:scale-110 transition-transform">
-                  <XCircle size={24} weight="fill" />
+                <button
+                  onClick={() => {
+                    setSelectedVote(false);
+                    setShowDenyStep(true);
+                  }}
+                  disabled={isVoting}
+                  className={`flex flex-col items-center justify-center p-3 py-4 rounded-2xl transition-all ${
+                    selectedVote === false
+                      ? "bg-red-500 border-2 border-red-600"
+                      : "bg-gradient-to-b from-stone-50 to-stone-100 dark:from-stone-800 dark:to-stone-900 border border-stone-200 dark:border-stone-700 hover:border-red-400 dark:hover:border-red-500"
+                  } group`}
+                >
+                  <div
+                    className={`w-10 h-10 rounded-full flex items-center justify-center mb-2 group-hover:scale-110 transition-transform ${
+                      selectedVote === false
+                        ? "bg-white/20 text-white"
+                        : "bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400"
+                    }`}
+                  >
+                    <XCircle size={24} weight="fill" />
+                  </div>
+                  <span
+                    className={`text-[10px] font-bold uppercase tracking-widest mb-0.5 ${
+                      selectedVote === false ? "text-red-100" : "text-stone-400"
+                    }`}
+                  >
+                    Reject
+                  </span>
+                  <span
+                    className={`text-xs font-bold ${
+                      selectedVote === false ? "text-white" : "text-stone-800 dark:text-white"
+                    }`}
+                  >
+                    Deny Proof
+                  </span>
+                </button>
+              </div>
+            ) : (
+              /* Confirmation Step */
+              <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-2xl mb-4 border-2 border-green-200 dark:border-green-800 animate-in fade-in zoom-in-95 duration-200">
+                <p className="text-sm font-bold text-green-800 dark:text-green-300 text-center mb-3">
+                  Confirm your vote: <span className="text-green-600 dark:text-green-400">Approve</span>
+                </p>
+                <p className="text-xs text-green-700 dark:text-green-400 text-center mb-4">
+                  This will be recorded on-chain and cannot be undone.
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => {
+                      setShowConfirmation(false);
+                      setSelectedVote(null);
+                    }}
+                    className="flex-1 py-2.5 bg-stone-200 dark:bg-stone-700 text-stone-700 dark:text-stone-300 rounded-xl text-xs font-bold"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleVerify}
+                    disabled={isVoting}
+                    className="flex-1 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5"
+                  >
+                    {isVoting ? (
+                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    ) : (
+                      <>
+                        <CheckCircle size={16} weight="fill" />
+                        Confirm
+                      </>
+                    )}
+                  </button>
                 </div>
-                <span className="text-[10px] font-bold text-stone-400 uppercase tracking-widest mb-0.5">Reject</span>
-                <span className="text-xs font-bold text-stone-800 dark:text-white">Deny Proof</span>
-              </button>
-            </div>
+              </div>
+            )}
 
             {goal.deadline < Date.now() && (
               <div className="mb-4 pt-2 border-t border-stone-100 dark:border-stone-800">

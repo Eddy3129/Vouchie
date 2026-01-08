@@ -28,10 +28,11 @@
 
 @plugin "daisyui" {
   themes:
-    light,
+    /* light, */
     dark --prefersdark;
 }
 
+/*
 @plugin "daisyui/theme" {
   name: "light";
 
@@ -56,19 +57,20 @@
   --radius-box: 1rem;
   --tt-tailw: 6px;
 
-  /* Semantic Colors - Light Mode */
-  --color-action-primary: #FF6D00; /* Vibrant Orange */
-  --color-status-success: #4CAF50; /* Green */
-  --color-status-fail: #D32F2F; /* Red */
-  --color-status-warning: #FFA000; /* Amber */
+  /* Semantic Colors - Light Mode * /
+  --color-action-primary: #FF6D00; /* Vibrant Orange * /
+  --color-status-success: #4CAF50; /* Green * /
+  --color-status-fail: #D32F2F; /* Red * /
+  --color-status-warning: #FFA000; /* Amber * /
   --color-bg-neutral: #FFFFFF;
 
-  /* Typography Scale */
+  /* Typography Scale * /
   --text-h1: 2rem;
   --text-h2: 1.5rem;
   --text-body: 1rem;
   --text-micro: 0.75rem;
 }
+*/
 
 @plugin "daisyui/theme" {
   name: "dark";

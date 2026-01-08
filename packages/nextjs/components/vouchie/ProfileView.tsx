@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Avatar from "./Avatar";
 import SlidingTabs from "./SlidingTabs";
-import { CaretDown, CaretUp, Fire, Spinner, Target, Trophy, Wallet } from "@phosphor-icons/react";
+import { CaretDown, CaretUp, CurrencyDollar, Fire, Spinner, Target, Trophy } from "@phosphor-icons/react";
 import { Quotes } from "@phosphor-icons/react";
 import { formatUnits } from "viem";
 import { useAccount } from "wagmi";
@@ -245,7 +245,7 @@ const ProfileView = () => {
               {activeTab === "streak" ? (
                 <Fire size={20} weight="fill" className="text-orange-500" />
               ) : (
-                <Wallet size={20} weight="fill" className="text-green-500" />
+                <CurrencyDollar size={20} weight="fill" className="text-green-500" />
               )}
               Leaderboard
             </h2>
@@ -266,7 +266,7 @@ const ProfileView = () => {
                 id: "wealth",
                 label: (
                   <>
-                    <Wallet size={16} weight={activeTab === "wealth" ? "fill" : "bold"} /> Risk Staker
+                    <CurrencyDollar size={16} weight={activeTab === "wealth" ? "fill" : "bold"} /> Risk Staker
                   </>
                 ),
               },

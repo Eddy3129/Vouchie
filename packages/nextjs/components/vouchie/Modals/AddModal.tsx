@@ -773,7 +773,7 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
               {/* If they deny (Fail) */}
               <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl p-3">
                 <p className="text-[10px] font-bold text-red-600 dark:text-red-400 uppercase tracking-wider mb-1">
-                  If Denied
+                  If Failed / Expired
                 </p>
                 <div className="text-xs font-bold text-red-700 dark:text-red-300 leading-tight">
                   {isSolo ? (

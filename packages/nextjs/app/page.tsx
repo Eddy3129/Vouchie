@@ -672,7 +672,7 @@ const VouchieApp = () => {
 
                 {/* Verify Tab */}
                 {dashboardTab === "verify" && (
-                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4 px-6 pt-6 pb-24">
+                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4 px-6 pb-24">
                     {/* Empty State */}
                     {!loading && vouchieGoals.length === 0 && (
                       <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">

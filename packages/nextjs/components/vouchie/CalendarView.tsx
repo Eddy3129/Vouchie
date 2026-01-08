@@ -19,6 +19,38 @@ import { useMiniapp } from "~~/components/MiniappProvider";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { useActivities } from "~~/hooks/vouchie/usePonderData";
 
+/**
+ * Converts points to a smooth SVG path using Catmull-Rom spline interpolation.
+ * Creates water-like smooth curves instead of straight lines.
+ */
+const pointsToSmoothPath = (points: { x: number; y: number }[]): string => {
+  if (points.length < 2) return "";
+  if (points.length === 2) {
+    return `M ${points[0].x},${points[0].y} L ${points[1].x},${points[1].y}`;
+  }
+
+  // Catmull-Rom to Bezier conversion
+  const tension = 0.3; // Lower = smoother curves
+  let path = `M ${points[0].x},${points[0].y}`;
+
+  for (let i = 0; i < points.length - 1; i++) {
+    const p0 = points[Math.max(0, i - 1)];
+    const p1 = points[i];
+    const p2 = points[i + 1];
+    const p3 = points[Math.min(points.length - 1, i + 2)];
+
+    // Calculate control points
+    const cp1x = p1.x + (p2.x - p0.x) * tension;
+    const cp1y = p1.y + (p2.y - p0.y) * tension;
+    const cp2x = p2.x - (p3.x - p1.x) * tension;
+    const cp2y = p2.y - (p3.y - p1.y) * tension;
+
+    path += ` C ${cp1x},${cp1y} ${cp2x},${cp2y} ${p2.x},${p2.y}`;
+  }
+
+  return path;
+};
+
 // ... existing imports
 
 interface CalendarViewProps {
@@ -370,42 +402,21 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                         />
                       </linearGradient>
                     </defs>
-                    {/* Water area under the line */}
-                    <path
-                      d={`
-                         M 0,100
-                         ${historyItems
-                           .slice()
-                           .reverse()
-                           .map((item, i) => {
-                             const cumulative = historyItems.slice(historyItems.length - i - 1).reduce((acc, t) => {
-                               const stake = getOriginalStake(t.id, t.stake);
-                               return t.status === "failed" ? acc - stake : acc;
-                             }, 0);
-                             const maxAbs = Math.max(
-                               ...historyItems.map((_, idx) =>
-                                 Math.abs(
-                                   historyItems.slice(idx).reduce((acc, t) => {
-                                     const stake = getOriginalStake(t.id, t.stake);
-                                     return t.status === "failed" ? acc - stake : acc;
-                                   }, 0),
-                                 ),
-                               ),
-                               10,
-                             );
-                             const x = (i / Math.max(historyItems.length - 1, 1)) * 100;
-                             const y = 50 - (cumulative / maxAbs) * 30;
-                             return `L ${x},${y}`;
-                           })
-                           .join(" ")}
-                         L 100,100
-                         Z
-                       `}
-                      fill="url(#waterGradient)"
-                    />
-                    {/* Subtle line on top */}
-                    <polyline
-                      points={historyItems
+                    {/* Generate smooth curve points */}
+                    {(() => {
+                      const maxAbs = Math.max(
+                        ...historyItems.map((_, idx) =>
+                          Math.abs(
+                            historyItems.slice(idx).reduce((acc, t) => {
+                              const stake = getOriginalStake(t.id, t.stake);
+                              return t.status === "failed" ? acc - stake : acc;
+                            }, 0),
+                          ),
+                        ),
+                        10,
+                      );
+
+                      const points = historyItems
                         .slice()
                         .reverse()
                         .map((item, i) => {
@@ -413,30 +424,35 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                             const stake = getOriginalStake(t.id, t.stake);
                             return t.status === "failed" ? acc - stake : acc;
                           }, 0);
-                          const maxAbs = Math.max(
-                            ...historyItems.map((_, idx) =>
-                              Math.abs(
-                                historyItems.slice(idx).reduce((acc, t) => {
-                                  const stake = getOriginalStake(t.id, t.stake);
-                                  return t.status === "failed" ? acc - stake : acc;
-                                }, 0),
-                              ),
-                            ),
-                            10,
-                          );
-                          const x = (i / Math.max(historyItems.length - 1, 1)) * 100;
-                          const y = 50 - (cumulative / maxAbs) * 30;
-                          return `${x},${y}`;
-                        })
-                        .join(" ")}
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.5"
-                      strokeOpacity="0.2"
-                      className={
-                        netResult >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
-                      }
-                    />
+                          return {
+                            x: (i / Math.max(historyItems.length - 1, 1)) * 100,
+                            y: 50 - (cumulative / maxAbs) * 30,
+                          };
+                        });
+
+                      const smoothPath = pointsToSmoothPath(points);
+
+                      return (
+                        <>
+                          {/* Water area under the smooth curve */}
+                          <path
+                            d={`M 0,100 L 0,${points[0]?.y || 50} ${smoothPath.replace("M", "").replace(/^[^C]*/, "")} L 100,100 Z`}
+                            fill="url(#waterGradient)"
+                          />
+                          {/* Smooth line on top */}
+                          <path
+                            d={smoothPath}
+                            fill="none"
+                            stroke="currentColor"
+                            strokeWidth="1.5"
+                            strokeOpacity="0.2"
+                            className={
+                              netResult >= 0 ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"
+                            }
+                          />
+                        </>
+                      );
+                    })()}
                   </svg>
                 </div>
 

@@ -1,7 +1,27 @@
 import React, { useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { Goal } from "../../../types/vouchie";
 import { ArrowRight, Bank, Camera, HandCoins, PaperPlaneTilt, SmileySad, X } from "@phosphor-icons/react";
 import { buildProofSubmittedCast } from "~~/utils/castHelpers";
+
+// Helper for user avatar
+const UserAvatar = ({ url, name, size = 24 }: { url?: string; name: string; size?: number }) => {
+  if (url) {
+    return (
+      <div className="relative overflow-hidden rounded-full flex-shrink-0" style={{ width: size, height: size }}>
+        <Image src={url} alt={name} width={size} height={size} className="w-full h-full object-cover" />
+      </div>
+    );
+  }
+  return (
+    <div
+      className="rounded-full bg-gradient-to-br from-[#8B5A2B] to-[#FFA726] flex items-center justify-center text-white font-bold flex-shrink-0"
+      style={{ width: size, height: size, fontSize: size * 0.4 }}
+    >
+      {name.charAt(0).toUpperCase()}
+    </div>
+  );
+};
 
 interface TaskDetailModalProps {
   isOpen: boolean;
@@ -232,15 +252,19 @@ const TaskDetailModal = ({
                         {goal.successful ? "Refund" : "Slashed"}
                       </span>
                     </div>
-                    <p className="text-[10px] text-stone-500 dark:text-stone-400 leading-tight">
+                    <div className="flex items-center gap-1 text-[10px] text-stone-500 dark:text-stone-400 leading-tight mt-0.5">
                       {goal.successful ? (
-                        <>for @{goal.creatorUsername || "creator"}</>
+                        <>
+                          <span>for</span>
+                          <UserAvatar url={goal.creatorAvatar} name={goal.creatorUsername || "creator"} size={12} />
+                          <span className="font-medium">@{goal.creatorUsername || "creator"}</span>
+                        </>
                       ) : isSolo ? (
                         <>to Protocol Treasury</>
                       ) : (
                         <>to Squad</>
                       )}
-                    </p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -290,7 +314,7 @@ const TaskDetailModal = ({
           )}
         </div>
 
-        {/* Vouchies Section - Compact list without avatars */}
+        {/* Vouchies Section - Compact list with avatars */}
         {!isSolo && goal.vouchies.length > 0 && (
           <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-2xl mb-4 border-2 border-purple-200 dark:border-purple-800">
             <div className="flex items-center justify-between mb-2">
@@ -299,14 +323,17 @@ const TaskDetailModal = ({
               </h4>
               <span className="text-purple-600 dark:text-purple-400 text-[9px]">will verify via Farcaster</span>
             </div>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {goal.vouchies.map((vouchie, idx) => (
-                <span
+                <div
                   key={idx}
-                  className="text-[11px] bg-white dark:bg-stone-800 px-2 py-1 rounded-md text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700/50"
+                  className="flex items-center gap-1.5 pl-1 pr-2 py-1 bg-white dark:bg-stone-800 rounded-full border border-purple-200 dark:border-purple-700/50"
                 >
-                  @{vouchie.username || vouchie.name}
-                </span>
+                  <UserAvatar url={vouchie.avatar} name={vouchie.username || vouchie.name} size={16} />
+                  <span className="text-[10px] text-purple-700 dark:text-purple-300 font-medium">
+                    @{vouchie.username || vouchie.name}
+                  </span>
+                </div>
               ))}
             </div>
           </div>

@@ -24,6 +24,8 @@ export interface Goal {
   currentUserVouchieIndex?: number;
   proofText?: string;
   proofCastHash?: string; // Warpcast cast hash for linking to proof
+  votesValid?: number;
+  votesInvalid?: number;
 }
 
 // Grace period constant (10 minutes in ms) - must match contract

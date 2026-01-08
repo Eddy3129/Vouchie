@@ -240,6 +240,8 @@ export const useVouchieData = () => {
           accent: mode === "Solo" ? "text-orange-600 dark:text-orange-400" : "text-indigo-600 dark:text-indigo-400",
           barColor: mode === "Solo" ? "bg-orange-400" : "bg-indigo-400",
           creator: creator, // Add creator address for display
+          votesValid: Number(g[8]),
+          votesInvalid: Number(g[9]),
         };
 
         if (isCreator) parsedCreatorGoals.push(goalObj);

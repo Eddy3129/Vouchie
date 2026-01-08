@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Goal } from "../../types/vouchie";
-import { ArrowRight, CheckCircle, Clock, ShieldCheck } from "@phosphor-icons/react";
+import { ArrowRight, CheckCircle, Clock, ShieldCheck, User } from "@phosphor-icons/react";
 
 // --- Component: Single Flip Digit ---
 const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => {
@@ -184,7 +184,7 @@ const HomeActiveView = ({
   }, [completedGoals]);
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500 pb-8 px-6 pt-6">
+    <div className="space-y-4 animate-in fade-in duration-500 pb-8 px-6">
       <style>{`
         .backface-hidden {
           backface-visibility: hidden;
@@ -293,10 +293,35 @@ const HomeActiveView = ({
             ) : activeGoal.status === "verifying" ? (
               <button
                 disabled
-                className="w-full max-w-sm py-4 bg-indigo-500 text-white rounded-2xl font-bold text-lg shadow-lg flex items-center justify-center gap-3 cursor-not-allowed opacity-90"
+                className="w-full max-w-sm py-3 bg-amber-600 text-white rounded-2xl font-bold text-lg shadow-lg flex flex-col items-center justify-center gap-2 cursor-not-allowed opacity-90"
               >
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                Verifying...
+                <div className="flex items-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Verifying...</span>
+                </div>
+
+                {/* Verification Progress */}
+                {activeGoal.mode === "Squad" && activeGoal.vouchies && (
+                  <div className="flex flex-col items-center gap-1">
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: activeGoal.vouchies.length || 0 }).map((_, i) => {
+                        const totalVotes = (activeGoal.votesValid || 0) + (activeGoal.votesInvalid || 0);
+                        const isVoted = i < totalVotes;
+                        return (
+                          <User
+                            key={i}
+                            weight={isVoted ? "fill" : "bold"}
+                            className={`w-4 h-4 ${isVoted ? "text-white" : "text-white/50"}`}
+                          />
+                        );
+                      })}
+                    </div>
+                    <span className="text-xs font-medium text-white/80">
+                      {(activeGoal.votesValid || 0) + (activeGoal.votesInvalid || 0)}/{activeGoal.vouchies.length}{" "}
+                      Verified
+                    </span>
+                  </div>
+                )}
               </button>
             ) : activeGoal.status === "in_progress" ? (
               <button

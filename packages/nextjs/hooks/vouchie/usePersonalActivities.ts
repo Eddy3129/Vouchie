@@ -3,7 +3,7 @@ import { Goal } from "~~/types/vouchie";
 
 export interface PersonalNotification {
   id: string;
-  type: "verify_request" | "claim_available" | "vouchie_invite" | "goal_resolved";
+  type: "verify_request" | "claim_available" | "vouchie_invite" | "goal_resolved" | "view";
   title: string;
   description: string;
   timestamp: number;
@@ -35,15 +35,24 @@ export const usePersonalActivities = ({ creatorGoals, vouchieGoals }: UsePersona
     vouchieGoals
       .filter(g => !g.resolved && (g.proofText || g.deadline < Date.now()))
       .forEach(goal => {
+        const totalVotes = (goal.votesValid || 0) + (goal.votesInvalid || 0);
+        const allVoted = goal.vouchies.length > 0 && totalVotes >= goal.vouchies.length;
+
+        // If proof exists and NOT all voted, it's a verify request (Badge +1)
+        // Otherwise (all voted or expired), it's just a view/settle item (No Badge)
+        const isVerifyRequest = goal.proofText && !allVoted;
+
         items.push({
           id: `verify-${goal.id}`,
-          type: "verify_request",
-          title: goal.proofText ? "Proof Submitted" : "Ready to Settle",
-          description: `${goal.creatorUsername || "Someone"} needs your verification for "${goal.title}"`,
+          type: isVerifyRequest ? "verify_request" : "view", // Changed from always "verify_request"
+          title: goal.proofText ? (allVoted ? "Verification Complete" : "Proof Submitted") : "Ready to Settle",
+          description: allVoted
+            ? `All votes cast for "${goal.title}". Ready to settle.`
+            : `${goal.creatorUsername || "Someone"} needs your verification for "${goal.title}"`,
           timestamp: goal.createdAt || Date.now(),
           goalId: goal.id,
           goal,
-          action: "verify",
+          action: isVerifyRequest ? "verify" : "view",
           amount: goal.stake,
           castHash: goal.proofCastHash,
         });
