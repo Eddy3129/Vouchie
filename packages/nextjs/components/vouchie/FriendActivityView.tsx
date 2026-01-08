@@ -1,8 +1,9 @@
 import Image from "next/image";
 import { ArrowSquareOut, Check, CheckCircle, HandCoins, Plus, ShieldCheck, X } from "@phosphor-icons/react";
 import { useAccount } from "wagmi";
+import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { usePersonalActivities } from "~~/hooks/vouchie/usePersonalActivities";
-import { useUserActivities } from "~~/hooks/vouchie/usePonderData";
+import { useActivities } from "~~/hooks/vouchie/usePonderData";
 import { Goal } from "~~/types/vouchie";
 
 interface FriendActivityViewProps {
@@ -36,16 +37,19 @@ const formatActivityDate = (timestamp: number): string => {
 
 const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, onClaim }: FriendActivityViewProps) => {
   const { address: userAddress } = useAccount();
+  const { targetNetwork } = useTargetNetwork();
+  const decimals = targetNetwork.id === 31337 ? 18 : 6;
 
-  // Fetch full activity history (Settle events etc.)
-  const { data: rawActivities } = useUserActivities(userAddress, 20);
+  // Fetch all activities for stake lookup
+  const { data: rawActivities } = useActivities(100);
 
-  // Personal activities only (merged)
+  // Personal activities derived from goals + activities
   const { notifications } = usePersonalActivities({
     creatorGoals,
     vouchieGoals,
     activities: rawActivities || [],
     userAddress,
+    decimals,
   });
 
   return (

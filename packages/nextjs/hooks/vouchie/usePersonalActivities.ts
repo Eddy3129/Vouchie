@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { formatUnits } from "viem";
 import { Goal } from "~~/types/vouchie";
 
 export interface PersonalNotification {
@@ -26,13 +27,16 @@ export interface PersonalNotification {
  * Props for usePersonalActivities hook.
  * @param creatorGoals - Goals where current user is the CREATOR (for claim notifications)
  * @param vouchieGoals - Goals where current user is a VOUCHIE (for verify notifications)
+ * @param activities - Raw Ponder activities for looking up original stake amounts
  * @param userAddress - Current user's wallet address
+ * @param decimals - USDC decimals (18 for local, 6 for mainnet)
  */
 interface UsePersonalActivitiesProps {
   creatorGoals: Goal[];
   vouchieGoals: Goal[];
-  activities?: any[]; // Allow merging raw Ponder activities
+  activities?: any[]; // Raw Ponder activities
   userAddress?: string;
+  decimals?: number;
 }
 
 export const usePersonalActivities = ({
@@ -40,17 +44,27 @@ export const usePersonalActivities = ({
   vouchieGoals,
   activities = [],
   userAddress,
+  decimals = 6,
 }: UsePersonalActivitiesProps) => {
   const notifications = useMemo(() => {
     const items: PersonalNotification[] = [];
 
-    // --- 0. Global/User Dictionary (for lookups if needed) ---
-    // (Optimization: In future, map raw activities to improve history accuracy)
+    // --- Helper: Get original stake from activities if current stake is 0 ---
+    const getOriginalStake = (goalId: number, currentStake: number): number => {
+      if (currentStake > 0) return currentStake;
+      // Look up from goal_created activity
+      const activity = activities?.find(a => Number(a.goalId) === goalId && a.type === "goal_created");
+      if (activity && activity.stakeAmount) {
+        return Number(formatUnits(BigInt(activity.stakeAmount), decimals));
+      }
+      return currentStake;
+    };
 
     // --- 1. Vouchie Actions (Verify & History) ---
     vouchieGoals.forEach(goal => {
       const totalVotes = (goal.votesValid || 0) + (goal.votesInvalid || 0);
       const allVoted = goal.vouchies.length > 0 && totalVotes >= goal.vouchies.length;
+      const originalStake = getOriginalStake(goal.id, goal.stake);
 
       // A. Verify Request (Pending)
       if (!goal.resolved && (goal.proofText || goal.deadline < Date.now()) && !allVoted) {
@@ -63,16 +77,17 @@ export const usePersonalActivities = ({
           goalId: goal.id,
           goal,
           action: "verify",
-          amount: goal.stake,
+          amount: originalStake,
           castHash: goal.proofCastHash,
         });
       }
 
       // B. Vouchie Claims (Goal Failed -> Earn Share)
-      // Check if goal is resolved, failed, and I haven't claimed yet (and I'm entitled to stake)
-      if (goal.resolved && !goal.successful && goal.stake > 0 && goal.mode === "Squad") {
-        const share = goal.stake / (goal.vouchies.length || 1);
-        if (!goal.userHasClaimed) {
+      // Check if goal is resolved, failed, and user is entitled to share
+      if (goal.resolved && !goal.successful && goal.mode === "Squad") {
+        const share = originalStake / (goal.vouchies.length || 1);
+        if (!goal.userHasClaimed && goal.stake > 0) {
+          // Pending claim
           items.push({
             id: `claim-vouchie-${goal.id}`,
             type: "claim_available",
@@ -84,8 +99,20 @@ export const usePersonalActivities = ({
             action: "claim",
             amount: share,
           });
+        } else if (goal.userHasClaimed || goal.stake === 0) {
+          // Already claimed - show history
+          items.push({
+            id: `history-vouchie-${goal.id}`,
+            type: "history_success",
+            title: "Share Claimed",
+            description: `You slashed @${goal.creatorUsername || "creator"} and earned $${share.toFixed(2)}.`,
+            timestamp: goal.deadline,
+            goalId: goal.id,
+            goal,
+            action: "view",
+            amount: share,
+          });
         }
-        // "Claimed" history is now handled by the "Settled" event from Ponder (C2) or below fallback
       }
 
       // C. Vouchie Verified (Goal Successful -> History)
@@ -99,7 +126,8 @@ export const usePersonalActivities = ({
           goalId: goal.id,
           goal,
           action: "view",
-          castHash: goal.proofCastHash, // Link to proof
+          amount: originalStake, // Show the stake amount for context
+          castHash: goal.proofCastHash,
         });
       }
 
@@ -114,59 +142,42 @@ export const usePersonalActivities = ({
           goalId: goal.id,
           goal,
           action: "view",
-          amount: goal.stake,
-        });
-      }
-    });
-
-    // --- Process Raw "Settle" Activities (for comprehensive history) ---
-    activities.forEach(activity => {
-      if (activity.type === "GoalResolved" || activity.type === "GoalSettled") {
-        // We might duplicate items if we also derive them from state above.
-        // Ideally we prefer event history for "past" items.
-        // However, let's just add "Settled" specifically if missed.
-        // For now, let's treat these as "history_success" or generic info
-        items.push({
-          id: `event-${activity.id}`,
-          type: "goal_resolved",
-          title: "Goal Settled",
-          description: `Goal "${activity.goalTitle || "Unknown"}" was settled on-chain.`,
-          timestamp: parseInt(activity.timestamp) * 1000,
-          goalId: parseInt(activity.goalId),
-          goal: {} as Goal, // Placeholder or look up if needed, mostly for display
-          action: "view",
+          amount: originalStake,
         });
       }
     });
 
     // --- 2. Creator Actions (Claims & History) ---
     creatorGoals.forEach(goal => {
+      const originalStake = getOriginalStake(goal.id, goal.stake);
+
       // A. Creator Claims (Goal Successful -> Refund)
-      if (goal.resolved && goal.successful && goal.stake > 0) {
-        if (!goal.userHasClaimed) {
+      if (goal.resolved && goal.successful) {
+        if (!goal.userHasClaimed && goal.stake > 0) {
+          // Pending refund claim
           items.push({
             id: `claim-creator-${goal.id}`,
             type: "claim_available",
             title: "Claim Your Refund",
-            description: `Squad approved "${goal.title}"! Claim your $${goal.stake.toFixed(2)} refund.`,
+            description: `Squad approved "${goal.title}"! Claim your $${originalStake.toFixed(2)} refund.`,
             timestamp: goal.deadline,
             goalId: goal.id,
             goal,
             action: "claim",
-            amount: goal.stake,
+            amount: originalStake,
           });
         } else {
-          // History: Refunded
+          // History: Refunded (already claimed or stake is 0)
           items.push({
             id: `history-refund-${goal.id}`,
             type: "history_success",
             title: "Refund Claimed",
-            description: `You reclaimed $${goal.stake.toFixed(2)} from "${goal.title}".`,
+            description: `You reclaimed $${originalStake.toFixed(2)} from "${goal.title}".`,
             timestamp: goal.deadline,
             goalId: goal.id,
             goal,
             action: "view",
-            amount: goal.stake,
+            amount: originalStake,
             castHash: goal.proofCastHash,
           });
         }
@@ -178,12 +189,12 @@ export const usePersonalActivities = ({
           id: `history-failed-${goal.id}`,
           type: "history_failure",
           title: "Goal Failed",
-          description: `Goal "${goal.title}" was rejected. Stake of $${(goal.stake || 0).toFixed(2)} lost.`,
+          description: `Goal "${goal.title}" was rejected. Stake of $${originalStake.toFixed(2)} lost.`,
           timestamp: goal.deadline,
           goalId: goal.id,
           goal,
           action: "view",
-          amount: goal.stake,
+          amount: originalStake,
           castHash: goal.proofCastHash,
         });
       }
@@ -193,7 +204,7 @@ export const usePersonalActivities = ({
     items.sort((a, b) => b.timestamp - a.timestamp);
 
     return items;
-  }, [creatorGoals, vouchieGoals, activities, userAddress]);
+  }, [creatorGoals, vouchieGoals, activities, userAddress, decimals]);
 
   // Count actionable (unread) notifications
   const unreadCount = useMemo(() => {
