@@ -548,8 +548,11 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                   !task.userHasClaimed &&
                   task.stake > 0 && // Current stake on contract (0 if already claimed)
                   onClaim &&
-                  // Solo failures have no payout (treasury takes all)
-                  !(task.status === "failed" && task.mode === "Solo" && task.claimRole === "creator");
+                  // Ensure we only show claim for valid cases:
+                  // 1. Goal Failed AND User is Vouchie (Share of stake)
+                  // 2. Goal Successful AND User is Creator (Refund)
+                  // AND strict check that we haven't already claimed (some indexers might be slow, so rely on optimistic check if possible or strict status)
+                  ((task.status === "failed" && isVouchieRole) || (task.status === "done" && !isVouchieRole));
 
                 // Actually need new state for expansion. Let's use local state key hack or add state.
                 // Since I can't add state easily in replace_file_content without changing top of file, I'll use a local disclosure detail element or similar?

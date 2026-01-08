@@ -2,6 +2,7 @@ import Image from "next/image";
 import { ArrowSquareOut, Check, CheckCircle, HandCoins, Plus, ShieldCheck, X } from "@phosphor-icons/react";
 import { useAccount } from "wagmi";
 import { usePersonalActivities } from "~~/hooks/vouchie/usePersonalActivities";
+import { useUserActivities } from "~~/hooks/vouchie/usePonderData";
 import { Goal } from "~~/types/vouchie";
 
 interface FriendActivityViewProps {
@@ -11,13 +12,39 @@ interface FriendActivityViewProps {
   onClaim?: (goalId: number, vouchieIndex: number) => void;
 }
 
+// Helper: Format relative time for activity timestamps
+const formatActivityDate = (timestamp: number): string => {
+  if (!timestamp) return "";
+  const now = Date.now();
+  const diff = now - timestamp;
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (seconds < 60) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  if (days === 1) return "Yesterday";
+  if (days < 7) return `${days}d ago`;
+
+  return new Date(timestamp).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+};
+
 const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, onClaim }: FriendActivityViewProps) => {
   const { address: userAddress } = useAccount();
 
-  // Personal activities only
+  // Fetch full activity history (Settle events etc.)
+  const { data: rawActivities } = useUserActivities(userAddress, 20);
+
+  // Personal activities only (merged)
   const { notifications } = usePersonalActivities({
     creatorGoals,
     vouchieGoals,
+    activities: rawActivities || [],
     userAddress,
   });
 
@@ -111,19 +138,26 @@ const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, on
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-1">
                       <span className="font-bold text-stone-900 dark:text-white text-sm">{notification.title}</span>
-                      {notification.amount && notification.amount > 0 && (
-                        <span
-                          className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                            notification.type === "claim_available" || notification.type === "history_success"
-                              ? "bg-green-100 text-green-600 dark:bg-green-900/30"
-                              : notification.type === "history_failure"
-                                ? "bg-red-100 text-red-600 dark:bg-red-900/30"
-                                : "bg-stone-100 text-stone-600 dark:bg-stone-800"
-                          }`}
-                        >
-                          ${notification.amount.toFixed(2)}
+                      <div className="flex items-center gap-2">
+                        {/* Amount Badge */}
+                        {notification.amount && notification.amount > 0 && (
+                          <span
+                            className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                              notification.type === "claim_available" || notification.type === "history_success"
+                                ? "bg-green-100 text-green-600 dark:bg-green-900/30"
+                                : notification.type === "history_failure"
+                                  ? "bg-red-100 text-red-600 dark:bg-red-900/30"
+                                  : "bg-stone-100 text-stone-600 dark:bg-stone-800"
+                            }`}
+                          >
+                            ${notification.amount.toFixed(2)}
+                          </span>
+                        )}
+                        {/* Timestamp */}
+                        <span className="text-[10px] font-bold text-stone-400 uppercase tracking-wide">
+                          {formatActivityDate(notification.timestamp)}
                         </span>
-                      )}
+                      </div>
                     </div>
                     <p className="text-xs text-stone-500 dark:text-stone-400 line-clamp-2 mb-2">
                       {notification.description}

@@ -31,12 +31,21 @@ export interface PersonalNotification {
 interface UsePersonalActivitiesProps {
   creatorGoals: Goal[];
   vouchieGoals: Goal[];
+  activities?: any[]; // Allow merging raw Ponder activities
   userAddress?: string;
 }
 
-export const usePersonalActivities = ({ creatorGoals, vouchieGoals }: UsePersonalActivitiesProps) => {
+export const usePersonalActivities = ({
+  creatorGoals,
+  vouchieGoals,
+  activities = [],
+  userAddress,
+}: UsePersonalActivitiesProps) => {
   const notifications = useMemo(() => {
     const items: PersonalNotification[] = [];
+
+    // --- 0. Global/User Dictionary (for lookups if needed) ---
+    // (Optimization: In future, map raw activities to improve history accuracy)
 
     // --- 1. Vouchie Actions (Verify & History) ---
     vouchieGoals.forEach(goal => {
@@ -75,20 +84,8 @@ export const usePersonalActivities = ({ creatorGoals, vouchieGoals }: UsePersona
             action: "claim",
             amount: share,
           });
-        } else {
-          // History: Claimed
-          items.push({
-            id: `history-vouchie-${goal.id}`,
-            type: "history_success",
-            title: "Share Claimed",
-            description: `You slashed @${goal.creatorUsername || "creator"} and earned $${share.toFixed(2)}.`,
-            timestamp: goal.deadline,
-            goalId: goal.id,
-            goal,
-            action: "view",
-            amount: share,
-          });
         }
+        // "Claimed" history is now handled by the "Settled" event from Ponder (C2) or below fallback
       }
 
       // C. Vouchie Verified (Goal Successful -> History)
@@ -96,7 +93,7 @@ export const usePersonalActivities = ({ creatorGoals, vouchieGoals }: UsePersona
         items.push({
           id: `history-verified-${goal.id}`,
           type: "view",
-          title: "Verification Successful",
+          title: `Verification Successful for "${goal.title}"`,
           description: `You verified @${goal.creatorUsername || "creator"}. Goal completed!`,
           timestamp: goal.deadline,
           goalId: goal.id,
@@ -118,6 +115,26 @@ export const usePersonalActivities = ({ creatorGoals, vouchieGoals }: UsePersona
           goal,
           action: "view",
           amount: goal.stake,
+        });
+      }
+    });
+
+    // --- Process Raw "Settle" Activities (for comprehensive history) ---
+    activities.forEach(activity => {
+      if (activity.type === "GoalResolved" || activity.type === "GoalSettled") {
+        // We might duplicate items if we also derive them from state above.
+        // Ideally we prefer event history for "past" items.
+        // However, let's just add "Settled" specifically if missed.
+        // For now, let's treat these as "history_success" or generic info
+        items.push({
+          id: `event-${activity.id}`,
+          type: "goal_resolved",
+          title: "Goal Settled",
+          description: `Goal "${activity.goalTitle || "Unknown"}" was settled on-chain.`,
+          timestamp: parseInt(activity.timestamp) * 1000,
+          goalId: parseInt(activity.goalId),
+          goal: {} as Goal, // Placeholder or look up if needed, mostly for display
+          action: "view",
         });
       }
     });
@@ -176,7 +193,7 @@ export const usePersonalActivities = ({ creatorGoals, vouchieGoals }: UsePersona
     items.sort((a, b) => b.timestamp - a.timestamp);
 
     return items;
-  }, [creatorGoals, vouchieGoals]);
+  }, [creatorGoals, vouchieGoals, activities, userAddress]);
 
   // Count actionable (unread) notifications
   const unreadCount = useMemo(() => {
