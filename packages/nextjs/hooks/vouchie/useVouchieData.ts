@@ -273,7 +273,16 @@ export const useVouchieData = () => {
   useEffect(() => {
     const checkProofs = async () => {
       const apiKey = process.env.NEXT_PUBLIC_NEYNAR_API_KEY;
-      if (!apiKey || farcasterUsers.size === 0) return;
+
+      console.log(`[PROOF CHECK] Starting proof check...`);
+      console.log(`[PROOF CHECK] API key present: ${!!apiKey}`);
+      console.log(`[PROOF CHECK] Farcaster users loaded: ${farcasterUsers.size}`);
+      console.log(`[PROOF CHECK] Creator goals: ${creatorGoals.length}, Vouchie goals: ${vouchieGoals.length}`);
+
+      if (!apiKey || farcasterUsers.size === 0) {
+        console.log(`[PROOF CHECK] ❌ Early exit: ${!apiKey ? "No API key" : "No Farcaster users loaded yet"}`);
+        return;
+      }
 
       // Combine both arrays and deduplicate by goal ID
       const allSquadGoals = [...creatorGoals, ...vouchieGoals].filter(
@@ -281,7 +290,18 @@ export const useVouchieData = () => {
           goal.mode === "Squad" && !goal.resolved && index === self.findIndex(g => g.id === goal.id),
       );
 
-      if (allSquadGoals.length === 0) return;
+      console.log(`[PROOF CHECK] Squad goals to check: ${allSquadGoals.length}`);
+      allSquadGoals.forEach(g => {
+        const creatorUser = g.creator ? farcasterUsers.get(g.creator.toLowerCase()) : null;
+        console.log(
+          `[PROOF CHECK] Goal ${g.id}: "${g.title}" creator=${g.creator?.slice(0, 8)}... creatorFid=${creatorUser?.fid || "NOT FOUND"}`,
+        );
+      });
+
+      if (allSquadGoals.length === 0) {
+        console.log(`[PROOF CHECK] ❌ No squad goals to check`);
+        return;
+      }
 
       const newProofs = new Map(proofCastsMap);
       let hasNew = false;
@@ -292,18 +312,27 @@ export const useVouchieData = () => {
           if (!proofCastsMap.has(goal.id)) {
             const creatorUser = goal.creator ? farcasterUsers.get(goal.creator.toLowerCase()) : null;
             if (creatorUser?.fid) {
+              console.log(`[PROOF CHECK] Checking goal ${goal.id} with creator FID ${creatorUser.fid}...`);
               const proof = await fetchProofCasts(goal.id, creatorUser.fid, apiKey);
               if (proof) {
+                console.log(`[PROOF CHECK] ✅ Proof found for goal ${goal.id}`);
                 newProofs.set(goal.id, proof);
                 hasNew = true;
               }
+            } else {
+              console.log(`[PROOF CHECK] ⚠️ Goal ${goal.id}: Creator not in Farcaster users map or no FID`);
             }
+          } else {
+            console.log(`[PROOF CHECK] Goal ${goal.id} already has proof in cache`);
           }
         }),
       );
 
       if (hasNew) {
+        console.log(`[PROOF CHECK] ✅ New proofs found, updating state`);
         setProofCastsMap(newProofs);
+      } else {
+        console.log(`[PROOF CHECK] No new proofs found`);
       }
     };
 

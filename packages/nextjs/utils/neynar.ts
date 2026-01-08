@@ -4,16 +4,17 @@ export const fetchProofCasts = async (
   apiKey: string,
 ): Promise<{ text: string; hash: string } | null> => {
   if (!apiKey) {
-    console.warn("fetchProofCasts: No API key provided");
+    console.warn("[PROOF] fetchProofCasts: No API key provided");
     return null;
   }
 
   try {
     // Construct the goal frame URL that we expect to be embedded
     const frameUrl = `https://vouchie.app/api/frame/goal/${goalId}`;
+    console.log(`[PROOF] Searching for proof cast: goalId=${goalId}, creatorFid=${creatorFid}`);
+    console.log(`[PROOF] Expected frame URL: ${frameUrl}`);
 
     // Query Neynar for recent casts by the creator using the free endpoint
-    // v2/farcaster/feed/user/casts (4 credits per call)
     const url = `https://api.neynar.com/v2/farcaster/feed/user/casts?fid=${creatorFid}&limit=15&include_replies=false&include_recasts=false`;
 
     const response = await fetch(url, {
@@ -25,28 +26,41 @@ export const fetchProofCasts = async (
     });
 
     if (!response.ok) {
-      console.warn(`fetchProofCasts failed: ${response.status} ${response.statusText}`);
+      console.warn(`[PROOF] fetchProofCasts failed: ${response.status} ${response.statusText}`);
       return null;
     }
 
     const data = await response.json();
     const casts = data.casts;
 
+    console.log(`[PROOF] Found ${casts?.length || 0} casts from creator`);
+
     if (casts && Array.isArray(casts)) {
+      // Log all embeds for debugging
+      casts.forEach((cast: any, idx: number) => {
+        const embedUrls = cast.embeds?.map((e: any) => e.url).filter(Boolean) || [];
+        if (embedUrls.length > 0) {
+          console.log(`[PROOF] Cast ${idx}: "${cast.text?.slice(0, 50)}..." embeds: ${JSON.stringify(embedUrls)}`);
+        }
+      });
+
       // Client-side filtering for the specific frame URL
       const proofCast = casts.find((cast: any) => cast.embeds?.some((embed: any) => embed.url === frameUrl));
 
       if (proofCast) {
+        console.log(`[PROOF] ✅ Found proof cast for goal ${goalId}: hash=${proofCast.hash}`);
         return {
           text: proofCast.text,
           hash: proofCast.hash,
         };
+      } else {
+        console.log(`[PROOF] ❌ No cast found with frame URL for goal ${goalId}`);
       }
     }
 
     return null;
   } catch (error) {
-    console.warn("Error fetching proof casts:", error);
+    console.warn("[PROOF] Error fetching proof casts:", error);
     return null;
   }
 };
