@@ -1,3 +1,5 @@
+"use client";
+
 import React, { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { CalendarBlank, Compass, House, Plus, User, Users } from "@phosphor-icons/react";

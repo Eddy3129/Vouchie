@@ -198,17 +198,28 @@
   @apply flex flex-col items-center justify-center py-16 px-6 text-center rounded-[2rem] bg-stone-50 dark:bg-stone-900 border-2 border-dashed border-stone-200 dark:border-stone-800;
 }
 
+@keyframes fade-in { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes fade-out { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes slide-up { 0% { transform: translateY(10px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+@keyframes zoom-in { 0% { transform: scale(0.95); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+@utility animate-fade-in { animation: fade-in 0.2s ease-out; }
+@utility animate-fade-out { animation: fade-out 0.2s ease-out forwards; }
+@utility animate-slide-up { animation: slide-up 0.3s ease-out; }
+@utility animate-zoom-in { animation: zoom-in 0.3s ease-out; }
+
+
 /* Modals & Overlays */
 @utility modal-overlay {
-  @apply fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center sm:items-center p-4 animate-in fade-in duration-200;
+  @apply fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end justify-center sm:items-center p-4 animate-fade-in;
 }
 
 @utility modal-content {
-  @apply w-full max-w-lg bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-5 duration-300 sm:zoom-in-95;
+  @apply w-full max-w-lg bg-white dark:bg-stone-900 rounded-3xl p-6 shadow-2xl animate-slide-up sm:animate-zoom-in;
 }
 
 @utility splash-bg {
-  @apply fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-[#FAF7F2] to-[#E8E1D5] dark:from-stone-900 dark:to-stone-800 animate-out fade-out duration-300;
+  @apply fixed inset-0 z-[100] flex flex-col items-center justify-center bg-gradient-to-br from-[#FAF7F2] to-[#E8E1D5] dark:from-stone-900 dark:to-stone-800;
 }
 
 /* Buttons */

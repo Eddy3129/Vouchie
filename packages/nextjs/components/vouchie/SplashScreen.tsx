@@ -7,6 +7,7 @@ interface SplashScreenProps {
 
 const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   const [isVisible, setIsVisible] = useState(true);
+  const [isFadingOut, setIsFadingOut] = useState(false);
   const [progress, setProgress] = useState(0);
   const onCompleteRef = useRef(onComplete);
 
@@ -27,8 +28,11 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
     }, 500);
 
     const timer = setTimeout(() => {
-      setIsVisible(false);
-      setTimeout(() => onCompleteRef.current(), 300);
+      setIsFadingOut(true); // Start fade out
+      setTimeout(() => {
+        setIsVisible(false);
+        onCompleteRef.current();
+      }, 300); // Wait for fade out (matches duration)
     }, 2000);
 
     return () => {
@@ -40,7 +44,7 @@ const SplashScreen = ({ onComplete }: SplashScreenProps) => {
   if (!isVisible) return null;
 
   return (
-    <div className="splash-bg">
+    <div className={`splash-bg ${isFadingOut ? "animate-fade-out" : ""}`}>
       <div className="flex flex-col items-center space-y-8 animate-in zoom-in-95 duration-700">
         {/* Logo */}
         <div className="relative">
