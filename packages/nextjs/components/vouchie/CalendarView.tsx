@@ -23,11 +23,11 @@ import { useActivities } from "~~/hooks/vouchie/usePonderData";
 
 interface CalendarViewProps {
   tasks: Goal[];
-  verificationGoals?: Goal[];
+  vouchieGoals?: Goal[];
   onTaskClick?: (goal: Goal) => void;
   onClaim?: (goalId: number, vouchieIndex: number) => void;
 }
-const CalendarView = ({ tasks, verificationGoals = [], onClaim }: CalendarViewProps) => {
+const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) => {
   const [activeTab, setActiveTab] = useState<"timeline" | "history">("timeline");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -112,7 +112,7 @@ const CalendarView = ({ tasks, verificationGoals = [], onClaim }: CalendarViewPr
       })
       .map(t => ({ ...t, claimRole: "creator" as const })),
     // Vouchie claims: failed squad goals where user is vouchie
-    ...verificationGoals
+    ...vouchieGoals
       .filter(t => t.status === "failed" && t.resolved && t.mode === "Squad")
       .map(t => ({ ...t, claimRole: "vouchie" as const })),
   ].sort((a, b) => b.deadline - a.deadline);

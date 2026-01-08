@@ -138,30 +138,27 @@ const VouchieApp = () => {
   const [selectedVerificationGoal, setSelectedVerificationGoal] = useState<Goal | null>(null);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
 
-  // Data Hook
-  /* 
-    Security Fix: Filter goals by user address to ensure data privacy 
-    Verify against both primary Farcaster address and connected wallet
-  */
-  const { goals: rawGoals, verificationGoals, loading, refresh, updateGoal } = useVouchieData();
+  // Data Hook - creatorGoals = myCreatorGoals where user is creator, vouchieGoals = myCreatorGoals where user is vouchie
+  const { creatorGoals, vouchieGoals, loading, refresh, updateGoal } = useVouchieData();
 
-  // Personal activities for badge count
+  // Personal activities for badge count (uses vouchieGoals for verification notifications)
   const { unreadCount } = usePersonalActivities({
-    goals: rawGoals,
-    verificationGoals,
+    creatorGoals,
+    vouchieGoals,
     userAddress: address,
   });
 
-  const goals = React.useMemo(() => {
+  // Filter creator myCreatorGoals by current user address (safety filter)
+  const myCreatorGoals = React.useMemo(() => {
     const userAddr = context?.user?.primaryAddress || address;
     if (!userAddr) return [];
-    return rawGoals.filter(g => g.creator?.toLowerCase() === userAddr.toLowerCase());
-  }, [rawGoals, context?.user?.primaryAddress, address]);
+    return creatorGoals.filter((g: Goal) => g.creator?.toLowerCase() === userAddr.toLowerCase());
+  }, [creatorGoals, context?.user?.primaryAddress, address]);
 
   // Settlement Restriction Logic
   const maturedGoals = React.useMemo(() => {
-    return goals.filter(g => !g.resolved && g.deadline < Date.now());
-  }, [goals]);
+    return myCreatorGoals.filter(g => !g.resolved && g.deadline < Date.now());
+  }, [myCreatorGoals]);
 
   const hasBlockingSettle = maturedGoals.length > 0;
 
@@ -272,7 +269,7 @@ const VouchieApp = () => {
   };
 
   const handleSubmitProof = async (goalId: number, _proof: string) => {
-    const goal = goals.find(g => g.id === goalId);
+    const goal = myCreatorGoals.find(g => g.id === goalId);
     if (!goal) return;
 
     console.log("Submitting proof:", _proof);
@@ -310,11 +307,11 @@ const VouchieApp = () => {
   };
 
   const handleGiveUp = async (goalId: number) => {
-    setSelectedTaskForGiveUp(goals.find(g => g.id === goalId) || null);
+    setSelectedTaskForGiveUp(myCreatorGoals.find(g => g.id === goalId) || null);
   };
 
   const handleConfirmGiveUp = async (goalId: number) => {
-    const goal = goals.find(g => g.id === goalId);
+    const goal = myCreatorGoals.find(g => g.id === goalId);
     if (!goal) return;
 
     try {
@@ -406,7 +403,7 @@ const VouchieApp = () => {
 
   // Handle Voting
   const handleVote = async (goalId: number, isValid: boolean, denyReason?: string) => {
-    const goal = verificationGoals.find(g => g.id === goalId);
+    const goal = vouchieGoals.find(g => g.id === goalId);
     if (!goal) return;
 
     const userAddress = context?.user?.primaryAddress || address;
@@ -544,8 +541,8 @@ const VouchieApp = () => {
                   <div className="space-y-3">
                     {/* 1. Settle Actions - REMOVED (Moved to Hero) */}
 
-                    {/* 2. Claim Payouts (for Vouchies on failed goals) */}
-                    {verificationGoals
+                    {/* 2. Claim Payouts (for Vouchies on failed myCreatorGoals) */}
+                    {vouchieGoals
                       .filter(g => g.resolved && !g.successful && !g.userHasClaimed && g.stake > 0)
                       .map(g => (
                         <div
@@ -577,8 +574,8 @@ const VouchieApp = () => {
                         </div>
                       ))}
 
-                    {/* 3. Claim Refunds (for Creators on successful goals) */}
-                    {goals
+                    {/* 3. Claim Refunds (for Creators on successful myCreatorGoals) */}
+                    {myCreatorGoals
                       .filter(g => g.resolved && g.successful && g.stake > 0)
                       .map(g => (
                         <div
@@ -621,9 +618,9 @@ const VouchieApp = () => {
                       label: (
                         <>
                           Verifications
-                          {verificationGoals.length > 0 && (
+                          {vouchieGoals.length > 0 && (
                             <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-red-500 text-white">
-                              {verificationGoals.length}
+                              {vouchieGoals.length}
                             </span>
                           )}
                         </>
@@ -641,7 +638,7 @@ const VouchieApp = () => {
                   // Logic: Find the single most "active" goal.
                   // Priority: Earliest deadline (most urgent)
                   (() => {
-                    const activeGoals = goals
+                    const activeGoals = myCreatorGoals
                       .filter(t => t.status !== "done" && t.status !== "failed")
                       .sort((a, b) => a.deadline - b.deadline);
 
@@ -651,7 +648,7 @@ const VouchieApp = () => {
                     // Upcoming are the rest
                     const upcomingGoals = activeGoals.slice(1);
 
-                    const completedGoals = goals.filter(t => t.status === "done");
+                    const completedGoals = myCreatorGoals.filter(t => t.status === "done");
 
                     return (
                       <HomeActiveView
@@ -664,7 +661,7 @@ const VouchieApp = () => {
                         onStart={(g: Goal) => setSelectedTaskForStart(g)}
                         onSettle={handleSettle}
                         onForfeit={(id: number) => {
-                          const goal = goals.find(g => g.id === id);
+                          const goal = myCreatorGoals.find(g => g.id === id);
                           if (goal) setSelectedTaskForGiveUp(goal);
                         }}
                         onCreate={() => setAddModalOpen(true)}
@@ -677,12 +674,12 @@ const VouchieApp = () => {
                 {dashboardTab === "verify" && (
                   <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-4 px-6 pt-6 pb-24">
                     {/* Empty State */}
-                    {!loading && verificationGoals.length === 0 && (
+                    {!loading && vouchieGoals.length === 0 && (
                       <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
                         <div className="text-4xl mb-4">🛡️</div>
                         <p className="text-stone-400 font-bold text-lg mb-2">No verifications pending</p>
                         <p className="text-stone-400 text-sm">
-                          When someone adds you as a vouchie, their goals will appear here for you to verify.
+                          When someone adds you as a vouchie, their myCreatorGoals will appear here for you to verify.
                         </p>
                       </div>
                     )}
@@ -690,19 +687,19 @@ const VouchieApp = () => {
                     {/* Verification Cards */}
                     {!loading &&
                       (() => {
-                        // Filter goals that can be verified (proof submitted OR expired)
-                        const verifiableGoals = verificationGoals
+                        // Filter myCreatorGoals that can be verified (proof submitted OR expired)
+                        const verifiableGoals = vouchieGoals
                           .filter(g => !g.resolved)
                           .filter(g => g.proofText || g.deadline < Date.now());
 
-                        // If user has blocking settle AND no verifiable goals, show lock
+                        // If user has blocking settle AND no verifiable myCreatorGoals, show lock
                         if (hasBlockingSettle && verifiableGoals.length === 0) {
                           return (
                             <div className="p-12 text-center border-2 border-dashed border-stone-200 dark:border-stone-700 rounded-2xl bg-white/50 dark:bg-stone-800/50">
                               <div className="text-4xl mb-4">🔒</div>
                               <p className="text-stone-400 font-bold text-lg mb-2">Verification Locked</p>
                               <p className="text-stone-400 text-sm">
-                                You must settle your own matured goals before you can verify for others.
+                                You must settle your own matured myCreatorGoals before you can verify for others.
                               </p>
                               <button
                                 onClick={() => {
@@ -717,10 +714,8 @@ const VouchieApp = () => {
                           );
                         }
 
-                        // Show verifiable goals (or all unresolved if no blocking settle)
-                        const goalsToShow = hasBlockingSettle
-                          ? verifiableGoals
-                          : verificationGoals.filter(g => !g.resolved);
+                        // Show verifiable myCreatorGoals (or all unresolved if no blocking settle)
+                        const goalsToShow = hasBlockingSettle ? verifiableGoals : vouchieGoals.filter(g => !g.resolved);
 
                         return goalsToShow.map(task => {
                           const isExpired = task.deadline < Date.now();
@@ -843,12 +838,12 @@ const VouchieApp = () => {
             )}
 
             {activeTab === "calendar" && (
-              <CalendarView tasks={goals} verificationGoals={verificationGoals} onClaim={handleClaim} />
+              <CalendarView tasks={myCreatorGoals} vouchieGoals={vouchieGoals} onClaim={handleClaim} />
             )}
             {activeTab === "feed" && (
               <FriendActivityView
-                goals={goals}
-                verificationGoals={verificationGoals}
+                creatorGoals={myCreatorGoals}
+                vouchieGoals={vouchieGoals}
                 onVerify={(g: Goal) => {
                   setSelectedVerificationGoal(g);
                   setIsVerifyModalOpen(true);

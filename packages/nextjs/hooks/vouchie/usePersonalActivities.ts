@@ -15,18 +15,24 @@ export interface PersonalNotification {
   read?: boolean;
 }
 
+/**
+ * Props for usePersonalActivities hook.
+ * @param creatorGoals - Goals where current user is the CREATOR (for claim notifications)
+ * @param vouchieGoals - Goals where current user is a VOUCHIE (for verify notifications)
+ * @param userAddress - Current user's wallet address
+ */
 interface UsePersonalActivitiesProps {
-  goals: Goal[];
-  verificationGoals: Goal[];
+  creatorGoals: Goal[];
+  vouchieGoals: Goal[];
   userAddress?: string;
 }
 
-export const usePersonalActivities = ({ goals, verificationGoals }: UsePersonalActivitiesProps) => {
+export const usePersonalActivities = ({ creatorGoals, vouchieGoals }: UsePersonalActivitiesProps) => {
   const notifications = useMemo(() => {
     const items: PersonalNotification[] = [];
 
     // 1. Pending verifications (vouchie duties with proof submitted)
-    verificationGoals
+    vouchieGoals
       .filter(g => !g.resolved && (g.proofText || g.deadline < Date.now()))
       .forEach(goal => {
         items.push({
@@ -45,7 +51,7 @@ export const usePersonalActivities = ({ goals, verificationGoals }: UsePersonalA
 
     // 2. Pending claims (claimable funds from resolved goals)
     // As creator - successful goals with stake > 0
-    goals
+    creatorGoals
       .filter(g => g.resolved && g.successful && g.stake > 0 && !g.userHasClaimed)
       .forEach(goal => {
         items.push({
@@ -62,7 +68,7 @@ export const usePersonalActivities = ({ goals, verificationGoals }: UsePersonalA
       });
 
     // As vouchie - failed squad goals with stake > 0
-    verificationGoals
+    vouchieGoals
       .filter(g => g.resolved && !g.successful && g.stake > 0 && !g.userHasClaimed && g.mode === "Squad")
       .forEach(goal => {
         const share = goal.stake / (goal.vouchies.length || 1);
@@ -80,7 +86,7 @@ export const usePersonalActivities = ({ goals, verificationGoals }: UsePersonalA
       });
 
     // 3. Vouchie invitations (pending goals where you're a vouchie but no proof yet)
-    verificationGoals
+    vouchieGoals
       .filter(g => !g.resolved && !g.proofText && g.deadline >= Date.now())
       .forEach(goal => {
         items.push({
@@ -100,11 +106,15 @@ export const usePersonalActivities = ({ goals, verificationGoals }: UsePersonalA
     items.sort((a, b) => b.timestamp - a.timestamp);
 
     return items;
-  }, [goals, verificationGoals]);
+  }, [creatorGoals, vouchieGoals]);
 
-  // Count actionable (unread) notifications
+  // Count actionable (unread) notifications - only goals with PROOF submitted, not just expired
   const unreadCount = useMemo(() => {
-    return notifications.filter(n => n.type === "verify_request" || n.type === "claim_available").length;
+    return notifications.filter(
+      n =>
+        (n.type === "verify_request" && n.goal.proofText) || // Only count verify requests with proof
+        n.type === "claim_available",
+    ).length;
   }, [notifications]);
 
   return {

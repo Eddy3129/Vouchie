@@ -23,17 +23,31 @@ const getStatus = (goal: any): "pending" | "in_progress" | "verifying" | "done" 
   return "in_progress";
 };
 
+/**
+ * Hook to fetch and manage goal data for the current user.
+ * Returns two separate lists based on user role:
+ * - creatorGoals: Goals where the current user is the CREATOR (owns the stake)
+ * - vouchieGoals: Goals where the current user is a VOUCHIE (verifies for others)
+ */
 export const useVouchieData = () => {
   const { address: walletAddress } = useAccount();
   const { context } = useMiniapp();
   const { targetNetwork } = useTargetNetwork();
   const { lookupBatch } = useFarcasterUser();
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [verificationGoals, setVerificationGoals] = useState<Goal[]>([]);
+
+  // ============ STATE ============
+  /** Goals where current user is the CREATOR */
+  const [creatorGoals, setCreatorGoals] = useState<Goal[]>([]);
+  /** Goals where current user is a VOUCHIE (needs to verify) */
+  const [vouchieGoals, setVouchieGoals] = useState<Goal[]>([]);
+  /** Loading state for initial data fetch */
   const [loading, setLoading] = useState(true);
+  /** Map of address → Farcaster user data for avatar/username display */
   const [farcasterUsers, setFarcasterUsers] = useState<Map<string, FarcasterUser | null>>(new Map());
+  /** All verified ETH addresses for the current user's Farcaster FID */
   const [userVerifiedAddresses, setUserVerifiedAddresses] = useState<string[]>([]);
-  const [proofs, setProofs] = useState<Map<number, { text: string; hash: string }>>(new Map());
+  /** Map of goalId → proof cast data (text + hash) from Farcaster */
+  const [proofCastsMap, setProofCastsMap] = useState<Map<number, { text: string; hash: string }>>(new Map());
 
   // Fetch all verified addresses for current user's FID
   useEffect(() => {
@@ -135,14 +149,14 @@ export const useVouchieData = () => {
   useEffect(() => {
     if (!multipleData || goalIndices.length === 0) {
       if (goalCount === 0) {
-        setGoals([]);
+        setCreatorGoals([]);
         setLoading(false);
       }
       return;
     }
 
-    const parsedMyGoals: Goal[] = [];
-    const parsedVerificationGoals: Goal[] = [];
+    const parsedCreatorGoals: Goal[] = [];
+    const parsedVouchieGoals: Goal[] = [];
     const allAddresses: string[] = [];
 
     // Each goal has 3 calls (goals, getVouchies, vouchiesClaimed)
@@ -228,8 +242,8 @@ export const useVouchieData = () => {
           creator: creator, // Add creator address for display
         };
 
-        if (isCreator) parsedMyGoals.push(goalObj);
-        if (isVouchie) parsedVerificationGoals.push(goalObj);
+        if (isCreator) parsedCreatorGoals.push(goalObj);
+        if (isVouchie) parsedVouchieGoals.push(goalObj);
       }
     }
 
@@ -240,8 +254,8 @@ export const useVouchieData = () => {
       });
     }
 
-    setGoals(parsedMyGoals);
-    setVerificationGoals(parsedVerificationGoals);
+    setCreatorGoals(parsedCreatorGoals);
+    setVouchieGoals(parsedVouchieGoals);
     setLoading(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -255,19 +269,27 @@ export const useVouchieData = () => {
     context.user?.primaryAddress,
   ]);
 
-  // Fetch proofs for active Squad goals
+  // Fetch proofs for active Squad goals (check BOTH goals and verificationGoals)
   useEffect(() => {
     const checkProofs = async () => {
       const apiKey = process.env.NEXT_PUBLIC_NEYNAR_API_KEY;
-      if (!apiKey || farcasterUsers.size === 0 || goals.length === 0) return;
+      if (!apiKey || farcasterUsers.size === 0) return;
 
-      const newProofs = new Map(proofs);
+      // Combine both arrays and deduplicate by goal ID
+      const allSquadGoals = [...creatorGoals, ...vouchieGoals].filter(
+        (goal, index, self) =>
+          goal.mode === "Squad" && !goal.resolved && index === self.findIndex(g => g.id === goal.id),
+      );
+
+      if (allSquadGoals.length === 0) return;
+
+      const newProofs = new Map(proofCastsMap);
       let hasNew = false;
 
       await Promise.all(
-        goals.map(async goal => {
-          // Only check for: Squad mode, Unresolved, Not in proofs map yet, Has creator FID
-          if (goal.mode === "Squad" && !goal.resolved && !proofs.has(goal.id)) {
+        allSquadGoals.map(async goal => {
+          // Only check if not already in proofs map
+          if (!proofCastsMap.has(goal.id)) {
             const creatorUser = goal.creator ? farcasterUsers.get(goal.creator.toLowerCase()) : null;
             if (creatorUser?.fid) {
               const proof = await fetchProofCasts(goal.id, creatorUser.fid, apiKey);
@@ -281,18 +303,18 @@ export const useVouchieData = () => {
       );
 
       if (hasNew) {
-        setProofs(newProofs);
+        setProofCastsMap(newProofs);
       }
     };
 
     checkProofs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [farcasterUsers, goals.length]); // Check when users or goals count changes
+  }, [farcasterUsers, creatorGoals.length, vouchieGoals.length]); // Check when users or goals count changes
 
   // Update goals with Farcaster usernames AND proofs when lookup completes or proofs found
   useEffect(() => {
     // We run this if users loaded OR proofs loaded
-    if (farcasterUsers.size === 0 && proofs.size === 0) return;
+    if (farcasterUsers.size === 0 && proofCastsMap.size === 0) return;
 
     const updateGoalsWithData = (goalList: Goal[]): Goal[] => {
       return goalList.map(goal => {
@@ -315,7 +337,7 @@ export const useVouchieData = () => {
         });
 
         // Merge proof data if available
-        const proof = proofs.get(goal.id);
+        const proof = proofCastsMap.get(goal.id);
         const newData: Partial<Goal> = {
           creatorUsername: creatorUser?.username,
           creatorAvatar: creatorUser?.pfpUrl,
@@ -335,9 +357,9 @@ export const useVouchieData = () => {
       });
     };
 
-    setGoals(prev => updateGoalsWithData(prev));
-    setVerificationGoals(prev => updateGoalsWithData(prev));
-  }, [farcasterUsers, proofs]);
+    setCreatorGoals((prev: Goal[]) => updateGoalsWithData(prev));
+    setVouchieGoals((prev: Goal[]) => updateGoalsWithData(prev));
+  }, [farcasterUsers, proofCastsMap]);
 
   const refresh = () => {
     refetchCount();
@@ -345,8 +367,18 @@ export const useVouchieData = () => {
   };
 
   const updateGoal = (goalId: number, updates: Partial<Goal>) => {
-    setGoals(prevGoals => prevGoals.map(g => (g.id === goalId ? { ...g, ...updates } : g)));
+    setCreatorGoals((prevGoals: Goal[]) => prevGoals.map(g => (g.id === goalId ? { ...g, ...updates } : g)));
+    setVouchieGoals((prevGoals: Goal[]) => prevGoals.map(g => (g.id === goalId ? { ...g, ...updates } : g)));
   };
 
-  return { goals, verificationGoals, loading: loading || isFetchingGoals, refresh, goalCount, updateGoal };
+  return {
+    /** Goals where current user is the CREATOR */
+    creatorGoals,
+    /** Goals where current user is a VOUCHIE */
+    vouchieGoals,
+    loading: loading || isFetchingGoals,
+    refresh,
+    goalCount,
+    updateGoal,
+  };
 };

@@ -121,13 +121,13 @@ const truncateTitle = (title: string | null, maxLength: number = 40) => {
 };
 
 interface FriendActivityViewProps {
-  goals?: Goal[];
-  verificationGoals?: Goal[];
+  creatorGoals?: Goal[];
+  vouchieGoals?: Goal[];
   onVerify?: (goal: Goal) => void;
   onClaim?: (goalId: number, vouchieIndex: number) => void;
 }
 
-const FriendActivityView = ({ goals = [], verificationGoals = [], onVerify, onClaim }: FriendActivityViewProps) => {
+const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, onClaim }: FriendActivityViewProps) => {
   const { data: activities, isLoading, error } = useActivities(50);
   const { address: userAddress } = useAccount();
   const { targetNetwork } = useTargetNetwork();
@@ -139,8 +139,8 @@ const FriendActivityView = ({ goals = [], verificationGoals = [], onVerify, onCl
 
   // Personal activities from goals
   const { notifications, unreadCount } = usePersonalActivities({
-    goals,
-    verificationGoals,
+    creatorGoals,
+    vouchieGoals,
     userAddress,
   });
 
