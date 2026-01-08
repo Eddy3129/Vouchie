@@ -9,10 +9,17 @@ export const fetchProofCasts = async (
   }
 
   try {
-    // Construct the goal frame URL that we expect to be embedded
-    const frameUrl = `https://vouchie.app/api/frame/goal/${goalId}`;
+    // Multiple possible URL formats for the proof cast
+    const possibleUrls = [
+      `https://vouchie.vercel.app?goal=${goalId}`, // Production vercel (query param)
+      `https://vouchie.vercel.app/?goal=${goalId}`, // With trailing slash
+      `https://vouchie.app?goal=${goalId}`, // Custom domain (query param)
+      `https://vouchie.app/?goal=${goalId}`, // With trailing slash
+      `https://vouchie.app/api/frame/goal/${goalId}`, // API frame format
+    ];
+
     console.log(`[PROOF] Searching for proof cast: goalId=${goalId}, creatorFid=${creatorFid}`);
-    console.log(`[PROOF] Expected frame URL: ${frameUrl}`);
+    console.log(`[PROOF] Looking for URLs: ${possibleUrls.join(" | ")}`);
 
     // Query Neynar for recent casts by the creator using the free endpoint
     const url = `https://api.neynar.com/v2/farcaster/feed/user/casts?fid=${creatorFid}&limit=15&include_replies=false&include_recasts=false`;
@@ -44,8 +51,10 @@ export const fetchProofCasts = async (
         }
       });
 
-      // Client-side filtering for the specific frame URL
-      const proofCast = casts.find((cast: any) => cast.embeds?.some((embed: any) => embed.url === frameUrl));
+      // Client-side filtering - check if ANY of the possible URLs match
+      const proofCast = casts.find((cast: any) =>
+        cast.embeds?.some((embed: any) => possibleUrls.some(expectedUrl => embed.url === expectedUrl)),
+      );
 
       if (proofCast) {
         console.log(`[PROOF] ✅ Found proof cast for goal ${goalId}: hash=${proofCast.hash}`);
@@ -54,7 +63,7 @@ export const fetchProofCasts = async (
           hash: proofCast.hash,
         };
       } else {
-        console.log(`[PROOF] ❌ No cast found with frame URL for goal ${goalId}`);
+        console.log(`[PROOF] ❌ No cast found with matching URL for goal ${goalId}`);
       }
     }
 
