@@ -24,12 +24,13 @@ interface AddModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAdd: (formData: any) => void;
+  creationStep?: "idle" | "approving" | "creating";
 }
 
 const ANIMATION_DURATION_IN = 200; // ms - fast slide in
 const ANIMATION_DURATION_OUT = 100; // ms - quick slide out
 
-const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
+const AddModal = ({ isOpen, onClose, onAdd, creationStep = "idle" }: AddModalProps) => {
   const { context } = useMiniapp();
   const { address } = useAccount();
 
@@ -792,15 +793,32 @@ const AddModal = ({ isOpen, onClose, onAdd }: AddModalProps) => {
             <div className="flex gap-3">
               <button
                 onClick={() => setShowConfirm(false)}
-                className="flex-1 py-3 rounded-xl font-bold text-stone-500 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors text-sm"
+                disabled={creationStep !== "idle"}
+                className="flex-1 py-3 rounded-xl font-bold text-stone-500 bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 transition-colors text-sm disabled:opacity-50"
               >
                 Cancel
               </button>
               <button
                 onClick={confirmAdd}
-                className="flex-1 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] dark:text-stone-900 transition-colors shadow-lg text-sm flex items-center justify-center gap-1.5"
+                disabled={creationStep !== "idle"}
+                className="flex-1 py-3 rounded-xl font-bold text-white bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] dark:text-stone-900 transition-colors shadow-lg text-sm flex items-center justify-center gap-1.5 disabled:opacity-70"
               >
-                <CheckCircle size={18} weight="fill" /> Begin Challenge
+                {creationStep === "approving" ? (
+                  <>
+                    <Spinner size={18} className="animate-spin" />
+                    Approving USDC...
+                  </>
+                ) : creationStep === "creating" ? (
+                  <>
+                    <Spinner size={18} className="animate-spin" />
+                    Locking Stake...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle size={18} weight="fill" />
+                    Approve & Lock ${formData.stake} USDC
+                  </>
+                )}
               </button>
             </div>
           </div>

@@ -11,6 +11,7 @@ import {
   Check,
   Clock,
   HandCoins,
+  Spinner,
   X,
 } from "@phosphor-icons/react";
 import { formatUnits } from "viem";
@@ -58,8 +59,9 @@ interface CalendarViewProps {
   vouchieGoals?: Goal[];
   onTaskClick?: (goal: Goal) => void;
   onClaim?: (goalId: number, vouchieIndex: number) => void;
+  claimingGoalId?: number | null;
 }
-const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) => {
+const CalendarView = ({ tasks, vouchieGoals = [], onClaim, claimingGoalId }: CalendarViewProps) => {
   const [activeTab, setActiveTab] = useState<"timeline" | "history">("timeline");
   const [currentDate, setCurrentDate] = useState(new Date());
   // Default to today's date when in current month
@@ -639,9 +641,19 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim }: CalendarViewProps) 
                               e.preventDefault();
                               onClaim(task.id, task.currentUserVouchieIndex || 0);
                             }}
-                            className="mt-3 w-full px-3 py-2 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900 rounded-lg text-xs font-bold shadow-sm hover:shadow-md transition-all active:scale-95"
+                            disabled={claimingGoalId === task.id}
+                            className="mt-3 w-full px-3 py-2 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900 rounded-lg text-xs font-bold shadow-sm hover:shadow-md transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                           >
-                            {isDone ? "Claim Refund" : "Claim Share"}
+                            {claimingGoalId === task.id ? (
+                              <>
+                                <Spinner size={14} className="animate-spin" />
+                                Claiming...
+                              </>
+                            ) : isDone ? (
+                              "Claim Refund"
+                            ) : (
+                              "Claim Share"
+                            )}
                           </button>
                         )}
                       </div>

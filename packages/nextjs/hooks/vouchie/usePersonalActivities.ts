@@ -198,8 +198,17 @@ export const usePersonalActivities = ({
       }
     });
 
-    // Sort by timestamp (newest first)
-    items.sort((a, b) => b.timestamp - a.timestamp);
+    // Sort by priority (actionable items first), then by timestamp (newest first)
+    const getPriority = (type: string) => {
+      if (type === "verify_request") return 0;
+      if (type === "claim_available") return 1;
+      return 2;
+    };
+    items.sort((a, b) => {
+      const priorityDiff = getPriority(a.type) - getPriority(b.type);
+      if (priorityDiff !== 0) return priorityDiff;
+      return b.timestamp - a.timestamp;
+    });
 
     return items;
   }, [creatorGoals, vouchieGoals, activities, decimals]);

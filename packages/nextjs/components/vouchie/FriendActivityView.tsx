@@ -1,5 +1,5 @@
 import Image from "next/image";
-import { ArrowSquareOut, Check, CheckCircle, HandCoins, Plus, ShieldCheck, X } from "@phosphor-icons/react";
+import { ArrowSquareOut, Check, CheckCircle, HandCoins, Plus, ShieldCheck, Spinner, X } from "@phosphor-icons/react";
 import { useAccount } from "wagmi";
 import { useTargetNetwork } from "~~/hooks/scaffold-eth";
 import { usePersonalActivities } from "~~/hooks/vouchie/usePersonalActivities";
@@ -11,6 +11,7 @@ interface FriendActivityViewProps {
   vouchieGoals?: Goal[];
   onVerify?: (goal: Goal) => void;
   onClaim?: (goalId: number, vouchieIndex: number) => void;
+  claimingGoalId?: number | null;
 }
 
 // Helper: Format relative time for activity timestamps
@@ -35,7 +36,13 @@ const formatActivityDate = (timestamp: number): string => {
   });
 };
 
-const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, onClaim }: FriendActivityViewProps) => {
+const FriendActivityView = ({
+  creatorGoals = [],
+  vouchieGoals = [],
+  onVerify,
+  onClaim,
+  claimingGoalId,
+}: FriendActivityViewProps) => {
   const { address: userAddress } = useAccount();
   const { targetNetwork } = useTargetNetwork();
   const decimals = targetNetwork.id === 31337 ? 18 : 6;
@@ -179,9 +186,19 @@ const FriendActivityView = ({ creatorGoals = [], vouchieGoals = [], onVerify, on
                         <button
                           onClick={() => onClaim(notification.goalId, notification.goal.currentUserVouchieIndex || 0)}
                           className="btn-action-claim"
+                          disabled={claimingGoalId === notification.goalId}
                         >
-                          <HandCoins size={14} weight="bold" />
-                          Claim ${notification.amount?.toFixed(2)}
+                          {claimingGoalId === notification.goalId ? (
+                            <>
+                              <Spinner size={14} className="animate-spin" />
+                              Claiming...
+                            </>
+                          ) : (
+                            <>
+                              <HandCoins size={14} weight="bold" />
+                              Claim ${notification.amount?.toFixed(2)}
+                            </>
+                          )}
                         </button>
                       )}
 

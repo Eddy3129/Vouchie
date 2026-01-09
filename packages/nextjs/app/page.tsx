@@ -118,6 +118,12 @@ const VouchieApp = () => {
   const [selectedVerificationGoal, setSelectedVerificationGoal] = useState<Goal | null>(null);
   const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
 
+  // Claiming state - tracks which goal is currently being claimed
+  const [claimingGoalId, setClaimingGoalId] = useState<number | null>(null);
+
+  // Goal creation step - tracks progress during goal creation (for AddModal)
+  const [creationStep, setCreationStep] = useState<"idle" | "approving" | "creating">("idle");
+
   // Data Hook - creatorGoals = myCreatorGoals where user is creator, vouchieGoals = myCreatorGoals where user is vouchie
   const { creatorGoals, vouchieGoals, refresh, updateGoal } = useVouchieData();
 
@@ -199,7 +205,8 @@ const VouchieApp = () => {
           ? formData.vouchies.map((v: any) => v.address).filter((addr: string) => addr && addr.startsWith("0x"))
           : [];
 
-      // Step 1: Silent approve (no notification popup)
+      // Step 1: Approve USDC
+      setCreationStep("approving");
       if (vaultInfo?.address && usdcInfo?.address && publicClient) {
         const approveTxHash = await silentApprove({
           address: usdcInfo.address,
@@ -211,14 +218,20 @@ const VouchieApp = () => {
         await publicClient.waitForTransactionReceipt({ hash: approveTxHash });
       } else if (!publicClient) {
         console.error("Public client not available, cannot wait for approval");
+        setCreationStep("idle");
         return;
       }
 
       // Step 2: Create the goal with vouchie addresses (empty array triggers solo mode)
+      setCreationStep("creating");
       await createGoal({
         functionName: "createGoal",
         args: [stakeAmount, BigInt(durationSeconds), formData.title, vouchies],
       });
+
+      // Success - reset step and close modal
+      setCreationStep("idle");
+      setAddModalOpen(false);
       refresh();
       refetchBalance();
 
@@ -240,6 +253,7 @@ const VouchieApp = () => {
       composeCast(castContent);
     } catch (e) {
       console.error("Error creating goal:", e);
+      setCreationStep("idle");
     }
   };
 
@@ -444,24 +458,28 @@ const VouchieApp = () => {
 
   // Manual Claim Flow
   const handleClaim = async (goalId: number, index: number) => {
-    try {
-      // Optimistic update - mark as claimed immediately for better UX
-      updateGoal(goalId, {
-        userHasClaimed: true,
-        stake: 0, // Set stake to 0 to hide claim button
-      });
+    // Set pending state before transaction
+    setClaimingGoalId(goalId);
 
+    try {
       await claimFunds({
         functionName: "claim",
         args: [BigInt(goalId), BigInt(index)],
+      });
+
+      // Only update after successful transaction
+      updateGoal(goalId, {
+        userHasClaimed: true,
+        stake: 0,
       });
       refresh();
       toast.success("Rewards claimed!");
     } catch (e: any) {
       console.error("error claiming:", e);
       toast.error(e.message || "Failed to claim rewards");
-      // Revert optimistic update on error
-      refresh();
+    } finally {
+      // Clear pending state regardless of success/failure
+      setClaimingGoalId(null);
     }
   };
 
@@ -553,7 +571,12 @@ const VouchieApp = () => {
             )}
 
             {activeTab === "calendar" && (
-              <CalendarView tasks={myCreatorGoals} vouchieGoals={vouchieGoals} onClaim={handleClaim} />
+              <CalendarView
+                tasks={myCreatorGoals}
+                vouchieGoals={vouchieGoals}
+                onClaim={handleClaim}
+                claimingGoalId={claimingGoalId}
+              />
             )}
             {activeTab === "feed" && (
               <FriendActivityView
@@ -564,6 +587,7 @@ const VouchieApp = () => {
                   setIsVerifyModalOpen(true);
                 }}
                 onClaim={handleClaim}
+                claimingGoalId={claimingGoalId}
               />
             )}
             {activeTab === "squad" && <VouchieView />}
@@ -648,7 +672,12 @@ const VouchieApp = () => {
         </div>
 
         {/* Modals */}
-        <AddModal isOpen={isAddModalOpen} onClose={() => setAddModalOpen(false)} onAdd={handleAdd} />
+        <AddModal
+          isOpen={isAddModalOpen}
+          onClose={() => setAddModalOpen(false)}
+          onAdd={handleAdd}
+          creationStep={creationStep}
+        />
 
         <TaskDetailModal
           isOpen={!!selectedTaskForDetails}
