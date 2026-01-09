@@ -22,7 +22,7 @@ import VouchieView from "~~/components/vouchie/VouchieView";
 import {
   useDeployedContractInfo,
   useScaffoldReadContract,
-  useScaffoldWriteContract,
+  useSponsoredWriteContract,
   useTargetNetwork,
 } from "~~/hooks/scaffold-eth";
 import { useFamousQuotes } from "~~/hooks/vouchie/useFamousQuotes";
@@ -163,16 +163,16 @@ const VouchieApp = () => {
   // Public client for waiting on transactions
   const publicClient = usePublicClient();
 
-  // Contract Writes - VouchieVault
-  const { writeContractAsync: createGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
-  const { writeContractAsync: verifySolo } = useScaffoldWriteContract({ contractName: "VouchieVault" });
-  const { writeContractAsync: streakFreeze } = useScaffoldWriteContract({ contractName: "VouchieVault" });
-  const { writeContractAsync: forfeitGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
-  const { writeContractAsync: cancelGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
-  const { writeContractAsync: claimGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
-  const { writeContractAsync: vote } = useScaffoldWriteContract({ contractName: "VouchieVault" });
-  const { writeContractAsync: resolveGoal } = useScaffoldWriteContract({ contractName: "VouchieVault" });
-  const { writeContractAsync: claimFunds } = useScaffoldWriteContract({ contractName: "VouchieVault" });
+  // Contract Writes - VouchieVault (using sponsored hook for gas-free transactions)
+  const { writeContractAsync: createGoal } = useSponsoredWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: verifySolo } = useSponsoredWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: streakFreeze } = useSponsoredWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: forfeitGoal } = useSponsoredWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: cancelGoal } = useSponsoredWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: claimGoal } = useSponsoredWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: vote } = useSponsoredWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: resolveGoal } = useSponsoredWriteContract({ contractName: "VouchieVault" });
+  const { writeContractAsync: claimFunds } = useSponsoredWriteContract({ contractName: "VouchieVault" });
 
   // Silent approval (no notification) using wagmi directly
   const { writeContractAsync: silentApprove } = useWriteContract();
