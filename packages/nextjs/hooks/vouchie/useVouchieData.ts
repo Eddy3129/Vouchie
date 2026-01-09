@@ -75,7 +75,7 @@ export const useVouchieData = () => {
           const user = data.users?.[0];
           if (user?.verified_addresses?.eth_addresses) {
             const addresses = user.verified_addresses.eth_addresses.map((a: string) => a.toLowerCase());
-            console.log("User verified addresses:", addresses);
+            // console.log("User verified addresses:", addresses);
             setUserVerifiedAddresses(addresses);
           }
         }
@@ -93,13 +93,13 @@ export const useVouchieData = () => {
   const userAddress = walletAddress || context.user?.primaryAddress;
 
   // Debug: Log all addresses for troubleshooting
-  // useEffect(() => {
-  //   console.log("[useVouchieData] Address Resolution:");
-  //   console.log("  - walletAddress (wagmi):", walletAddress);
-  //   console.log("  - primaryAddress (Farcaster):", context.user?.primaryAddress);
-  //   console.log("  - userVerifiedAddresses:", userVerifiedAddresses);
-  //   console.log("  - Using userAddress:", userAddress);
-  // }, [walletAddress, context.user?.primaryAddress, userVerifiedAddresses, userAddress]);
+  useEffect(() => {
+    console.log("[useVouchieData] Address Resolution:");
+    console.log("  - walletAddress (wagmi):", walletAddress);
+    console.log("  - primaryAddress (Farcaster):", context.user?.primaryAddress);
+    console.log("  - userVerifiedAddresses:", userVerifiedAddresses);
+    console.log("  - Using userAddress:", userAddress);
+  }, [walletAddress, context.user?.primaryAddress, userVerifiedAddresses, userAddress]);
 
   // 1. Get total goal count
   const { data: goalCountData, refetch: refetchCount } = useScaffoldReadContract({
@@ -289,13 +289,13 @@ export const useVouchieData = () => {
     const checkProofs = async () => {
       const apiKey = process.env.NEXT_PUBLIC_NEYNAR_API_KEY;
 
-      console.log(`[PROOF CHECK] Starting proof check...`);
-      console.log(`[PROOF CHECK] API key present: ${!!apiKey}`);
-      console.log(`[PROOF CHECK] Farcaster users loaded: ${farcasterUsers.size}`);
-      console.log(`[PROOF CHECK] Creator goals: ${creatorGoals.length}, Vouchie goals: ${vouchieGoals.length}`);
+      // console.log(`[PROOF CHECK] Starting proof check...`);
+      // console.log(`[PROOF CHECK] API key present: ${!!apiKey}`);
+      // console.log(`[PROOF CHECK] Farcaster users loaded: ${farcasterUsers.size}`);
+      // console.log(`[PROOF CHECK] Creator goals: ${creatorGoals.length}, Vouchie goals: ${vouchieGoals.length}`);
 
       if (!apiKey || farcasterUsers.size === 0) {
-        console.log(`[PROOF CHECK] ❌ Early exit: ${!apiKey ? "No API key" : "No Farcaster users loaded yet"}`);
+        // console.log(`[PROOF CHECK] ❌ Early exit: ${!apiKey ? "No API key" : "No Farcaster users loaded yet"}`);
         return;
       }
 
@@ -305,16 +305,16 @@ export const useVouchieData = () => {
           goal.mode === "Squad" && !goal.resolved && index === self.findIndex(g => g.id === goal.id),
       );
 
-      console.log(`[PROOF CHECK] Squad goals to check: ${allSquadGoals.length}`);
-      allSquadGoals.forEach(g => {
-        const creatorUser = g.creator ? farcasterUsers.get(g.creator.toLowerCase()) : null;
-        console.log(
-          `[PROOF CHECK] Goal ${g.id}: "${g.title}" creator=${g.creator?.slice(0, 8)}... creatorFid=${creatorUser?.fid || "NOT FOUND"}`,
-        );
-      });
+      // console.log(`[PROOF CHECK] Squad goals to check: ${allSquadGoals.length}`);
+      // allSquadGoals.forEach(g => {
+      //   const creatorUser = g.creator ? farcasterUsers.get(g.creator.toLowerCase()) : null;
+      //   console.log(
+      //     `[PROOF CHECK] Goal ${g.id}: "${g.title}" creator=${g.creator?.slice(0, 8)}... creatorFid=${creatorUser?.fid || "NOT FOUND"}`,
+      //   );
+      // });
 
       if (allSquadGoals.length === 0) {
-        console.log(`[PROOF CHECK] ❌ No squad goals to check`);
+        // console.log(`[PROOF CHECK] ❌ No squad goals to check`);
         return;
       }
 
@@ -327,27 +327,26 @@ export const useVouchieData = () => {
           if (!proofCastsMap.has(goal.id)) {
             const creatorUser = goal.creator ? farcasterUsers.get(goal.creator.toLowerCase()) : null;
             if (creatorUser?.fid) {
-              console.log(`[PROOF CHECK] Checking goal ${goal.id} with creator FID ${creatorUser.fid}...`);
+              // console.log(`[PROOF CHECK] Checking goal ${goal.id} with creator FID ${creatorUser.fid}...`);
               const proof = await fetchProofCasts(goal.id, creatorUser.fid, apiKey);
               if (proof) {
-                console.log(`[PROOF CHECK] ✅ Proof found for goal ${goal.id}`);
+                // console.log(`[PROOF CHECK] ✅ Proof found for goal ${goal.id}`);
                 newProofs.set(goal.id, proof);
                 hasNew = true;
               }
-            } else {
-              console.log(`[PROOF CHECK] ⚠️ Goal ${goal.id}: Creator not in Farcaster users map or no FID`);
             }
-          } else {
-            console.log(`[PROOF CHECK] Goal ${goal.id} already has proof in cache`);
+            // else {
+            //   console.log(`[PROOF CHECK] ⚠️ Goal ${goal.id}: Creator not in Farcaster users map or no FID`);
+            // }
           }
+          // else {
+          //   console.log(`[PROOF CHECK] Goal ${goal.id} already has proof in cache`);
+          // }
         }),
       );
 
       if (hasNew) {
-        console.log(`[PROOF CHECK] ✅ New proofs found, updating state`);
         setProofCastsMap(newProofs);
-      } else {
-        console.log(`[PROOF CHECK] No new proofs found`);
       }
     };
 
