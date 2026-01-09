@@ -87,8 +87,19 @@ export const useVouchieData = () => {
     fetchUserAddresses();
   }, [context.user?.fid]);
 
-  // Get the user's address - prefer Farcaster primary address, fallback to wallet
-  const userAddress = context.user?.primaryAddress || walletAddress;
+  // Get the user's address - prefer wallet address for contract operations (it's what creates goals)
+  // Note: walletAddress comes from wagmi useAccount (actual connected wallet)
+  //       context.user?.primaryAddress comes from Farcaster API (may be different)
+  const userAddress = walletAddress || context.user?.primaryAddress;
+
+  // Debug: Log all addresses for troubleshooting
+  // useEffect(() => {
+  //   console.log("[useVouchieData] Address Resolution:");
+  //   console.log("  - walletAddress (wagmi):", walletAddress);
+  //   console.log("  - primaryAddress (Farcaster):", context.user?.primaryAddress);
+  //   console.log("  - userVerifiedAddresses:", userVerifiedAddresses);
+  //   console.log("  - Using userAddress:", userAddress);
+  // }, [walletAddress, context.user?.primaryAddress, userVerifiedAddresses, userAddress]);
 
   // 1. Get total goal count
   const { data: goalCountData, refetch: refetchCount } = useScaffoldReadContract({
