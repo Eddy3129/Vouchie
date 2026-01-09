@@ -563,6 +563,7 @@ const VouchieApp = () => {
                       }}
                       onCreate={() => setAddModalOpen(true)}
                       isBlockingSettle={hasBlockingSettle}
+                      creationStep={creationStep}
                     />
                   );
                 })()}
@@ -587,6 +588,7 @@ const VouchieApp = () => {
                 }}
                 onClaim={handleClaim}
                 claimingGoalId={claimingGoalId}
+                verifyingGoalId={isVerifyModalOpen ? selectedVerificationGoal?.id : null}
               />
             )}
             {activeTab === "squad" && <VouchieView />}

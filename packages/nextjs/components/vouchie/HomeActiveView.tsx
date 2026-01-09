@@ -1,6 +1,6 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Goal } from "../../types/vouchie";
-import { ArrowRight, CheckCircle, Clock, ShieldCheck, User } from "@phosphor-icons/react";
+import { ArrowRight, CheckCircle, Clock, ShieldCheck, Spinner, User } from "@phosphor-icons/react";
 
 // --- Component: Single Flip Digit ---
 const FlipDigit = ({ val, colorClass }: { val: string; colorClass: string }) => {
@@ -125,6 +125,7 @@ interface HomeActiveViewProps {
   onForfeit: (goalId: number) => void;
   onCreate: () => void;
   isBlockingSettle?: boolean;
+  creationStep?: "idle" | "approving" | "creating";
 }
 
 const HomeActiveView = ({
@@ -137,6 +138,7 @@ const HomeActiveView = ({
   onForfeit,
   onCreate,
   isBlockingSettle = false,
+  creationStep = "idle",
 }: HomeActiveViewProps) => {
   const [showCompleted, setShowCompleted] = useState(true);
   const [now, setNow] = useState(Date.now());
@@ -357,14 +359,23 @@ const HomeActiveView = ({
           </p>
           <button
             onClick={onCreate}
-            disabled={isBlockingSettle}
-            className={`px-8 py-4 rounded-2xl font-bold shadow-lg transition-all transform active:scale-95 ${
-              isBlockingSettle
+            disabled={isBlockingSettle || creationStep !== "idle"}
+            className={`px-8 py-4 rounded-2xl font-bold shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 ${
+              isBlockingSettle || creationStep !== "idle"
                 ? "bg-stone-200 dark:bg-stone-800 text-stone-400 cursor-not-allowed opacity-75"
                 : "bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900"
             }`}
           >
-            {isBlockingSettle ? "Settle Matured Goals to Create" : "Create New Commitment"}
+            {creationStep !== "idle" ? (
+              <>
+                <Spinner size={20} className="animate-spin" />
+                {creationStep === "approving" ? "Approving..." : "Creating..."}
+              </>
+            ) : isBlockingSettle ? (
+              "Settle Matured Goals to Create"
+            ) : (
+              "Create New Commitment"
+            )}
           </button>
         </div>
       )}

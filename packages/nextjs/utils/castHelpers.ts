@@ -116,14 +116,12 @@ export function buildGoalCreatedCast(
       `Vouch for me fam! 💪`;
   }
 
-  // Use app URL as embed for linking, and custom image for the preview
-  // Farcaster uses the first embed's OG image, or you can add a second image embed
+  // Use app URL as embed - Farcaster will use the app's OG image metadata for preview
   const embedUrl = buildGoalShareUrl(baseUrl, params.goalId);
-  const embedImageUrl = `${baseUrl}/thumbnail_miniapp.webp`;
 
   return {
     text,
-    embeds: [embedUrl, embedImageUrl],
+    embeds: [embedUrl],
   };
 }
 
@@ -168,12 +166,11 @@ export function buildProofSubmittedCast(
       `Stake your goals → Actually do them → Win 🏆`;
   }
 
-  // Use app URL as embed for linking, and custom image for the preview
+  // Use app URL as embed - Farcaster will use the app's OG image metadata for preview
   const embedUrl = buildGoalShareUrl(baseUrl, params.goalId);
-  const embedImageUrl = `${baseUrl}/vouchie.webp`;
 
   return {
     text,
-    embeds: [embedUrl, embedImageUrl],
+    embeds: [embedUrl],
   };
 }

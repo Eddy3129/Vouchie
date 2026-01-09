@@ -12,6 +12,7 @@ interface FriendActivityViewProps {
   onVerify?: (goal: Goal) => void;
   onClaim?: (goalId: number, vouchieIndex: number) => void;
   claimingGoalId?: number | null;
+  verifyingGoalId?: number | null;
 }
 
 // Helper: Format relative time for activity timestamps
@@ -42,6 +43,7 @@ const FriendActivityView = ({
   onVerify,
   onClaim,
   claimingGoalId,
+  verifyingGoalId,
 }: FriendActivityViewProps) => {
   const { address: userAddress } = useAccount();
   const { targetNetwork } = useTargetNetwork();
@@ -177,9 +179,22 @@ const FriendActivityView = ({
                     {/* Action Buttons */}
                     <div className="flex items-center gap-2">
                       {notification.action === "verify" && onVerify && (
-                        <button onClick={() => onVerify(notification.goal)} className="btn-action-verify">
-                          <ShieldCheck size={14} weight="bold" />
-                          Verify Now
+                        <button
+                          onClick={() => onVerify(notification.goal)}
+                          className="btn-action-verify"
+                          disabled={verifyingGoalId === notification.goalId}
+                        >
+                          {verifyingGoalId === notification.goalId ? (
+                            <>
+                              <Spinner size={14} className="animate-spin" />
+                              Verifying...
+                            </>
+                          ) : (
+                            <>
+                              <ShieldCheck size={14} weight="bold" />
+                              Verify Now
+                            </>
+                          )}
                         </button>
                       )}
                       {notification.action === "claim" && onClaim && (
