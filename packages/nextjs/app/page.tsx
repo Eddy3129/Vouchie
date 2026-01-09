@@ -134,12 +134,9 @@ const VouchieApp = () => {
     userAddress: address,
   });
 
-  // Filter creator myCreatorGoals by current user address (safety filter)
-  const myCreatorGoals = React.useMemo(() => {
-    const userAddr = context?.user?.primaryAddress || address;
-    if (!userAddr) return [];
-    return creatorGoals.filter((g: Goal) => g.creator?.toLowerCase() === userAddr.toLowerCase());
-  }, [creatorGoals, context?.user?.primaryAddress, address]);
+  // Note: creatorGoals from useVouchieData already filters by all user's verified addresses
+  // No additional filtering needed here - the hook handles multiple wallet addresses correctly
+  const myCreatorGoals = creatorGoals;
 
   // Settlement Restriction Logic
   const maturedGoals = React.useMemo(() => {
@@ -291,6 +288,8 @@ const VouchieApp = () => {
         // Optimistic update for Solo mode (immediate success)
         updateGoal(goalId, { status: "done" });
       } else {
+        // Squad mode: Update to verifying state immediately
+        updateGoal(goalId, { status: "verifying" });
         toast.success("Proof casted! Waiting for vouchies to verify.");
       }
       refresh();

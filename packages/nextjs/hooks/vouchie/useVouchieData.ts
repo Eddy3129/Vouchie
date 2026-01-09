@@ -92,15 +92,6 @@ export const useVouchieData = () => {
   //       context.user?.primaryAddress comes from Farcaster API (may be different)
   const userAddress = walletAddress || context.user?.primaryAddress;
 
-  // Debug: Log all addresses for troubleshooting
-  useEffect(() => {
-    console.log("[useVouchieData] Address Resolution:");
-    console.log("  - walletAddress (wagmi):", walletAddress);
-    console.log("  - primaryAddress (Farcaster):", context.user?.primaryAddress);
-    console.log("  - userVerifiedAddresses:", userVerifiedAddresses);
-    console.log("  - Using userAddress:", userAddress);
-  }, [walletAddress, context.user?.primaryAddress, userVerifiedAddresses, userAddress]);
-
   // 1. Get total goal count
   const { data: goalCountData, refetch: refetchCount } = useScaffoldReadContract({
     contractName: "VouchieVault",
@@ -208,11 +199,6 @@ export const useVouchieData = () => {
         const isVouchie =
           allUserAddresses.length > 0 &&
           vouchieAddresses.some((addr: string) => allUserAddresses.includes(addr.toLowerCase()));
-
-        // DEBUG: Log goal filtering details
-        console.log(
-          `[GOAL ${goalId}] creator=${creator.slice(0, 10)}... isCreator=${isCreator} isVouchie=${isVouchie} allUserAddrs=[${allUserAddresses.map(a => a.slice(0, 10)).join(", ")}]`,
-        );
 
         const currentUserVouchieIndex = isVouchie
           ? vouchieAddresses.findIndex((addr: string) => allUserAddresses.includes(addr.toLowerCase()))
