@@ -14,7 +14,7 @@ export const revalidate = 86400; // Revalidate once per day
 export default async function Image() {
   try {
     const publicDir = join(process.cwd(), "public");
-    const thumbnailPath = join(publicDir, "thumbnail_miniapp.webp");
+    const thumbnailPath = join(publicDir, "thumbnail.webp");
     const thumbnailBuffer = await readFile(thumbnailPath);
 
     return new NextResponse(new Uint8Array(thumbnailBuffer), {
