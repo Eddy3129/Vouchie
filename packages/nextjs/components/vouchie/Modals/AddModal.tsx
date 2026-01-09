@@ -816,7 +816,7 @@ const AddModal = ({ isOpen, onClose, onAdd, creationStep = "idle" }: AddModalPro
                 ) : (
                   <>
                     <CheckCircle size={18} weight="fill" />
-                    Approve & Lock ${formData.stake} USDC
+                    Lock ${formData.stake} USDC
                   </>
                 )}
               </button>
