@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import Image from "next/image";
 import { NetworkOptions } from "./NetworkOptions";
 import { getAddress } from "viem";
 import { Address } from "viem";
@@ -13,6 +14,7 @@ import {
   EyeIcon,
   QrCodeIcon,
 } from "@heroicons/react/24/outline";
+import { useMiniapp } from "~~/components/MiniappProvider";
 import { BlockieAvatar } from "~~/components/scaffold-eth";
 import { useCopyToClipboard, useOutsideClick } from "~~/hooks/scaffold-eth";
 import { getTargetNetworks } from "~~/utils/scaffold-eth";
@@ -37,7 +39,21 @@ export const AddressInfoDropdown = ({
 }: AddressInfoDropdownProps) => {
   const { disconnect } = useDisconnect();
   const { connector } = useAccount();
+  const { context, isMiniApp } = useMiniapp();
   const checkSumAddress = getAddress(address);
+
+  // Use miniapp user info if available, otherwise fall back to ENS/address
+  const miniappUser = context.user;
+  const avatarUrl = miniappUser?.pfpUrl || ensAvatar;
+  const userName = miniappUser?.username || miniappUser?.displayName;
+  const showMiniappAvatar = isMiniApp && avatarUrl;
+
+  // Display name priority: miniapp username > ENS > truncated address
+  const finalDisplayName = userName
+    ? `@${userName}`
+    : isENS(displayName)
+      ? displayName
+      : checkSumAddress?.slice(0, 6) + "..." + checkSumAddress?.slice(-4);
 
   const { copyToClipboard: copyAddressToClipboard, isCopiedToClipboard: isAddressCopiedToClipboard } =
     useCopyToClipboard();
@@ -55,10 +71,14 @@ export const AddressInfoDropdown = ({
     <>
       <details ref={dropdownRef} className="dropdown dropdown-end">
         <summary className="btn btn-secondary btn-sm pl-0 pr-2 shadow-md dropdown-toggle gap-0 h-9 min-h-0">
-          <BlockieAvatar address={checkSumAddress} size={30} ensImage={ensAvatar} />
-          <span className="ml-2 mr-1">
-            {isENS(displayName) ? displayName : checkSumAddress?.slice(0, 6) + "..." + checkSumAddress?.slice(-4)}
-          </span>
+          {showMiniappAvatar ? (
+            <div className="relative w-[30px] h-[30px] rounded-full overflow-hidden">
+              <Image src={avatarUrl} alt="Profile" fill className="object-cover" unoptimized />
+            </div>
+          ) : (
+            <BlockieAvatar address={checkSumAddress} size={30} ensImage={ensAvatar} />
+          )}
+          <span className="ml-2 mr-1">{finalDisplayName}</span>
           <ChevronDownIcon className="h-6 w-4 ml-2 sm:ml-0" />
         </summary>
         <ul className="dropdown-content menu z-2 p-2 mt-2 shadow-center shadow-accent bg-base-200 rounded-box gap-1">

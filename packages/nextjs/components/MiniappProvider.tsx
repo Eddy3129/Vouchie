@@ -97,6 +97,27 @@ export const resolveClientFid = (fid: number | undefined): string => {
 };
 
 /**
+ * Determine client type from FID
+ */
+export type ClientType = "base" | "farcaster" | "unknown";
+
+export const getClientType = (clientFid: number | undefined): ClientType => {
+  if (clientFid === 309857) return "base";
+  if (clientFid === 9152) return "farcaster";
+  return "unknown";
+};
+
+/**
+ * Get the appropriate cast URL for the current client
+ * Works for both Warpcast and Base App
+ */
+export const getCastUrl = (castHash: string): string => {
+  // Use warpcast.com as it works in both clients
+  // The SDK's openUrl will handle it appropriately
+  return `https://warpcast.com/~/conversations/${castHash}`;
+};
+
+/**
  * MiniappContext provides full SDK context and initialization state
  *
  * Usage:
@@ -113,6 +134,9 @@ interface MiniappContextType {
   context: FullMiniAppContext;
   isReady: boolean;
   isMiniApp: boolean;
+  clientType: ClientType;
+  isBaseApp: boolean;
+  isFarcaster: boolean;
   openLink: (url: string) => Promise<void>;
   composeCast: (params: { text: string; embeds?: string[] }) => Promise<{ cast?: { hash: string } } | undefined>;
   openProfile: (params: { fid?: number; username?: string }) => Promise<void>;
@@ -343,10 +367,17 @@ export const MiniappProvider = ({ children }: MiniappProviderProps) => {
     initialize();
   }, []);
 
+  const clientType = getClientType(context.client?.clientFid);
+  const isBaseApp = clientType === "base";
+  const isFarcaster = clientType === "farcaster";
+
   const value = {
     context,
     isReady,
     isMiniApp,
+    clientType,
+    isBaseApp,
+    isFarcaster,
     openLink,
     composeCast,
     openProfile,

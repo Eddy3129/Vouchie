@@ -321,7 +321,7 @@ const TaskDetailModal = ({
               <h4 className="text-purple-700 dark:text-purple-300 text-[11px] uppercase tracking-wider">
                 👥 Vouchies ({goal.vouchies.length})
               </h4>
-              <span className="text-purple-600 dark:text-purple-400 text-[9px]">will verify via Farcaster</span>
+              <span className="text-purple-600 dark:text-purple-400 text-[9px]">will verify via cast</span>
             </div>
             <div className="flex flex-wrap gap-2">
               {goal.vouchies.map((vouchie, idx) => (
@@ -389,8 +389,7 @@ const TaskDetailModal = ({
               <Camera size={16} weight="bold" className="text-stone-400" /> Submit Proof
             </h4>
             <p className="text-stone-500 dark:text-stone-400 text-xs mb-3">
-              Your proof will be shared via Farcaster cast. Attach a photo in the next screen to improve validity and
-              keep a record of your achievement!
+              Your proof will be shared via cast. Attach a photo to improve validity and keep a record!
             </p>
             <textarea
               rows={2}

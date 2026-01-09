@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import Image from "next/image";
 import { Goal } from "../../types/vouchie";
 import Card from "./Helper/Card";
 import SlidingTabs from "./SlidingTabs";
@@ -695,7 +696,7 @@ const CalendarView = ({ tasks, vouchieGoals = [], onClaim, claimingGoalId }: Cal
                                       title={v.username || v.name || v.address || "Vouchie"}
                                     >
                                       {v.avatar ? (
-                                        <img src={v.avatar} alt={v.name} className="w-full h-full object-cover" />
+                                        <Image src={v.avatar} alt={v.name || "Vouchie"} fill className="object-cover" />
                                       ) : (
                                         (v.name || v.username || v.address?.slice(2, 4) || "V")
                                           .slice(0, 2)

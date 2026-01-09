@@ -8,18 +8,18 @@ export const size = {
   width: 1200,
   height: 630,
 };
-export const contentType = "image/webp";
+export const contentType = "image/png";
 export const revalidate = 86400; // Revalidate once per day
 
 export default async function Image() {
   try {
     const publicDir = join(process.cwd(), "public");
-    const thumbnailPath = join(publicDir, "thumbnail.webp");
+    const thumbnailPath = join(publicDir, "thumbnail.png");
     const thumbnailBuffer = await readFile(thumbnailPath);
 
     return new NextResponse(new Uint8Array(thumbnailBuffer), {
       headers: {
-        "Content-Type": "image/webp",
+        "Content-Type": "image/png",
         "Cache-Control": "public, max-age=86400, s-maxage=86400",
       },
     });

@@ -108,7 +108,7 @@ const VerifyModal = ({ isOpen, onClose, goal, onVote, onSettle }: VerifyModalPro
                       className="flex items-center gap-1 text-[10px] font-bold text-purple-500 hover:text-purple-600 transition-colors"
                     >
                       <ArrowSquareOut size={12} weight="bold" />
-                      View on Farcaster
+                      View Proof
                     </a>
                   )}
                 </div>
