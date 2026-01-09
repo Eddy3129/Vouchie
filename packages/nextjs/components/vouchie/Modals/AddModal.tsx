@@ -630,7 +630,7 @@ const AddModal = ({ isOpen, onClose, onAdd, creationStep = "idle" }: AddModalPro
                     <button
                       onClick={openConnectModal}
                       disabled={!ready}
-                      className="w-full h-14 bg-gradient-to-r from-[#A67B5B] to-[#8B5A2B] dark:from-[#FFA726] dark:to-[#FF9800] text-white dark:text-stone-900 rounded-full font-bold text-sm uppercase tracking-wider shadow-lg hover:shadow-xl transition-all active:scale-[0.98] flex items-center justify-center gap-2"
+                      className="w-full h-14 bg-stone-900 dark:bg-stone-900 text-orange-500 dark:text-orange-400 border-2 border-orange-500 dark:border-orange-400 rounded-full font-bold text-sm uppercase tracking-wider shadow-lg hover:shadow-xl hover:bg-stone-800 transition-all active:scale-[0.98] flex items-center justify-center gap-2"
                     >
                       <Wallet size={20} weight="fill" />
                       Connect to Pledge

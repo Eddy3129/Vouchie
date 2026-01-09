@@ -196,148 +196,153 @@ const HomeActiveView = ({
         : "bg-green-500";
 
   return (
-    <div className="space-y-4 animate-in fade-in duration-500 pb-8 px-6">
+    <div className="flex flex-col min-h-[60vh] animate-in fade-in duration-500 pb-8 px-6">
       {/* 1. HERO SECTION: Active Commitment */}
       {activeGoal ? (
-        <div className="card-hero group hover:shadow-2xl hover:scale-[1.01] animate-cycle-pulse">
-          {/* Background Glow & Urgent Pulse */}
-          <div
-            className={`absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-[100px] opacity-40 pointer-events-none transition-all duration-1000 ${glowColor}`}
-          />
+        <div className="flex-1 flex flex-col justify-center">
+          <div className="card-hero group hover:shadow-2xl hover:scale-[1.01] animate-cycle-pulse">
+            {/* Background Glow & Urgent Pulse */}
+            <div
+              className={`absolute top-0 left-1/2 -translate-x-1/2 w-80 h-80 rounded-full blur-[100px] opacity-40 pointer-events-none transition-all duration-1000 ${glowColor}`}
+            />
 
-          <div className="relative z-10 flex flex-col items-center">
-            {/* Status Pill */}
-            <div className="status-pill mb-6">
-              <div
-                className={`w-2 h-2 rounded-full animate-pulse ${isMatured ? "bg-amber-500" : isCritical ? "bg-red-500" : isWarning ? "bg-amber-400" : "bg-green-500"}`}
-              />
-              <span className="text-xs font-bold text-stone-500 dark:text-stone-300 uppercase tracking-widest">
-                {isMatured ? "Pending Resolve" : "Active"}
-              </span>
-            </div>
-
-            {/* Task Title */}
-            <h1 className="text-hero mb-6">{activeGoal.title}</h1>
-
-            {/* Refined Countdown Display */}
-            <div className="flex flex-col items-center w-full max-w-[320px] mb-8">
-              <div className="w-full flex justify-center gap-3 mb-4">
-                {(() => {
-                  const { h, m, s } = getTimeUnits(activeGoal.deadline);
-                  return (
-                    <>
-                      {[
-                        { val: h, label: "Hours" },
-                        { val: m, label: "Mins" },
-                        { val: s, label: "Secs" },
-                      ].map((unit, idx) => (
-                        <div key={idx} className="flex-1 px-1">
-                          <FlipGroup val={unit.val} colorClass="text-white" label={unit.label} />
-                        </div>
-                      ))}
-                    </>
-                  );
-                })()}
-              </div>
-
-              {/* Stake Amount Sub-label */}
-              <div className="flex items-center gap-2 bg-stone-50 dark:bg-stone-800/80 px-4 py-2 rounded-xl border border-stone-100 dark:border-stone-700 shadow-sm">
-                <ShieldCheck size={16} weight="fill" className="text-orange-500" />
-                <span className="text-sm font-bold text-stone-700 dark:text-stone-300">
-                  Pledged Stake:{" "}
-                  <span className="text-stone-900 dark:text-white ml-1">
-                    $
-                    {activeGoal.stake.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                  </span>
+            <div className="relative z-10 flex flex-col items-center">
+              {/* Status Pill */}
+              <div className="status-pill mb-6">
+                <div
+                  className={`w-2 h-2 rounded-full animate-pulse ${isMatured ? "bg-amber-500" : isCritical ? "bg-red-500" : isWarning ? "bg-amber-400" : "bg-green-500"}`}
+                />
+                <span className="text-xs font-bold text-stone-500 dark:text-stone-300 uppercase tracking-widest">
+                  {isMatured ? "Pending Resolve" : "Active"}
                 </span>
               </div>
-            </div>
 
-            {/* Primary Action Button */}
-            {isMatured ? (
-              (() => {
-                // For Squad mode: require at least 1 vote before allowing settle
-                const isSquad = activeGoal.mode === "Squad" && activeGoal.vouchies && activeGoal.vouchies.length > 0;
-                const totalVotes = (activeGoal.votesValid || 0) + (activeGoal.votesInvalid || 0);
-                const canSettle = !isSquad || totalVotes > 0;
+              {/* Task Title */}
+              <h1 className="text-hero mb-6">{activeGoal.title}</h1>
 
-                return (
-                  <div className="w-full max-w-sm space-y-3">
-                    {canSettle ? (
-                      <button onClick={() => onSettle(activeGoal.id)} className="btn-primary-lg">
-                        Settle <ArrowRight size={20} weight="bold" />
-                      </button>
-                    ) : (
-                      <button
-                        disabled
-                        className="w-full py-3 bg-amber-600/80 text-white rounded-2xl font-bold text-lg shadow-lg flex flex-col items-center justify-center gap-2 cursor-not-allowed opacity-90"
-                      >
-                        <div className="flex items-center gap-2">
-                          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                          <span>Awaiting Verification</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {Array.from({ length: activeGoal.vouchies?.length || 0 }).map((_, i) => (
-                            <User key={i} weight="bold" className="w-4 h-4 text-white/50" />
-                          ))}
-                        </div>
-                        <span className="text-xs text-white/70">0/{activeGoal.vouchies?.length} vouchies voted</span>
-                      </button>
-                    )}
-                    <button onClick={() => onForfeit(activeGoal.id)} className="btn-secondary-lg">
-                      Forfeit
-                    </button>
-                  </div>
-                );
-              })()
-            ) : activeGoal.status === "verifying" ? (
-              <button
-                disabled
-                className="w-full max-w-sm py-3 bg-amber-600 text-white rounded-2xl font-bold text-lg shadow-lg flex flex-col items-center justify-center gap-2 cursor-not-allowed opacity-90"
-              >
-                <div className="flex items-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Verifying...</span>
+              {/* Refined Countdown Display */}
+              <div className="flex flex-col items-center w-full max-w-[320px] mb-8">
+                <div className="w-full flex justify-center gap-3 mb-4">
+                  {(() => {
+                    const { h, m, s } = getTimeUnits(activeGoal.deadline);
+                    return (
+                      <>
+                        {[
+                          { val: h, label: "Hours" },
+                          { val: m, label: "Mins" },
+                          { val: s, label: "Secs" },
+                        ].map((unit, idx) => (
+                          <div key={idx} className="flex-1 px-1">
+                            <FlipGroup val={unit.val} colorClass="text-white" label={unit.label} />
+                          </div>
+                        ))}
+                      </>
+                    );
+                  })()}
                 </div>
 
-                {/* Verification Progress */}
-                {activeGoal.mode === "Squad" && activeGoal.vouchies && (
-                  <div className="flex flex-col items-center gap-1">
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: activeGoal.vouchies.length || 0 }).map((_, i) => {
-                        const totalVotes = (activeGoal.votesValid || 0) + (activeGoal.votesInvalid || 0);
-                        const isVoted = i < totalVotes;
-                        return (
-                          <User
-                            key={i}
-                            weight={isVoted ? "fill" : "bold"}
-                            className={`w-4 h-4 ${isVoted ? "text-white" : "text-white/50"}`}
-                          />
-                        );
+                {/* Stake Amount Sub-label */}
+                <div className="flex items-center gap-2 bg-stone-50 dark:bg-stone-800/80 px-4 py-2 rounded-xl border border-stone-100 dark:border-stone-700 shadow-sm">
+                  <ShieldCheck size={16} weight="fill" className="text-orange-500" />
+                  <span className="text-sm font-bold text-stone-700 dark:text-stone-300">
+                    Pledged Stake:{" "}
+                    <span className="text-stone-900 dark:text-white ml-1">
+                      $
+                      {activeGoal.stake.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
                       })}
-                    </div>
-                    <span className="text-xs font-medium text-white/80">
-                      {(activeGoal.votesValid || 0) + (activeGoal.votesInvalid || 0)}/{activeGoal.vouchies.length}{" "}
-                      Verified
                     </span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Primary Action Button */}
+              {isMatured ? (
+                (() => {
+                  // For Squad mode: require at least 1 vote before allowing settle
+                  const isSquad = activeGoal.mode === "Squad" && activeGoal.vouchies && activeGoal.vouchies.length > 0;
+                  const totalVotes = (activeGoal.votesValid || 0) + (activeGoal.votesInvalid || 0);
+                  const canSettle = !isSquad || totalVotes > 0;
+
+                  return (
+                    <div className="w-full max-w-sm space-y-3">
+                      {canSettle ? (
+                        <button onClick={() => onSettle(activeGoal.id)} className="btn-primary-lg">
+                          Settle <ArrowRight size={20} weight="bold" />
+                        </button>
+                      ) : (
+                        <button
+                          disabled
+                          className="w-full py-3 bg-amber-600/80 text-white rounded-2xl font-bold text-lg shadow-lg flex flex-col items-center justify-center gap-2 cursor-not-allowed opacity-90"
+                        >
+                          <div className="flex items-center gap-2">
+                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                            <span>Awaiting Verification</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            {Array.from({ length: activeGoal.vouchies?.length || 0 }).map((_, i) => (
+                              <User key={i} weight="bold" className="w-4 h-4 text-white/50" />
+                            ))}
+                          </div>
+                          <span className="text-xs text-white/70">0/{activeGoal.vouchies?.length} vouchies voted</span>
+                        </button>
+                      )}
+                      <button onClick={() => onForfeit(activeGoal.id)} className="btn-secondary-lg">
+                        Forfeit
+                      </button>
+                    </div>
+                  );
+                })()
+              ) : activeGoal.status === "verifying" ? (
+                <button
+                  disabled
+                  className="w-full max-w-sm py-3 bg-amber-600 text-white rounded-2xl font-bold text-lg shadow-lg flex flex-col items-center justify-center gap-2 cursor-not-allowed opacity-90"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Verifying...</span>
                   </div>
-                )}
-              </button>
-            ) : activeGoal.status === "in_progress" ? (
-              <button
-                onClick={() => onVerify(activeGoal)}
-                className="btn-primary-lg bg-[#FF8C00] hover:bg-[#EF6C00] hover:shadow-orange-500/20"
-              >
-                Complete <ArrowRight size={20} weight="bold" />
-              </button>
-            ) : (
-              <button
-                onClick={() => onStart(activeGoal)}
-                className="w-full max-w-sm py-4 bg-stone-800 dark:bg-white text-white dark:text-stone-900 rounded-2xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-3 transform active:scale-95"
-              >
-                Start Task
-              </button>
-            )}
+
+                  {/* Verification Progress */}
+                  {activeGoal.mode === "Squad" && activeGoal.vouchies && (
+                    <div className="flex flex-col items-center gap-1">
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: activeGoal.vouchies.length || 0 }).map((_, i) => {
+                          const totalVotes = (activeGoal.votesValid || 0) + (activeGoal.votesInvalid || 0);
+                          const isVoted = i < totalVotes;
+                          return (
+                            <User
+                              key={i}
+                              weight={isVoted ? "fill" : "bold"}
+                              className={`w-4 h-4 ${isVoted ? "text-white" : "text-white/50"}`}
+                            />
+                          );
+                        })}
+                      </div>
+                      <span className="text-xs font-medium text-white/80">
+                        {(activeGoal.votesValid || 0) + (activeGoal.votesInvalid || 0)}/{activeGoal.vouchies.length}{" "}
+                        Verified
+                      </span>
+                    </div>
+                  )}
+                </button>
+              ) : activeGoal.status === "in_progress" ? (
+                <button
+                  onClick={() => onVerify(activeGoal)}
+                  className="btn-primary-lg bg-[#FF8C00] hover:bg-[#EF6C00] hover:shadow-orange-500/20"
+                >
+                  Complete <ArrowRight size={20} weight="bold" />
+                </button>
+              ) : (
+                <button
+                  onClick={() => onStart(activeGoal)}
+                  className="w-full max-w-sm py-4 bg-stone-800 dark:bg-white text-white dark:text-stone-900 rounded-2xl font-bold text-lg shadow-lg transition-all flex items-center justify-center gap-3 transform active:scale-95"
+                >
+                  Start Task
+                </button>
+              )}
+            </div>
           </div>
         </div>
       ) : (
