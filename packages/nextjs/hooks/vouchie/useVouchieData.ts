@@ -209,6 +209,11 @@ export const useVouchieData = () => {
           allUserAddresses.length > 0 &&
           vouchieAddresses.some((addr: string) => allUserAddresses.includes(addr.toLowerCase()));
 
+        // DEBUG: Log goal filtering details
+        console.log(
+          `[GOAL ${goalId}] creator=${creator.slice(0, 10)}... isCreator=${isCreator} isVouchie=${isVouchie} allUserAddrs=[${allUserAddresses.map(a => a.slice(0, 10)).join(", ")}]`,
+        );
+
         const currentUserVouchieIndex = isVouchie
           ? vouchieAddresses.findIndex((addr: string) => allUserAddresses.includes(addr.toLowerCase()))
           : undefined;
